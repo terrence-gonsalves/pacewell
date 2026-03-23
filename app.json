@@ -2,7 +2,8 @@
   "expo": {
     "name": "pacewell",
     "slug": "pacewell",
-    "version": "1.0.0",
+    "scheme": "pacewell",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
