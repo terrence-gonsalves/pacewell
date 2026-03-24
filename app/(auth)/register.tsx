@@ -94,7 +94,7 @@ export default function Register() {
 
     const handleSubmit = async () => {
         setError(null);
-
+      
         if (!fullName) {
             setError('Please enter your name.');
 
@@ -118,60 +118,36 @@ export default function Register() {
 
             return;
         }
-
+      
         setLoading(true);
-
-        // step 1: Create the auth account
-        const { data, error: signUpError } = await supabase.auth.signUp({
+      
+        const { error: signUpError } = await supabase.auth.signUp({
             email,
             password,
-        });       
-  
+            options: {
+                data: {
+                    full_name: fullName,
+                    age: Number(age),
+                    primary_activity: activityLevel,
+                    activity_level: activityLevel,
+                    health_goals: selectedGoals,
+                },
+            },
+        });
+      
         if (signUpError) {
             setError(signUpError.message);
             setLoading(false);
 
             return;
         }
-  
-        if (!data.user) {
-            setError('Something went wrong. Please try again.');
-            setLoading(false);
-
-            return;
-        }
-  
-        // step 2: Wait for session to be fully established
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-
-            // session not ready yet — profile will be created after email confirmation
-            setError('Please check your email to confirm your account, then sign in.');
-            setLoading(false);
-
-            return;
-        }
-  
-        // step 3: Create the profile
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-                id: data.user.id,
-                full_name: fullName,
-                age: Number(age),
-                primary_activity: activityLevel,
-                activity_level: activityLevel,
-                health_goals: selectedGoals,
-            });
-        
-        if (profileError) {
-            setError(profileError.message);
-            setLoading(false);
-            
-            return;
-        }
-        
+      
+        // navigate to login with confirmation message
+        router.replace({
+            pathname: '/(auth)/login',
+            params: { message: 'Please check your email to confirm your account before signing in.' },
+        });
+      
         setLoading(false);
     };
 
