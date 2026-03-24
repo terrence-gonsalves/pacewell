@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 
 type AuthMode = 'password' | 'magic-link';
@@ -22,6 +22,7 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [magicLinkSent, setMagicLinkSent] = useState(false);
+    const { message } = useLocalSearchParams<{ message?: string }>();
 
     const handlePasswordLogin = async () => {
         if (!email || !password) {
@@ -107,6 +108,12 @@ export default function Login() {
             <View style={styles.inner}>
                 <Text style={styles.title}>Pacewell</Text>
                 <Text style={styles.subtitle}>Your recovery starts here</Text>
+                
+                {message && (
+                <View style={styles.messageBox}>
+                    <Text style={styles.messageText}>📬 {message}</Text>
+                </View>
+                )}
                 
                 <View style={styles.toggle}>
                     <TouchableOpacity
@@ -310,4 +317,17 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 24,
     },    
+    messageBox: {
+        backgroundColor: '#f0faf4',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#2d6a4f',
+    },
+    messageText: {
+        fontSize: 14,
+        color: '#2d6a4f',
+        lineHeight: 20,
+    },
 });
