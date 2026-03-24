@@ -4,30 +4,50 @@ import { Stack, router } from 'expo-router';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+const ensureProfile = async (session: Session) => {
+    const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', session.user.id)
+        .single();
+
+    if (!existingProfile) {
+        const meta = session.user.user_metadata;
+
+        await supabase.from('profiles').insert({
+            id: session.user.id,
+            full_name: meta.full_name ?? 'Pacewell User',
+            age: meta.age ?? 50,
+            primary_activity: meta.primary_activity ?? 'walking',
+            activity_level: meta.activity_level ?? 'moderate',
+            health_goals: meta.health_goals ?? [],
+        });
+    }
+};
+
 export default function RootLayout() {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-
-        // step 1: Check for an existing session on app launch
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setLoading(false);
         });
 
-        // step 2: Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
+            async (_event, session) => {
+                if (session) {
+                    await ensureProfile(session);
+                }
+                
                 setSession(session);
             }
         );
 
-        // step 3: Clean up the listener when the component unmounts
         return () => subscription.unsubscribe();
     }, []);
 
-    // step 4: Handle navigation based on auth state
     useEffect(() => {
         if (loading) return;
 
@@ -38,7 +58,6 @@ export default function RootLayout() {
         }
     }, [session, loading]);
 
-    // step 5: Show a spinner while we check auth state
     if (loading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
