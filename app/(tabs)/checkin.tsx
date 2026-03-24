@@ -117,6 +117,7 @@ export default function CheckIn() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [existingId, setExistingId] = useState<string | null>(null);
     const [submitted, setSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const flatListRef = useRef<FlatList>(null);
 
     const update = <K extends keyof CheckInState>(key: K, value: CheckInState[K]) => {
@@ -187,10 +188,16 @@ export default function CheckIn() {
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
+        setSubmitError(null);
 
         const { data: { user } } = await supabase.auth.getUser();
         
-        if (!user) return;
+        if (!user) {
+            setSubmitError('No user session found. Please log in again.');
+            setIsSubmitting(false);
+
+            return;
+        }
 
         const today = new Date().toISOString().split('T')[0];
 
@@ -211,10 +218,14 @@ export default function CheckIn() {
             ? await supabase.from('daily_checkins').update(payload).eq('id', existingId)
             : await supabase.from('daily_checkins').insert(payload);
 
-        if (!error) {
-            setSubmitted(true);
+        if (error) {
+            setSubmitError(error.message);
+            setIsSubmitting(false);
+
+            return;
         }
 
+        setSubmitted(true);
         setIsSubmitting(false);
     };
 
@@ -446,6 +457,12 @@ export default function CheckIn() {
                     </View>
                 )}
             />
+            
+            {submitError && (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{submitError}</Text>
+                </View>
+            )}
             
             <View style={styles.navigation}>
                 <TouchableOpacity
@@ -697,4 +714,19 @@ const styles = StyleSheet.create({
         color: '#2d6a4f',
         fontWeight: '600',
     },
+
+    errorContainer: {
+        marginHorizontal: 24,
+        marginBottom: 8,
+        padding: 12,
+        backgroundColor: '#fff0f0',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e63946',
+      },
+      errorText: {
+        color: '#e63946',
+        fontSize: 13,
+        textAlign: 'center',
+      },
 });
