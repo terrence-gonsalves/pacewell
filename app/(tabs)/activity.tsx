@@ -164,34 +164,39 @@ export default function Activity() {
         setIsSubmitting(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) return;
+            if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
 
-        const { error } = await supabase.from('activity_logs').insert({
-            user_id: user.id,
-            date: today,
-            activity_type: form.activityType,
-            duration_minutes: form.duration,
-            perceived_exertion: form.perceivedExertion,
-            notes: form.notes || null,
-            source: 'manual',
-        });
+            const { error } = await supabase.from('activity_logs').insert({
+                user_id: user.id,
+                date: today,
+                activity_type: form.activityType,
+                duration_minutes: form.duration,
+                perceived_exertion: form.perceivedExertion,
+                notes: form.notes || null,
+                source: 'manual',
+            });
 
-        if (error) {
-            setError(error.message);
+            if (error) {
+                setError(error.message);
+                setIsSubmitting(false);
+
+                return;
+            }
+
+            setForm(DEFAULT_FORM);
+            setSheetVisible(false);
+
+            await loadActivities();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+        } finally {
             setIsSubmitting(false);
-
-            return;
         }
-
-        setForm(DEFAULT_FORM);
-        setSheetVisible(false);
-
-        await loadActivities();
-        setIsSubmitting(false);
     };
 
     // ─── Delete Activity ──────────────────────────────────────────────────────
@@ -356,7 +361,7 @@ export default function Activity() {
                                 onChange={val => updateForm('duration', val)}
                                 min={5}
                                 max={300}
-                                step={5}
+                                step={1}
                                 unit="minutes"
                             />
                             
