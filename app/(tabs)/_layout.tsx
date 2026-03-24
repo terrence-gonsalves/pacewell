@@ -21,53 +21,53 @@ export default function TabsLayout() {
                 tabBarActiveTintColor: '#2d6a4f',
                 tabBarInactiveTintColor: '#999',
                 tabBarStyle: {
-                backgroundColor: '#fff',
-                borderTopColor: '#f0f0f0',
-                borderTopWidth: 1,
-                paddingBottom: 8,
-                paddingTop: 8,
-                height: 64,
+                    backgroundColor: '#fff',
+                    borderTopColor: '#f0f0f0',
+                    borderTopWidth: 1,
+                    paddingBottom: 8,
+                    paddingTop: 8,
+                    height: 64,
                 },
                 tabBarLabelStyle: {
-                fontSize: 11,
-                fontWeight: '600',
+                    fontSize: 11,
+                    fontWeight: '600',
                 },
             }}
         >
             <Tabs.Screen
                 name="dashboard"
                 options={{
-                title: 'Home',
-                tabBarIcon: ({ color, size }) => (
-                    <TabIcon name="home" color={color} size={size} />
-                ),
+                    title: 'Home',
+                    tabBarIcon: ({ color, size }) => (
+                        <TabIcon name="home" color={color} size={size} />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="checkin"
                 options={{
-                title: 'Check-in',
-                tabBarIcon: ({ color, size }) => (
-                    <TabIcon name="heart" color={color} size={size} />
-                ),
+                    title: 'Check-in',
+                    tabBarIcon: ({ color, size }) => (
+                        <TabIcon name="heart" color={color} size={size} />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="activity"
                 options={{
-                title: 'Activity',
-                tabBarIcon: ({ color, size }) => (
-                    <TabIcon name="fitness" color={color} size={size} />
-                ),
+                    title: 'Activity',
+                    tabBarIcon: ({ color, size }) => (
+                        <TabIcon name="fitness" color={color} size={size} />
+                    ),
                 }}
             />
             <Tabs.Screen
                 name="profile"
                 options={{
-                title: 'Profile',
-                tabBarIcon: ({ color, size }) => (
-                    <TabIcon name="person" color={color} size={size} />
-                ),
+                    title: 'Profile',
+                    tabBarIcon: ({ color, size }) => (
+                        <TabIcon name="person" color={color} size={size} />
+                    ),
                 }}
             />
         </Tabs>
