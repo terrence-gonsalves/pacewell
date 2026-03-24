@@ -125,23 +125,35 @@ export default function Register() {
         const { data, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
-        });
-
+        });       
+  
         if (signUpError) {
             setError(signUpError.message);
             setLoading(false);
 
             return;
         }
-
+  
         if (!data.user) {
             setError('Something went wrong. Please try again.');
             setLoading(false);
 
             return;
         }
+  
+        // step 2: Wait for session to be fully established
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
 
-        // step 2: Create the profile
+            // session not ready yet — profile will be created after email confirmation
+            setError('Please check your email to confirm your account, then sign in.');
+            setLoading(false);
+
+            return;
+        }
+  
+        // step 3: Create the profile
         const { error: profileError } = await supabase
             .from('profiles')
             .insert({
@@ -152,15 +164,14 @@ export default function Register() {
                 activity_level: activityLevel,
                 health_goals: selectedGoals,
             });
-
+        
         if (profileError) {
             setError(profileError.message);
             setLoading(false);
-
+            
             return;
         }
-
-        // auth state change in _layout.tsx handles navigation automatically
+        
         setLoading(false);
     };
 
