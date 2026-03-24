@@ -2,6 +2,7 @@
 
 export type EmojiScale = 1 | 2 | 3 | 4 | 5;
 
+export type EmojiScaleLabels = Record<EmojiScale, { emoji: string; label: string }>;
 export const EMOJI_SCALE_MAP: Record<EmojiScale, { emoji: string; label: string }> = {
     1: { emoji: '😴', label: 'Very Low' },
     2: { emoji: '😔', label: 'Low' },

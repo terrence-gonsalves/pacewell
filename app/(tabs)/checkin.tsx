@@ -14,7 +14,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
-import { EmojiScale, EMOJI_SCALE_MAP } from '../../types/health';
+import { EmojiScale, EmojiScaleLabels } from '../../types/health';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -47,9 +47,11 @@ const DEFAULT_STATE: CheckInState = {
 const EmojiSelector = ({
     value,
     onChange,
+    labels,
 }: {
     value: EmojiScale;
     onChange: (val: EmojiScale) => void;
+    labels: EmojiScaleLabels;
 }) => (
     <View style={styles.emojiRow}>
 
@@ -59,9 +61,9 @@ const EmojiSelector = ({
             style={[styles.emojiButton, value === scale && styles.emojiButtonActive]}
             onPress={() => onChange(scale)}
         >
-            <Text style={styles.emojiText}>{EMOJI_SCALE_MAP[scale].emoji}</Text>
+            <Text style={styles.emojiText}>{labels[scale].emoji}</Text>
             <Text style={[styles.emojiLabel, value === scale && styles.emojiLabelActive]}>
-                {EMOJI_SCALE_MAP[scale].label}
+                {labels[scale].label}
             </Text>
         </TouchableOpacity>
         ))}
@@ -115,6 +117,7 @@ export default function CheckIn() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [existingId, setExistingId] = useState<string | null>(null);
     const [submitted, setSubmitted] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const flatListRef = useRef<FlatList>(null);
 
     const update = <K extends keyof CheckInState>(key: K, value: CheckInState[K]) => {
@@ -185,10 +188,16 @@ export default function CheckIn() {
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
+        setSubmitError(null);
 
         const { data: { user } } = await supabase.auth.getUser();
         
-        if (!user) return;
+        if (!user) {
+            setSubmitError('No user session found. Please log in again.');
+            setIsSubmitting(false);
+
+            return;
+        }
 
         const today = new Date().toISOString().split('T')[0];
 
@@ -209,11 +218,57 @@ export default function CheckIn() {
             ? await supabase.from('daily_checkins').update(payload).eq('id', existingId)
             : await supabase.from('daily_checkins').insert(payload);
 
-        if (!error) {
-            setSubmitted(true);
+        if (error) {
+            setSubmitError(error.message);
+            setIsSubmitting(false);
+
+            return;
         }
 
+        setSubmitted(true);
         setIsSubmitting(false);
+    };
+
+    // ─── Custom Labels ───────────────────────────────────────────────────
+
+    const SLEEP_QUALITY_LABELS: EmojiScaleLabels = {
+        1: { emoji: '😫', label: 'Terrible' },
+        2: { emoji: '😔', label: 'Poor' },
+        3: { emoji: '😐', label: 'OK' },
+        4: { emoji: '😊', label: 'Good' },
+        5: { emoji: '😴', label: 'Great' },
+    };
+      
+    const MOOD_LABELS: EmojiScaleLabels = {
+        1: { emoji: '😞', label: 'Low' },
+        2: { emoji: '😕', label: 'Meh' },
+        3: { emoji: '😐', label: 'OK' },
+        4: { emoji: '😊', label: 'Good' },
+        5: { emoji: '😄', label: 'Great' },
+    };
+      
+    const ENERGY_LABELS: EmojiScaleLabels = {
+        1: { emoji: '🪫', label: 'Drained' },
+        2: { emoji: '😪', label: 'Tired' },
+        3: { emoji: '😐', label: 'OK' },
+        4: { emoji: '⚡', label: 'Energised' },
+        5: { emoji: '🔥', label: 'Fired up' },
+    };
+      
+    const STRESS_LABELS: EmojiScaleLabels = {
+        1: { emoji: '😌', label: 'Calm' },
+        2: { emoji: '🙂', label: 'Mild' },
+        3: { emoji: '😤', label: 'Moderate' },
+        4: { emoji: '😰', label: 'High' },
+        5: { emoji: '🤯', label: 'Overwhelmed' },
+    };
+      
+    const NUTRITION_LABELS: EmojiScaleLabels = {
+        1: { emoji: '🍟', label: 'Poor' },
+        2: { emoji: '🥪', label: 'Fair' },
+        3: { emoji: '🍽️', label: 'OK' },
+        4: { emoji: '🥗', label: 'Good' },
+        5: { emoji: '🌱', label: 'Excellent' },
     };
 
     // ─── Card Definitions ───────────────────────────────────────────────────
@@ -222,11 +277,12 @@ export default function CheckIn() {
         {
             key: 'sleepQuality',
             emoji: '😴',
-            question: 'How well did you sleep?',
+            question: 'How well did you sleep quality?',
             input: (
                 <EmojiSelector
                     value={state.sleepQuality}
                     onChange={val => update('sleepQuality', val)}
+                    labels={SLEEP_QUALITY_LABELS}
                 />
             ),
         },
@@ -253,6 +309,7 @@ export default function CheckIn() {
                 <EmojiSelector
                     value={state.mood}
                     onChange={val => update('mood', val)}
+                    labels={MOOD_LABELS}
                 />
             ),
         },
@@ -264,6 +321,7 @@ export default function CheckIn() {
                 <EmojiSelector
                     value={state.energy}
                     onChange={val => update('energy', val)}
+                    labels={ENERGY_LABELS}
                 />
             ),
         },
@@ -275,6 +333,7 @@ export default function CheckIn() {
                 <EmojiSelector
                     value={state.stress}
                     onChange={val => update('stress', val)}
+                    labels={STRESS_LABELS}
                 />
             ),
         },
@@ -286,6 +345,7 @@ export default function CheckIn() {
                 <EmojiSelector
                     value={state.nutritionQuality}
                     onChange={val => update('nutritionQuality', val)}
+                    labels={NUTRITION_LABELS}
                 />
             ),
         },
@@ -397,6 +457,12 @@ export default function CheckIn() {
                     </View>
                 )}
             />
+            
+            {submitError && (
+                <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{submitError}</Text>
+                </View>
+            )}
             
             <View style={styles.navigation}>
                 <TouchableOpacity
@@ -648,4 +714,19 @@ const styles = StyleSheet.create({
         color: '#2d6a4f',
         fontWeight: '600',
     },
+
+    errorContainer: {
+        marginHorizontal: 24,
+        marginBottom: 8,
+        padding: 12,
+        backgroundColor: '#fff0f0',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#e63946',
+      },
+      errorText: {
+        color: '#e63946',
+        fontSize: 13,
+        textAlign: 'center',
+      },
 });
