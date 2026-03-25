@@ -429,6 +429,8 @@ export default function Profile() {
     );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
