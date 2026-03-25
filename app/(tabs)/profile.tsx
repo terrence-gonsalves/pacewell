@@ -198,7 +198,7 @@ export default function Profile() {
 
                     <TouchableOpacity
                         style={styles.editButton}
-                        onPress={() => router.push('/(tabs)/edit-profile')}
+                        onPress={() => router.push('/../edit-profile')}
                     >
                         <Text style={styles.editButtonText}>Edit Profile</Text>
                     </TouchableOpacity>
