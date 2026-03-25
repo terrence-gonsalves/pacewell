@@ -22,6 +22,8 @@ export interface UserProfile {
     primary_activity: string;
     activity_level: ActivityLevel;
     health_goals: string[];
+    units: 'metric' | 'imperial';
+    marketing_opt_in: boolean;
     created_at: string;
 }
 
