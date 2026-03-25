@@ -10,6 +10,7 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { AIInsight, ActivityLog, EmojiScale, EmojiScaleLabels } from '../../types/health';
+import { formatDate } from '../../lib/locale';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -356,12 +357,7 @@ export default function Dashboard() {
                                 </Text>
                             </View>
                             <Text style={styles.activityDate}>
-
-                                {new Date(activity.date).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                })}
-
+                                {formatDate(activity.date, { day: 'numeric', month: 'short' })}
                             </Text>
                         </View>
 
