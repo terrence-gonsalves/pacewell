@@ -11,8 +11,8 @@ import {
     Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '../../lib/supabase';
-import { ActivityLevel, UserProfile } from '../../types/health';
+import { supabase } from '../lib/supabase';
+import { ActivityLevel, UserProfile } from '../types/health';
 
 const ACTIVITY_LEVELS: { value: ActivityLevel; label: string; description: string }[] = [
     { value: 'light', label: '🚶 Light', description: 'Walking, gentle stretching' },
@@ -123,7 +123,7 @@ export default function EditProfile() {
                 return;
             }
 
-            router.back();
+            router.replace('/(tabs)/profile');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong.');
         } finally {
@@ -149,7 +149,7 @@ export default function EditProfile() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()}>
+                    <TouchableOpacity onPress={() => router.replace('/(tabs)/profile')}>
                         <Text style={styles.backButton}>← Back</Text>
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Edit Profile</Text>
