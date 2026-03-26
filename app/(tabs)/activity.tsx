@@ -16,6 +16,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
+import { formatDate } from '../../lib/locale';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -218,7 +219,7 @@ export default function Activity() {
     const getActivityMeta = (type: ActivityType) =>
         ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
 
-    const today = new Date().toLocaleDateString('en-GB', {
+    const today = formatDate(new Date(), {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
