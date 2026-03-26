@@ -10,7 +10,7 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { AIInsight, ActivityLog, EmojiScale, EmojiScaleLabels } from '../../types/health';
-import { formatDate } from '../../lib/locale';
+import { formatDate, getLocalDate, parseLocalDate } from '../../lib/locale';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -111,10 +111,10 @@ export default function Dashboard() {
 
             if (!user) return;
 
-            const today = new Date().toISOString().split('T')[0];
-            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split('T')[0];
+            const today = getLocalDate();
+            const sevenDaysAgo = getLocalDate(
+                new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            );
 
             // run all queries in parallel
             const [
@@ -357,7 +357,7 @@ export default function Dashboard() {
                                 </Text>
                             </View>
                             <Text style={styles.activityDate}>
-                                {formatDate(activity.date, { day: 'numeric', month: 'short' })}
+                                {formatDate(parseLocalDate(activity.date), { day: 'numeric', month: 'short' })}
                             </Text>
                         </View>
 
