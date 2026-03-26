@@ -62,7 +62,7 @@ const getGreeting = () => {
 };
 
 const getFormattedDate = () =>
-    new Date().toLocaleDateString('en-GB', {
+    formatDate(new Date(), {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -389,8 +389,7 @@ export default function Dashboard() {
                     </Text>
                     <Text style={styles.insightDate}>
 
-                        {new Date(data.latestInsight.created_at).toLocaleDateString(
-                            'en-GB',
+                        {formatDate(new Date(data.latestInsight.created_at),
                             { day: 'numeric', month: 'long' }
                         )}
 
