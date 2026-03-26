@@ -15,6 +15,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { EmojiScale, EmojiScaleLabels } from '../../types/health';
+import { getLocalDate } from '../../lib/locale';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -139,7 +140,7 @@ export default function CheckIn() {
 
         if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
 
         const { data } = await supabase
             .from('daily_checkins')
@@ -199,7 +200,7 @@ export default function CheckIn() {
             return;
         }
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
 
         const payload = {
             user_id: user.id,

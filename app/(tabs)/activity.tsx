@@ -16,7 +16,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
-import { formatDate } from '../../lib/locale';
+import { formatDate, getLocalDate } from '../../lib/locale';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -146,7 +146,7 @@ export default function Activity() {
 
         if (!user) return;
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = getLocalDate();
 
         const { data } = await supabase
             .from('activity_logs')
@@ -170,7 +170,7 @@ export default function Activity() {
 
             if (!user) return;
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDate();
 
             const { error } = await supabase.from('activity_logs').insert({
                 user_id: user.id,
