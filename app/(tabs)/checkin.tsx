@@ -16,6 +16,7 @@ import { useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { getLocalDate } from '../../lib/locale';
+import { generateInsights } from '../../lib/anthropic';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -190,18 +191,18 @@ export default function CheckIn() {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setSubmitError(null);
-
+      
         const { data: { user } } = await supabase.auth.getUser();
-        
+      
         if (!user) {
-            setSubmitError('No user session found. Please log in again.');
-            setIsSubmitting(false);
-
-            return;
+          setSubmitError('No user session found. Please log in again.');
+          setIsSubmitting(false);
+          
+          return;
         }
-
+      
         const today = getLocalDate();
-
+      
         const payload = {
             user_id: user.id,
             date: today,
@@ -214,20 +215,25 @@ export default function CheckIn() {
             water_intake_glasses: state.waterIntake,
             notes: state.notes || null,
         };
-
+      
         const { error } = existingId
             ? await supabase.from('daily_checkins').update(payload).eq('id', existingId)
             : await supabase.from('daily_checkins').insert(payload);
-
+      
         if (error) {
             setSubmitError(error.message);
             setIsSubmitting(false);
 
             return;
         }
-
+      
         setSubmitted(true);
         setIsSubmitting(false);
+      
+        // generate insights silently in the background after check-in
+        generateInsights().catch(err =>
+            console.error('Background insight generation failed:', err)
+        );
     };
 
     // ─── Custom Labels ───────────────────────────────────────────────────
