@@ -374,10 +374,18 @@ export default function Dashboard() {
             </View>
             
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Latest Insight</Text>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Latest Insight</Text>
+                    <TouchableOpacity onPress={() => router.push('/insights')}>
+                        <Text style={styles.seeAllText}>See all →</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {data?.latestInsight ? (
-                <View style={styles.insightCard}>
+                <TouchableOpacity
+                    style={styles.insightCard}
+                    onPress={() => router.push('/insights')}
+                >
                     <View style={styles.insightHeader}>
                         <Text style={styles.insightEmoji}>✨</Text>
                         <Text style={styles.insightType}>
@@ -389,25 +397,27 @@ export default function Dashboard() {
                     </Text>
                     <Text style={styles.insightDate}>
 
-                        {formatDate(new Date(data.latestInsight.created_at),
-                            { day: 'numeric', month: 'long' }
-                        )}
+                        {formatDate(parseLocalDate(data.latestInsight.created_at.split('T')[0]), {
+                            day: 'numeric',
+                            month: 'long',
+                        })}
 
                     </Text>
-                </View>
+                </TouchableOpacity>
                 ) : (
-                <View style={styles.insightEmptyCard}>
+                <TouchableOpacity
+                    style={styles.insightEmptyCard}
+                    onPress={() => router.push('/insights')}
+                >
                     <Text style={styles.insightEmptyEmoji}>🤖</Text>
-                    <Text style={styles.insightEmptyTitle}>
-                        No insights yet
-                    </Text>
+                    <Text style={styles.insightEmptyTitle}>No insights yet</Text>
                     <Text style={styles.insightEmptyText}>
                         Complete a few daily check-ins and Pacewell will start generating personalised insights for you.
                     </Text>
-                </View>
+                </TouchableOpacity>
                 )}
-            </View>
 
+            </View>
         </ScrollView>
     );
 }
@@ -671,4 +681,15 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+      },
+      seeAllText: {
+        fontSize: 13,
+        color: '#2d6a4f',
+        fontWeight: '600',
+      },
 });
