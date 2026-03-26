@@ -211,7 +211,7 @@ export default function Profile() {
 
                         {profile.health_goals.map(goal => (
                         <View key={goal} style={styles.goalChip}>
-                        <Text style={styles.goalChipText}>{goal}</Text>
+                            <Text style={styles.goalChipText}>{goal}</Text>
                         </View>
                         ))}
 
