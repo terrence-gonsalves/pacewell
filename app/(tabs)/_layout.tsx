@@ -44,20 +44,20 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="checkin"
-                options={{
-                    title: 'Check-in',
-                    tabBarIcon: ({ color, size }) => (
-                        <TabIcon name="heart" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="activity"
                 options={{
                     title: 'Activity',
                     tabBarIcon: ({ color, size }) => (
                         <TabIcon name="fitness" color={color} size={size} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="insights"
+                options={{
+                    title: 'Insights',
+                    tabBarIcon: ({ color, size }) => (
+                        <TabIcon name="bulb" color={color} size={size} />
                     ),
                 }}
             />
@@ -68,6 +68,12 @@ export default function TabsLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <TabIcon name="person" color={color} size={size} />
                     ),
+                }}
+            />
+            <Tabs.Screen
+                name="checkin"
+                options={{
+                    href: null,
                 }}
             />
         </Tabs>

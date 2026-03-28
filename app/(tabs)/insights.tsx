@@ -8,10 +8,10 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { supabase } from '../lib/supabase';
-import { generateInsights } from '../lib/anthropic';
-import { AIInsight } from '../types/health';
-import { formatDate, parseLocalDate } from '../lib/locale';
+import { supabase } from '../../lib/supabase';
+import { generateInsights } from '../../lib/anthropic';
+import { AIInsight } from '../../types/health';
+import { formatDate, parseLocalDate } from '../../lib/locale';
 
 const INSIGHT_CONFIG: Record<string, { emoji: string; colour: string; bg: string }> = {
     trend: { emoji: '📈', colour: '#2d6a4f', bg: '#f0faf4' },
