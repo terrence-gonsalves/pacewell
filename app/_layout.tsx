@@ -94,11 +94,16 @@ export default function RootLayout() {
     useEffect(() => {
         if (loading) return;
 
-        if (session) {
-            router.replace('/(tabs)/dashboard');
-        } else {
-            router.replace('/(auth)/login');
-        }
+        // small delay to allow navigation to fully mount
+        const timer = setTimeout(() => {
+            if (session) {
+                router.replace('/(tabs)/dashboard');
+            } else {
+                router.replace('/(auth)/login');
+            }
+        }, 0);
+
+        return () => clearTimeout(timer);
     }, [session, loading]);
 
     if (loading) {
