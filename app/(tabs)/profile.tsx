@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { supabase } from '../../lib/supabase';
 import { UserProfile } from '../../types/health';
+import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '0.4.0';
 const UNITS_KEY = 'pacewell_units';
@@ -104,7 +105,9 @@ export default function Profile() {
 
     const handleNotifTimeSave = async (time: string) => {
         setNotifTime(time);
+
         await AsyncStorage.setItem(NOTIF_TIME_KEY, time);
+        await scheduleDailyCheckInNotification(time);
     };
 
     const handleChangePassword = async () => {
