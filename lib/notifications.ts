@@ -93,8 +93,6 @@ export const scheduleDailyCheckInNotification = async (
 
         // store the notification ID so we can cancel it later
         await AsyncStorage.setItem(NOTIF_ID_KEY, notificationId);
-
-        console.log(`Check-in notification scheduled for ${storedTime} daily`);
     } catch (err) {
         console.error('Error scheduling notification:', err);
     }
