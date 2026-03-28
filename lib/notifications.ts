@@ -28,7 +28,6 @@ export const setupAndroidChannel = async (): Promise<void> => {
             importance: Notifications.AndroidImportance.DEFAULT,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#2d6a4f',
-            sound: 'default',
         });
     }
 };
@@ -84,7 +83,6 @@ export const scheduleDailyCheckInNotification = async (
                 title: 'Time for your daily check-in 💚',
                 body: 'Take 60 seconds to log how you\'re feeling today.',
                 data: { screen: 'checkin' },
-                sound: 'default',
             },
             trigger: {
                 type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -95,8 +93,6 @@ export const scheduleDailyCheckInNotification = async (
 
         // store the notification ID so we can cancel it later
         await AsyncStorage.setItem(NOTIF_ID_KEY, notificationId);
-
-        console.log(`Check-in notification scheduled for ${storedTime} daily`);
     } catch (err) {
         console.error('Error scheduling notification:', err);
     }
