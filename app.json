@@ -4,6 +4,11 @@
     "slug": "pacewell",
     "scheme": "pacewell",
     "version": "0.6.0",
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#2d6a4f",
+      "androidMode": "default"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -26,6 +31,10 @@
         "versionCode": 1,
         "package": "com.gonsalves.pacewell"
       },
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
