@@ -35,7 +35,8 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM"
       ],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.gonsalves.pacewell"
     },
     "web": {
       "favicon": "./assets/favicon.png"
