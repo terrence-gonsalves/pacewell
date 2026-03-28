@@ -4,11 +4,6 @@
     "slug": "pacewell",
     "scheme": "pacewell",
     "version": "0.7.0",
-    "notification": {
-      "icon": "./assets/images/icon.png",
-      "color": "#2d6a4f",
-      "androidMode": "default"
-    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gonsalves.pacewell",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights.",
         "NSHealthUpdateUsageDescription": "Pacewell saves your activity data to help track your recovery."
@@ -31,10 +26,10 @@
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png",
-        "versionCode": 2,
-        "package": "com.gonsalves.pacewell"
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "package": "com.gonsalves.pacewell",
+      "versionCode": 3,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
@@ -44,8 +39,7 @@
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
       ],
-      "predictiveBackGestureEnabled": false,
-      "package": "com.gonsalves.pacewell"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -61,7 +55,14 @@
         }
       ],
       "@kingstinct/react-native-healthkit",
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2d6a4f"
+        }
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {},

@@ -18,6 +18,7 @@ import Constants from 'expo-constants';
 import { supabase } from '../../lib/supabase';
 import { UserProfile } from '../../types/health';
 import { scheduleDailyCheckInNotification } from '../../lib/notifications';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '0.4.0';
 const UNITS_KEY = 'pacewell_units';
@@ -39,6 +40,7 @@ export default function Profile() {
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSavingMarketing, setIsSavingMarketing] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -255,13 +257,37 @@ export default function Profile() {
                             </View>
                             <TouchableOpacity
                                 style={styles.timeButton}
-                                onPress={() => Alert.alert(
-                                    'Coming Soon',
-                                    'Time picker will be available in the next update.'
-                                )}
+                                onPress={() => setShowTimePicker(true)}
                             >
                                 <Text style={styles.timeButtonText}>Change</Text>
                             </TouchableOpacity>
+
+                            {showTimePicker && (
+                            <DateTimePicker
+                                value={(() => {
+                                    const [hours, minutes] = notifTime.split(':').map(Number);
+                                    const date = new Date();
+
+                                    date.setHours(hours, minutes, 0, 0);
+
+                                    return date;
+                                })()}
+                                mode="time"
+                                is24Hour={true}
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowTimePicker(false);
+
+                                    if (event.type === 'dismissed' || !selectedDate) return;
+
+                                    const hours = String(selectedDate.getHours()).padStart(2, '0');
+                                    const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+                                    
+                                    handleNotifTimeSave(`${hours}:${minutes}`);
+                                }}
+                            />
+                            )}
+
                         </View>
                     </View>
                 </View>
