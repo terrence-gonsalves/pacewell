@@ -255,27 +255,10 @@ export default function Profile() {
                             </View>
                             <TouchableOpacity
                                 style={styles.timeButton}
-                                onPress={() => {
-                                    Alert.prompt(
-                                        'Set Reminder Time',
-                                        'Enter time in HH:MM format (e.g. 08:00)',
-                                        [
-                                            { text: 'Cancel', style: 'cancel' },
-                                            {
-                                                text: 'Save',
-                                                onPress: (time: string | undefined) => {
-                                                    if (time && /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
-                                                        handleNotifTimeSave(time);
-                                                    } else {
-                                                        Alert.alert('Invalid time', 'Please use HH:MM format.');
-                                                    }
-                                                },
-                                            },
-                                        ],
-                                        'plain-text',
-                                        notifTime
-                                    );
-                                }}
+                                onPress={() => Alert.alert(
+                                    'Coming Soon',
+                                    'Time picker will be available in the next update.'
+                                )}
                             >
                                 <Text style={styles.timeButtonText}>Change</Text>
                             </TouchableOpacity>
