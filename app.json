@@ -43,6 +43,12 @@
     "plugins": [
       "expo-router",
       "expo-localization"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f2bbc1df-3134-41c4-9ad0-b17b03c4183a"
+      }
+    }
   }
 }
