@@ -20,7 +20,7 @@ import { UserProfile } from '../../types/health';
 import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
-const APP_VERSION = Constants.expoConfig?.version ?? '0.4.0';
+const APP_VERSION = Constants.expoConfig?.version ?? '0.7.1';
 const UNITS_KEY = 'pacewell_units';
 const NOTIF_TIME_KEY = 'pacewell_notif_time';
 
@@ -273,7 +273,7 @@ export default function Profile() {
                                     return date;
                                 })()}
                                 mode="time"
-                                is24Hour={true}
+                                is24Hour={false}
                                 display="default"
                                 onChange={(event, selectedDate) => {
                                     setShowTimePicker(false);
