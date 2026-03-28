@@ -3,7 +3,7 @@
     "name": "pacewell",
     "slug": "pacewell",
     "scheme": "pacewell",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "notification": {
       "icon": "./assets/images/icon.png",
       "color": "#2d6a4f",
@@ -19,8 +19,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "1",
-      "bundleIdentifier": "com.gonsalves.pacewell"
+      "bundleIdentifier": "com.gonsalves.pacewell",
+      "buildNumber": "2",
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights.",
+        "NSHealthUpdateUsageDescription": "Pacewell saves your activity data to help track your recovery."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,12 +32,17 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
-        "versionCode": 1,
+        "versionCode": 2,
         "package": "com.gonsalves.pacewell"
       },
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM"
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_EXERCISE",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
       ],
       "predictiveBackGestureEnabled": false,
       "package": "com.gonsalves.pacewell"
@@ -45,8 +54,14 @@
       "expo-router",
       "expo-localization",
       "@react-native-community/datetimepicker",
-      "react-native-health",
-      "@kingstinct/react-native-healthkit"
+      [
+        "react-native-health",
+        {
+          "isClinicalDataEnabled": false
+        }
+      ],
+      "@kingstinct/react-native-healthkit",
+      "expo-notifications"
     ],
     "extra": {
       "router": {},
