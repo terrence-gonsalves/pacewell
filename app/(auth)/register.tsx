@@ -11,16 +11,23 @@ import {
     ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { ActivityLevel } from '../../types/health';
+import { theme } from '../../lib/theme';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const ACTIVITY_LEVELS: { value: ActivityLevel; label: string; description: string }[] = [
-    { value: 'light', label: '🚶 Light', description: 'Walking, gentle stretching' },
-    { value: 'moderate', label: '🚴 Moderate', description: 'Cycling, swimming, hiking' },
-    { value: 'active', label: '🏃 Active', description: 'Running, tennis, regular gym' },
-    { value: 'athlete', label: '🏅 Athlete', description: 'Competitive or high intensity' },
+const ACTIVITY_LEVELS: {
+    value: ActivityLevel;
+    label: string;
+    description: string;
+    icon: string;
+}[] = [
+    { value: 'light', label: 'Light', description: 'Sedentary work, stretching, or slow walking', icon: '🚶' },
+    { value: 'moderate', label: 'Moderate', description: 'Regular walks or 1-2 workouts per week', icon: '🚴' },
+    { value: 'active', label: 'Active', description: 'Strenuous exercise or sports 3-5 days a week', icon: '🏃' },
+    { value: 'athlete', label: 'Athlete', description: 'Intense daily training or physical profession', icon: '🏅' },
 ];
 
 const HEALTH_GOALS = [
@@ -32,25 +39,19 @@ const HEALTH_GOALS = [
     'Monitor recovery',
 ];
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function Register() {
-
-    // step tracking
     const [step, setStep] = useState<1 | 2>(1);
-
-    // step 1 fields
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-
-    // step 2 fields
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [fullName, setFullName] = useState('');
     const [age, setAge] = useState('');
     const [activityLevel, setActivityLevel] = useState<ActivityLevel | null>(null);
     const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-
-    // ui state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -94,12 +95,8 @@ export default function Register() {
 
     const handleSubmit = async () => {
         setError(null);
-      
-        if (!fullName) {
-            setError('Please enter your name.');
 
-            return;
-        }
+        if (!fullName) { setError('Please enter your name.'); return; }
 
         if (!age || isNaN(Number(age)) || Number(age) < 18 || Number(age) > 120) {
             setError('Please enter a valid age.');
@@ -107,338 +104,619 @@ export default function Register() {
             return;
         }
 
-        if (!activityLevel) {
-            setError('Please select your activity level.');
-
-            return;
-        }
+        if (!activityLevel) { setError('Please select your activity level.'); return; }
 
         if (selectedGoals.length === 0) {
             setError('Please select at least one health goal.');
 
             return;
         }
-      
+
         setLoading(true);
-      
+
         const { error: signUpError } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
-                    full_name: fullName,
-                    age: Number(age),
-                    primary_activity: activityLevel,
-                    activity_level: activityLevel,
-                    health_goals: selectedGoals,
+                full_name: fullName,
+                age: Number(age),
+                primary_activity: activityLevel,
+                activity_level: activityLevel,
+                health_goals: selectedGoals,
                 },
             },
         });
-      
+
         if (signUpError) {
             setError(signUpError.message);
             setLoading(false);
 
             return;
         }
-      
-        // navigate to login with confirmation message
+
         router.replace({
             pathname: '/(auth)/login',
-            params: { message: 'Please check your email to confirm your account before signing in.' },
+            params: {
+                message: 'Please check your email to confirm your account before signing in.',
+            },
         });
-      
+
         setLoading(false);
     };
 
-    // ─── Render Step 1 ──────────────────────────────────────────────────────
+    // ─── Step 1 ─────────────────────────────────────────────────────────────
 
     const renderStepOne = () => (
         <>
-            <Text style={styles.stepLabel}>Step 1 of 2</Text>
-            <Text style={styles.title}>Create account</Text>
-            <Text style={styles.subtitle}>Start tracking your recovery today</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Password (min. 8 characters)"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Confirm password"
-                placeholderTextColor="#999"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-            />
-
-            {error && <Text style={styles.errorText}>{error}</Text>}
-
-            <TouchableOpacity style={styles.button} onPress={handleStepOne}>
-                <Text style={styles.buttonText}>Continue</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.registerLink}
-                onPress={() => router.back()}
-            >
-                <Text style={styles.registerText}>
-                    Already have an account?{' '}
-                    <Text style={styles.registerTextBold}>Sign in</Text>
-                </Text>
-            </TouchableOpacity>
-        </>
-    );
-
-    // ─── Render Step 2 ──────────────────────────────────────────────────────
-
-    const renderStepTwo = () => (
-        <>
-            <Text style={styles.stepLabel}>Step 2 of 2</Text>
-            <Text style={styles.title}>Your profile</Text>
-            <Text style={styles.subtitle}>Help us personalise your insights</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Full name"
-                placeholderTextColor="#999"
-                value={fullName}
-                onChangeText={setFullName}
-                autoComplete="name"
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Age"
-                placeholderTextColor="#999"
-                value={age}
-                onChangeText={setAge}
-                keyboardType="number-pad"
-            />
-            
-            <Text style={styles.sectionLabel}>Activity level</Text>
-
-            {ACTIVITY_LEVELS.map(level => (
-            <TouchableOpacity
-                key={level.value}
-                style={[
-                    styles.optionCard,
-                    activityLevel === level.value && styles.optionCardActive,
-                ]}
-                onPress={() => setActivityLevel(level.value)}
-                >
-                <Text style={styles.optionLabel}>{level.label}</Text>
-                <Text style={styles.optionDescription}>{level.description}</Text>
-            </TouchableOpacity>
-            ))}
-            
-            <Text style={styles.sectionLabel}>Health goals</Text>
-            <View style={styles.goalsGrid}>
-
-                {HEALTH_GOALS.map(goal => (
-                <TouchableOpacity
-                    key={goal}
-                    style={[
-                        styles.goalChip,
-                        selectedGoals.includes(goal) && styles.goalChipActive,
-                    ]}
-                    onPress={() => toggleGoal(goal)}
-                >
-                    <Text style={[
-                        styles.goalChipText,
-                        selectedGoals.includes(goal) && styles.goalChipTextActive,
-                    ]}>
-                        {goal}
-                    </Text>
-                </TouchableOpacity>
-                ))}
+            <View style={styles.progressContainer}>
+                <View style={styles.progressTrack}>
+                    <View style={[styles.progressFill, { width: '50%' }]} />
+                </View>
+                <View style={styles.progressLabels}>
+                    <Text style={styles.progressStep}>STEP 1 OF 2</Text>
+                    <Text style={styles.progressLabel}>Account Details</Text>
+                </View>
             </View>
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            <Text style={styles.title}>Welcome to Pacewell</Text>
+            <Text style={styles.subtitle}>
+                Let's get your account set up for your wellness journey.
+            </Text>
 
-            <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleSubmit}
-                disabled={loading}
-            >
+            <View style={styles.formCard}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={styles.inputWrapper}>
+                    <Ionicons
+                        name="mail-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="name@example.com"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                    />
+                </View>
 
-                {loading ? (
-                <ActivityIndicator color="#fff" />
-                ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
+                <Text style={styles.inputLabel}>Create Password</Text>
+                <View style={styles.inputWrapper}>
+                    <Ionicons
+                        name="lock-closed-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Must be at least 8 characters"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        style={styles.inputIconRight}
+                    >
+                        <Ionicons
+                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                            size={18}
+                            color={theme.colors.textSubtle}
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={styles.inputLabel}>Confirm Password</Text>
+                <View style={styles.inputWrapper}>
+                    <Ionicons
+                        name="lock-closed-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Repeat your password"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={!showConfirmPassword}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        style={styles.inputIconRight}
+                    >
+                        <Ionicons
+                            name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                            size={18}
+                            color={theme.colors.textSubtle}
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                {error && (
+                <View style={styles.errorBox}>
+                    <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
                 )}
 
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.primaryButton} onPress={handleStepOne}>
+                    <View style={styles.buttonInner}>
+                        <Text style={styles.primaryButtonText}>Continue</Text>
+                        <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
+                    </View>
+                </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-                style={styles.registerLink}
-                onPress={() => { setStep(1); setError(null); }}
+                style={styles.signInLink}
+                onPress={() => router.back()}
             >
-                <Text style={styles.registerText}>
-                    <Text style={styles.registerTextBold}>← Back</Text>
+                <Text style={styles.signInText}>
+                    Already have an account?{' '}
+                    <Text style={styles.signInTextBold}>Sign In</Text>
                 </Text>
             </TouchableOpacity>
         </>
     );
 
-    // ─── Main Render ────────────────────────────────────────────────────────
+    // ─── Step 2 ─────────────────────────────────────────────────────────────
 
-    return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-            <ScrollView
-                contentContainerStyle={styles.inner}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-            >
-                {step === 1 ? renderStepOne() : renderStepTwo()}
-            </ScrollView>
-        </KeyboardAvoidingView>
-    );
+  const renderStepTwo = () => (
+    <>
+      {/* Back Button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => { setStep(1); setError(null); }}
+      >
+        <Ionicons name="arrow-back" size={20} color={theme.colors.primary} />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: '100%' }]} />
+        </View>
+        <View style={styles.progressLabels}>
+          <Text style={styles.progressStep}>STEP 2 OF 2</Text>
+          <Text style={styles.progressLabel}>Your Profile</Text>
+        </View>
+      </View>
+
+      <Text style={styles.title}>Tell us about yourself</Text>
+      <Text style={styles.subtitle}>
+        Help us personalise your recovery insights.
+      </Text>
+
+      <View style={styles.formCard}>
+        <Text style={styles.inputLabel}>Full Name</Text>
+        <View style={styles.inputWrapper}>
+          <Ionicons
+            name="person-outline"
+            size={18}
+            color={theme.colors.textSubtle}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Your full name"
+            placeholderTextColor={theme.colors.textLight}
+            value={fullName}
+            onChangeText={setFullName}
+            autoComplete="name"
+          />
+        </View>
+
+        <Text style={styles.inputLabel}>Age</Text>
+        <View style={styles.inputWrapper}>
+          <Ionicons
+            name="calendar-outline"
+            size={18}
+            color={theme.colors.textSubtle}
+            style={styles.inputIcon}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Your age"
+            placeholderTextColor={theme.colors.textLight}
+            value={age}
+            onChangeText={setAge}
+            keyboardType="number-pad"
+          />
+        </View>
+      </View>
+
+      {/* Activity Level */}
+      <Text style={styles.sectionLabel}>ACTIVITY LEVEL</Text>
+      <Text style={styles.sectionSubtitle}>
+        Select the option that best describes your daily lifestyle.
+      </Text>
+      <View style={styles.activityLevelList}>
+        {ACTIVITY_LEVELS.map(level => (
+          <TouchableOpacity
+            key={level.value}
+            style={[
+              styles.activityCard,
+              activityLevel === level.value && styles.activityCardActive,
+            ]}
+            onPress={() => setActivityLevel(level.value)}
+          >
+            <View style={styles.activityCardLeft}>
+              <View style={[
+                styles.activityIconContainer,
+                activityLevel === level.value && styles.activityIconContainerActive,
+              ]}>
+                <Text style={styles.activityIcon}>{level.icon}</Text>
+              </View>
+              <View style={styles.activityCardText}>
+                <Text style={[
+                  styles.activityLabel,
+                  activityLevel === level.value && styles.activityLabelActive,
+                ]}>
+                  {level.label}
+                </Text>
+                <Text style={styles.activityDescription}>{level.description}</Text>
+              </View>
+            </View>
+            {activityLevel === level.value && (
+              <Ionicons
+                name="checkmark-circle"
+                size={22}
+                color={theme.colors.primary}
+              />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Health Goals */}
+      <Text style={styles.sectionLabel}>HEALTH GOALS</Text>
+      <Text style={styles.sectionSubtitle}>
+        What would you like to achieve in the next 3 months?
+      </Text>
+      <View style={styles.goalsGrid}>
+        {HEALTH_GOALS.map(goal => (
+          <TouchableOpacity
+            key={goal}
+            style={[
+              styles.goalChip,
+              selectedGoals.includes(goal) && styles.goalChipActive,
+            ]}
+            onPress={() => toggleGoal(goal)}
+          >
+            <Text style={[
+              styles.goalChipText,
+              selectedGoals.includes(goal) && styles.goalChipTextActive,
+            ]}>
+              {goal}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {error && (
+        <View style={styles.errorBox}>
+          <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {/* Privacy Note */}
+      <View style={styles.privacyNote}>
+        <Ionicons
+          name="information-circle-outline"
+          size={16}
+          color={theme.colors.textSubtle}
+        />
+        <Text style={styles.privacyText}>
+          Your data is used to personalise your workout recommendations and recovery plans. We never share your health info.
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.primaryButton, loading && styles.buttonDisabled]}
+        onPress={handleSubmit}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color={theme.colors.white} />
+        ) : (
+          <View style={styles.buttonInner}>
+            <Text style={styles.primaryButtonText}>Create Account</Text>
+            <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
+          </View>
+        )}
+      </TouchableOpacity>
+    </>
+  );
+
+  // ─── Main Render ────────────────────────────────────────────────────────
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {step === 1 ? renderStepOne() : renderStepTwo()}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.colors.background,
     },
     inner: {
         flexGrow: 1,
-        justifyContent: 'center',
-        paddingHorizontal: 28,
-        paddingVertical: 48,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: 60,
+        paddingBottom: theme.spacing.xxl,
     },
-    stepLabel: {
-        fontSize: 13,
-        color: '#2d6a4f',
+    progressContainer: {
+        marginBottom: theme.spacing.lg,
+    },
+    progressTrack: {
+        height: 4,
+        backgroundColor: theme.colors.border,
+        borderRadius: 2,
+        marginBottom: theme.spacing.sm,
+        overflow: 'hidden',
+    },
+    progressFill: {
+        height: 4,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 2,
+    },
+    progressLabels: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    progressStep: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+        fontWeight: '700',
+        letterSpacing: 0.8,
+    },
+    progressLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+    },
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        marginBottom: theme.spacing.lg,
+        alignSelf: 'flex-start',
+    },
+    backButtonText: {
+        ...theme.typography.label,
+        color: theme.colors.primary,
         fontWeight: '600',
-        marginBottom: 8,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
     title: {
-        fontSize: 32,
-        fontWeight: '700',
-        color: '#1a1a2e',
-        marginBottom: 6,
+        ...theme.typography.screenTitle,
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.sm,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 32,
+        ...theme.typography.body,
+        color: theme.colors.textSubtle,
+        marginBottom: theme.spacing.lg,
+        lineHeight: 22,
+    },
+    formCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.lg,
+        marginBottom: theme.spacing.lg,
+        ...theme.shadow.small,
+    },
+    inputLabel: {
+        ...theme.typography.label,
+        color: theme.colors.textBody,
+        marginBottom: theme.spacing.xs,
+        marginTop: theme.spacing.sm,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        marginBottom: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+    },
+    inputIcon: {
+        marginRight: theme.spacing.sm,
+    },
+    inputIconRight: {
+        marginLeft: theme.spacing.sm,
+        padding: 4,
     },
     input: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingHorizontal: 16,
+        flex: 1,
         paddingVertical: 14,
-        fontSize: 16,
-        color: '#1a1a2e',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
+        fontSize: 15,
+        color: theme.colors.textDark,
     },
     sectionLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#1a1a2e',
-        marginTop: 8,
-        marginBottom: 12,
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+        fontWeight: '700',
+        letterSpacing: 0.8,
+        marginBottom: theme.spacing.xs,
+        marginTop: theme.spacing.sm,
     },
-    optionCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 8,
-        borderWidth: 2,
-        borderColor: '#e0e0e0',
+    sectionSubtitle: {
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
+        marginBottom: theme.spacing.md,
+        lineHeight: 20,
     },
-    optionCardActive: {
-        borderColor: '#2d6a4f',
-        backgroundColor: '#f0faf4',
+    activityLevelList: {
+        gap: theme.spacing.sm,
+        marginBottom: theme.spacing.lg,
     },
-    optionLabel: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#1a1a2e',
+    activityCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        borderWidth: 1.5,
+        borderColor: theme.colors.border,
+    },
+    activityCardActive: {
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primaryLight,
+    },
+    activityCardLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        flex: 1,
+    },
+    activityIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: theme.colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activityIconContainerActive: {
+        backgroundColor: theme.colors.card,
+    },
+    activityIcon: {
+        fontSize: 22,
+    },
+    activityCardText: {
+        flex: 1,
+    },
+    activityLabel: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
         marginBottom: 2,
     },
-    optionDescription: {
-        fontSize: 13,
-        color: '#888',
+    activityLabelActive: {
+        color: theme.colors.primary,
+    },
+    activityDescription: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        lineHeight: 18,
     },
     goalsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
+        gap: theme.spacing.sm,
+        marginBottom: theme.spacing.lg,
     },
     goalChip: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.card,
         borderWidth: 1.5,
-        borderColor: '#e0e0e0',
+        borderColor: theme.colors.border,
     },
     goalChipActive: {
-        backgroundColor: '#2d6a4f',
-        borderColor: '#2d6a4f',
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
     },
     goalChipText: {
-        fontSize: 13,
-        color: '#555',
-        fontWeight: '500',
+        ...theme.typography.label,
+        color: theme.colors.textBody,
     },
     goalChipTextActive: {
-        color: '#fff',
+        color: theme.colors.white,
+    },
+    privacyNote: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    privacyText: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        flex: 1,
+        lineHeight: 18,
+        fontStyle: 'italic',
+    },
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.dangerLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+        borderWidth: 1,
+        borderColor: theme.colors.danger,
     },
     errorText: {
-        color: '#e63946',
-        fontSize: 14,
-        marginBottom: 12,
-        paddingHorizontal: 4,
+        ...theme.typography.label,
+        color: theme.colors.danger,
+        flex: 1,
     },
-    button: {
-        backgroundColor: '#2d6a4f',
-        borderRadius: 12,
+    primaryButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.radius.md,
         paddingVertical: 16,
         alignItems: 'center',
-        marginTop: 8,
+        marginTop: theme.spacing.sm,
+        ...theme.shadow.small,
     },
     buttonDisabled: {
         opacity: 0.6,
     },
-    buttonText: {
-        color: '#fff',
+    buttonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },
+    primaryButtonText: {
+        color: theme.colors.white,
         fontSize: 16,
         fontWeight: '600',
     },
-    registerLink: {
-        marginTop: 24,
+    signInLink: {
         alignItems: 'center',
+        marginTop: theme.spacing.lg,
     },
-    registerText: {
-        fontSize: 14,
-        color: '#888',
+    signInText: {
+        ...theme.typography.body,
+        color: theme.colors.textSubtle,
     },
-    registerTextBold: {
-        color: '#2d6a4f',
-        fontWeight: '600',
+    signInTextBold: {
+        color: theme.colors.primary,
+        fontWeight: '700',
     },
 });
