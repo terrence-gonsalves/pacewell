@@ -378,10 +378,20 @@ export default function Dashboard() {
                     <View style={styles.brandIcon}>
                         <Ionicons name="flash" size={20} color={theme.colors.white} />
                     </View>
-                    <View style={styles.headerRight}>
+                    <TouchableOpacity
+                        style={styles.avatarContainer}
+                        onPress={() => router.push('/(tabs)/profile')}
+                    >
+                        <View style={styles.headerAvatar}>
+                            <Text style={styles.headerAvatarText}>
+                                {data?.firstName?.charAt(0).toUpperCase() ?? '?'}
+                            </Text>
+                        </View>
                         <View style={styles.onlineDot} />
-                    </View>
+                    </TouchableOpacity>   
                 </View>
+
+                <View style={styles.headerDivider} />
                 
                 <View style={styles.greetingSection}>
                     <Text style={styles.greetingLine1}>{getGreeting()}</Text>
@@ -665,7 +675,7 @@ export default function Dashboard() {
                                 onChange={val => updateForm('duration', val)}
                                 min={5}
                                 max={300}
-                                step={5}
+                                step={1}
                                 unit="minutes"
                             />
                             
@@ -709,7 +719,7 @@ export default function Dashboard() {
                                     <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
                                 </View>
                                 )}
-                                
+
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
@@ -741,7 +751,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: theme.spacing.lg,
+        marginBottom: theme.spacing.md,
     },
     brandIcon: {
         width: 40,
@@ -754,12 +764,6 @@ const styles = StyleSheet.create({
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
-    },
-    onlineDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: theme.colors.primary,
     },
     greetingSection: {
         marginBottom: theme.spacing.lg,
@@ -1269,4 +1273,38 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    avatarContainer: {
+        position: 'relative',
+        width: 40,
+        height: 40,
+      },
+      headerAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.colors.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      headerAvatarText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.textDark,
+      },
+      onlineDot: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: theme.colors.primary,
+        borderWidth: 2,
+        borderColor: theme.colors.background,
+      },
+      headerDivider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginBottom: theme.spacing.lg,
+      },
 });
