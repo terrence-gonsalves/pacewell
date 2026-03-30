@@ -14,9 +14,11 @@ import {
     Platform,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
-import { formatDate, getLocalDate } from '../../lib/locale';
+import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
+import { theme } from '../../lib/theme';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -40,11 +42,37 @@ const EXERTION_LABELS: EmojiScaleLabels = {
     5: { emoji: '💀', label: 'Max' },
 };
 
+const DEFAULT_WEEKLY_TARGET = 5; // placeholder — will be user-configurable
+
 const DEFAULT_FORM = {
     activityType: 'walking' as ActivityType,
     duration: 30,
     perceivedExertion: 3 as EmojiScale,
     notes: '',
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const getDateLabel = (dateStr: string): string => {
+    const today = getLocalDate();
+    const yesterday = getLocalDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+    if (dateStr === today) return 'TODAY';
+    if (dateStr === yesterday) return 'YESTERDAY';
+
+    return formatDate(parseLocalDate(dateStr), {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    }).toUpperCase();
+};
+
+const getWeekStart = (): string => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+
+    return getLocalDate(new Date(now.setDate(diff)));
 };
 
 // ─── Sub Components ───────────────────────────────────────────────────────────
@@ -99,10 +127,12 @@ const Stepper = ({
         >
             <Text style={styles.stepperButtonText}>−</Text>
         </TouchableOpacity>
+
         <View style={styles.stepperValue}>
             <Text style={styles.stepperValueText}>{value}</Text>
             <Text style={styles.stepperUnit}>{unit}</Text>
         </View>
+
         <TouchableOpacity
             style={[styles.stepperButton, value >= max && styles.stepperButtonDisabled]}
             onPress={() => onChange(Math.min(max, value + step))}
@@ -117,6 +147,7 @@ const Stepper = ({
 
 export default function Activity() {
     const [activities, setActivities] = useState<ActivityLog[]>([]);
+    const [weeklyCount, setWeeklyCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -131,7 +162,7 @@ export default function Activity() {
         setForm(prev => ({ ...prev, [key]: value }));
     };
 
-  // ─── Load Today's Activities ──────────────────────────────────────────────
+    // ─── Load Activities ──────────────────────────────────────────────────────
 
     useFocusEffect(
         useCallback(() => {
@@ -147,19 +178,28 @@ export default function Activity() {
         if (!user) return;
 
         const today = getLocalDate();
+        const weekStart = getWeekStart();
 
-        const { data } = await supabase
-            .from('activity_logs')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('date', today)
-            .order('created_at', { ascending: false });
+        const [todayResult, weekResult] = await Promise.all([
+            supabase
+                .from('activity_logs')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('date', today)
+                .order('created_at', { ascending: false }),
+            supabase
+                .from('activity_logs')
+                .select('id')
+                .eq('user_id', user.id)
+                .gte('date', weekStart),
+        ]);
 
-        setActivities(data ?? []);
+        setActivities((todayResult.data ?? []) as ActivityLog[]);
+        setWeeklyCount(weekResult.data?.length ?? 0);
         setIsLoading(false);
     };
 
-    // ─── Submit New Activity ──────────────────────────────────────────────────
+    // ─── Submit ───────────────────────────────────────────────────────────────
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
@@ -184,7 +224,6 @@ export default function Activity() {
 
             if (error) {
                 setError(error.message);
-                setIsSubmitting(false);
 
                 return;
             }
@@ -194,23 +233,20 @@ export default function Activity() {
 
             await loadActivities();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+            setError(err instanceof Error ? err.message : 'Something went wrong.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // ─── Delete Activity ──────────────────────────────────────────────────────
+    // ─── Delete ───────────────────────────────────────────────────────────────
 
     const handleDelete = async (id: string) => {
         setIsDeleting(id);
 
-        await supabase
-            .from('activity_logs')
-            .delete()
-            .eq('id', id);
-
+        await supabase.from('activity_logs').delete().eq('id', id);
         await loadActivities();
+
         setIsDeleting(null);
     };
 
@@ -218,6 +254,11 @@ export default function Activity() {
 
     const getActivityMeta = (type: ActivityType) =>
         ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
+
+    const progressPercent = Math.min(
+        (weeklyCount / DEFAULT_WEEKLY_TARGET) * 100,
+        100
+    );
 
     const today = formatDate(new Date(), {
         weekday: 'long',
@@ -233,78 +274,131 @@ export default function Activity() {
                 <Text style={styles.headerTitle}>Activity Log</Text>
                 <Text style={styles.headerSubtitle}>{today}</Text>
             </View>
-            
+            <View style={styles.headerDivider} />
+
             {isLoading ? (
             <View style={styles.centred}>
-                <ActivityIndicator size="large" color="#2d6a4f" />
-            </View>
-            ) : activities.length === 0 ? (
-            <View style={styles.centred}>
-                <Text style={styles.emptyEmoji}>🏃</Text>
-                <Text style={styles.emptyTitle}>No activities yet</Text>
-                <Text style={styles.emptySubtitle}>
-                    Tap the + button to log your first activity today
-                </Text>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
             ) : (
             <ScrollView
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
             >
-                <Text style={styles.sectionLabel}>
-                    Today's Activities ({activities.length})
-                </Text>
+                <Text style={styles.dateLabel}>{getDateLabel(getLocalDate())}</Text>
 
-                {activities.map(activity => {
-                const meta = getActivityMeta(activity.activity_type);
+                {activities.length === 0 ? (
+                <View style={styles.emptyCard}>
+                    <Text style={styles.emptyEmoji}>🏃</Text>
+                    <Text style={styles.emptyTitle}>No activities yet today</Text>
+                    <Text style={styles.emptySubtitle}>
+                        Tap the + button to log your first activity
+                    </Text>
+                </View>
+                ) : (
+                <View style={styles.activitiesCard}>
 
-                return (
-                    <View key={activity.id} style={styles.activityCard}>
-                        <View style={styles.activityLeft}>
-                            <Text style={styles.activityEmoji}>{meta.emoji}</Text>
-                            <View>
-                                <Text style={styles.activityType}>{meta.label}</Text>
-                                <Text style={styles.activityMeta}>
-                                    {activity.duration_minutes} min •{' '}
-                                    {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].emoji}{' '}
-                                    {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
-                                </Text>
+                    {activities.map((activity, index) => {
+                        const meta = getActivityMeta(activity.activity_type);
+                        const time = new Date(activity.created_at).toLocaleTimeString(
+                            [], { hour: '2-digit', minute: '2-digit' }
+                        );
 
-                                {activity.notes && (
-                                <Text style={styles.activityNotes}>{activity.notes}</Text>
+                        return (
+                            <View key={activity.id}>
+                                <View style={styles.activityRow}>
+                                    <View style={styles.activityIconContainer}>
+                                        <Text style={styles.activityEmoji}>{meta.emoji}</Text>
+                                    </View>
+                                    <View style={styles.activityInfo}>
+                                        <Text style={styles.activityType}>{meta.label}</Text>
+                                        <Text style={styles.activityMeta}>
+                                            {activity.duration_minutes} min · {time}
+                                        </Text>
+
+                                        {activity.notes && (
+                                        <Text style={styles.activityNotes}>{activity.notes}</Text>
+                                        )}
+
+                                    </View>
+                                    <View style={styles.activityRight}>
+                                        <View style={[
+                                            styles.effortBadge,
+                                            activity.perceived_exertion >= 4 && styles.effortBadgeHigh,
+                                        ]}>
+                                            <Text style={[
+                                                styles.effortBadgeText,
+                                                activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
+                                            ]}>
+                                                {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
+                                            </Text>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDelete(activity.id)}
+                                            disabled={isDeleting === activity.id}
+                                        >
+
+                                            {isDeleting === activity.id ? (
+                                            <ActivityIndicator size="small" color={theme.colors.danger} />
+                                            ) : (
+                                            <Ionicons
+                                                name="close-circle-outline"
+                                                size={20}
+                                                color={theme.colors.textLight}
+                                            />
+                                            )}
+
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                {index < activities.length - 1 && (
+                                <View style={styles.divider} />
                                 )}
 
                             </View>
+                        );
+                    })}
+
+                </View>
+                )}
+                
+                <View style={styles.weeklyGoalCard}>
+                    <View style={styles.weeklyGoalHeader}>
+                        <View style={styles.weeklyGoalLeft}>
+                            <Ionicons name="flame" size={20} color={theme.colors.primary} />
+                            <Text style={styles.weeklyGoalTitle}>Weekly Goal</Text>
                         </View>
-                        <TouchableOpacity
-                            style={styles.deleteButton}
-                            onPress={() => handleDelete(activity.id)}
-                            disabled={isDeleting === activity.id}
-                        >
-
-                            {isDeleting === activity.id ? (
-                            <ActivityIndicator size="small" color="#e63946" />
-                            ) : (
-                            <Text style={styles.deleteButtonText}>✕</Text>
-                            )}
-
-                        </TouchableOpacity>
+                        <Text style={styles.weeklyGoalCount}>
+                            {weeklyCount} of {DEFAULT_WEEKLY_TARGET} activities
+                        </Text>
                     </View>
-                );
-                })}
+                    <View style={styles.progressTrack}>
+                        <View
+                            style={[
+                            styles.progressFill,
+                            { width: `${progressPercent}%` },
+                            ]}
+                        />
+                    </View>
+                    <Text style={styles.weeklyGoalNote}>
+                        * Weekly target is customisable — coming soon in Profile settings
+                    </Text>
+                </View>
 
-            </ScrollView>
-
+                </ScrollView>
             )}
             
             <TouchableOpacity
                 style={styles.fab}
                 onPress={() => {
-                    setError(null);
-                    setSheetVisible(true);
+                setError(null);
+                setSheetVisible(true);
                 }}
             >
-                <Text style={styles.fabText}>+</Text>
+                <Ionicons name="add" size={28} color={theme.colors.white} />
             </TouchableOpacity>
             
             <Modal
@@ -317,30 +411,27 @@ export default function Activity() {
                     style={styles.backdrop}
                     onPress={() => setSheetVisible(false)}
                 />
-
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.sheetWrapper}
-                >
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.sheetWrapper}
+                    >
                     <View style={styles.sheet}>
                         <View style={styles.sheetHandle} />
-
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <Text style={styles.sheetTitle}>Log Activity</Text>
-        
+                            
                             <Text style={styles.inputLabel}>Activity type</Text>
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 contentContainerStyle={styles.activityTypeRow}
                             >
-
                                 {ACTIVITY_TYPES.map(({ type, emoji, label }) => (
                                 <TouchableOpacity
                                     key={type}
                                     style={[
-                                    styles.activityTypeButton,
-                                    form.activityType === type && styles.activityTypeButtonActive,
+                                        styles.activityTypeButton,
+                                        form.activityType === type && styles.activityTypeButtonActive,
                                     ]}
                                     onPress={() => updateForm('activityType', type)}
                                 >
@@ -377,32 +468,35 @@ export default function Activity() {
                             <TextInput
                                 style={styles.notesInput}
                                 placeholder="How did it feel?"
-                                placeholderTextColor="#999"
+                                placeholderTextColor={theme.colors.textLight}
                                 value={form.notes}
                                 onChangeText={val => updateForm('notes', val)}
                                 multiline
                                 numberOfLines={3}
                                 textAlignVertical="top"
                             />
-                            
+
                             {error && (
-                                <View style={styles.errorContainer}>
-                                <Text style={styles.errorText}>{error}</Text>
+                                <View style={styles.errorBox}>
+                                    <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
+                                    <Text style={styles.errorText}>{error}</Text>
                                 </View>
                             )}
-                            
+
                             <TouchableOpacity
-                                style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+                                style={[styles.primaryButton, isSubmitting && styles.buttonDisabled]}
                                 onPress={handleSubmit}
                                 disabled={isSubmitting}
                             >
-
                                 {isSubmitting ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={theme.colors.white} />
                                 ) : (
-                                <Text style={styles.submitButtonText}>Log Activity</Text>
+                                <View style={styles.buttonInner}>
+                                    <Text style={styles.primaryButtonText}>Log Activity</Text>
+                                    <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
+                                </View>
                                 )}
-
+                                
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
@@ -417,126 +511,197 @@ export default function Activity() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.colors.background,
     },
     header: {
-        paddingHorizontal: 24,
+        paddingHorizontal: theme.spacing.lg,
         paddingTop: 60,
-        paddingBottom: 16,
-        backgroundColor: '#f8f9fa',
+        paddingBottom: theme.spacing.md,
     },
     headerTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#1a1a2e',
+        ...theme.typography.screenTitle,
+        color: theme.colors.textDark,
     },
     headerSubtitle: {
-        fontSize: 14,
-        color: '#888',
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
         marginTop: 2,
+    },
+    headerDivider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginBottom: theme.spacing.md,
     },
     centred: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 32,
-    },
-    emptyEmoji: {
-        fontSize: 56,
-        marginBottom: 16,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1a1a2e',
-        marginBottom: 8,
-    },
-    emptySubtitle: {
-        fontSize: 15,
-        color: '#888',
-        textAlign: 'center',
-        lineHeight: 22,
     },
     listContent: {
-        paddingHorizontal: 24,
+        paddingHorizontal: theme.spacing.lg,
         paddingBottom: 100,
     },
-    sectionLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#888',
-        textTransform: 'uppercase',
+    dateLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        fontWeight: '700',
         letterSpacing: 0.8,
-        marginBottom: 12,
+        marginBottom: theme.spacing.sm,
     },
-    activityCard: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 12,
-        flexDirection: 'row',
+    emptyCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.xl,
         alignItems: 'center',
-        justifyContent: 'space-between',
         borderWidth: 1,
-        borderColor: '#f0f0f0',
+        borderColor: theme.colors.border,
+        marginBottom: theme.spacing.lg,
     },
-    activityLeft: {
+    emptyEmoji: {
+        fontSize: 40,
+        marginBottom: theme.spacing.md,
+    },
+    emptyTitle: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.xs,
+    },
+    emptySubtitle: {
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
+        textAlign: 'center',
+    },
+    activitiesCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        overflow: 'hidden',
+        marginBottom: theme.spacing.lg,
+        ...theme.shadow.small,
+    },
+    activityRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
-        flex: 1,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
+        gap: theme.spacing.md,
     },
-    activityEmoji: {
-        fontSize: 32,
-    },
-    activityType: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1a1a2e',
-        marginBottom: 2,
-    },
-    activityMeta: {
-        fontSize: 13,
-        color: '#888',
-    },
-    activityNotes: {
-        fontSize: 13,
-        color: '#666',
-        marginTop: 4,
-        fontStyle: 'italic',
-    },
-    deleteButton: {
-        width: 32,
-        height: 32,
+    activityIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: theme.colors.primaryLight,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    deleteButtonText: {
-        fontSize: 16,
-        color: '#e63946',
-        fontWeight: '600',
+    activityEmoji: {
+        fontSize: 24,
+    },
+    activityInfo: {
+        flex: 1,
+    },
+    activityType: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
+        marginBottom: 2,
+    },
+    activityMeta: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+    },
+    activityNotes: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        fontStyle: 'italic',
+        marginTop: 2,
+    },
+    activityRight: {
+        alignItems: 'flex-end',
+        gap: theme.spacing.xs,
+    },
+    effortBadge: {
+        backgroundColor: theme.colors.background,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: 3,
+        borderRadius: theme.radius.full,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    effortBadgeHigh: {
+        backgroundColor: theme.colors.dangerLight,
+        borderColor: theme.colors.danger,
+    },
+    effortBadgeText: {
+        ...theme.typography.caption,
+        color: theme.colors.textBody,
+    },
+    effortBadgeTextHigh: {
+        color: theme.colors.danger,
+    },
+    deleteButton: {
+        padding: 4,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginHorizontal: theme.spacing.md,
+    },
+    weeklyGoalCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        ...theme.shadow.small,
+    },
+    weeklyGoalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.md,
+    },
+    weeklyGoalLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },
+    weeklyGoalTitle: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
+    },
+    weeklyGoalCount: {
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
+    },
+    progressTrack: {
+        height: 8,
+        backgroundColor: theme.colors.border,
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: theme.spacing.sm,
+    },
+    progressFill: {
+        height: 8,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 4,
+    },
+    weeklyGoalNote: {
+        ...theme.typography.caption,
+        color: theme.colors.textLight,
+        fontStyle: 'italic',
     },
     fab: {
         position: 'absolute',
         bottom: 32,
-        right: 24,
+        right: theme.spacing.lg,
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#2d6a4f',
+        backgroundColor: theme.colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 6,
-    },
-    fabText: {
-        fontSize: 28,
-        color: '#fff',
-        fontWeight: '300',
-        lineHeight: 32,
+        ...theme.shadow.medium,
     },
     backdrop: {
         flex: 1,
@@ -549,117 +714,114 @@ const styles = StyleSheet.create({
         right: 0,
     },
     sheet: {
-        backgroundColor: '#fff',
+        backgroundColor: theme.colors.card,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        padding: 24,
+        padding: theme.spacing.lg,
         maxHeight: '90%',
     },
     sheetHandle: {
         width: 40,
         height: 4,
-        backgroundColor: '#e0e0e0',
+        backgroundColor: theme.colors.border,
         borderRadius: 2,
         alignSelf: 'center',
-        marginBottom: 20,
+        marginBottom: theme.spacing.lg,
     },
     sheetTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#1a1a2e',
-        marginBottom: 24,
+        ...theme.typography.sectionHeading,
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.lg,
     },
     inputLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#555',
-        marginBottom: 12,
-        marginTop: 8,
+        ...theme.typography.label,
+        color: theme.colors.textBody,
+        marginBottom: theme.spacing.sm,
+        marginTop: theme.spacing.sm,
     },
     activityTypeRow: {
-        gap: 10,
-        paddingBottom: 8,
+        gap: theme.spacing.sm,
+        paddingBottom: theme.spacing.sm,
     },
     activityTypeButton: {
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        borderRadius: 14,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.md,
         borderWidth: 2,
-        borderColor: '#e0e0e0',
-        backgroundColor: '#fff',
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.card,
         minWidth: 72,
     },
     activityTypeButtonActive: {
-        borderColor: '#2d6a4f',
-        backgroundColor: '#f0faf4',
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primaryLight,
     },
     activityTypeEmoji: {
         fontSize: 24,
         marginBottom: 4,
     },
     activityTypeLabel: {
-        fontSize: 11,
-        color: '#888',
-        fontWeight: '500',
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
     },
     activityTypeLabelActive: {
-        color: '#2d6a4f',
+        color: theme.colors.primary,
         fontWeight: '700',
     },
     emojiRow: {
         flexDirection: 'row',
         gap: 6,
-        marginBottom: 8,
+        marginBottom: theme.spacing.sm,
     },
     emojiButton: {
         flex: 1,
         alignItems: 'center',
-        padding: 10,
-        borderRadius: 12,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.md,
         borderWidth: 2,
-        borderColor: '#e0e0e0',
-        backgroundColor: '#fff',
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.card,
     },
     emojiButtonActive: {
-        borderColor: '#2d6a4f',
-        backgroundColor: '#f0faf4',
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primaryLight,
     },
     emojiText: {
         fontSize: 22,
         marginBottom: 2,
     },
     emojiLabel: {
-        fontSize: 9,
-        color: '#888',
+        fontSize: 8,
+        color: theme.colors.textSubtle,
         fontWeight: '500',
         textAlign: 'center',
     },
     emojiLabelActive: {
-        color: '#2d6a4f',
+        color: theme.colors.primary,
         fontWeight: '700',
     },
     stepper: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 24,
-        marginBottom: 8,
+        gap: theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
     },
     stepperButton: {
         width: 52,
         height: 52,
         borderRadius: 26,
-        backgroundColor: '#2d6a4f',
+        backgroundColor: theme.colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
     stepperButtonDisabled: {
-        backgroundColor: '#e0e0e0',
+        backgroundColor: theme.colors.border,
     },
     stepperButtonText: {
         fontSize: 24,
-        color: '#fff',
+        color: theme.colors.white,
         fontWeight: '300',
     },
     stepperValue: {
@@ -669,49 +831,58 @@ const styles = StyleSheet.create({
     stepperValueText: {
         fontSize: 40,
         fontWeight: '700',
-        color: '#1a1a2e',
+        color: theme.colors.textDark,
     },
     stepperUnit: {
-        fontSize: 13,
-        color: '#888',
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
     },
     notesInput: {
-        backgroundColor: '#f8f9fa',
-        borderRadius: 12,
-        padding: 14,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
         fontSize: 15,
-        color: '#1a1a2e',
+        color: theme.colors.textDark,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: theme.colors.border,
         minHeight: 80,
-        marginBottom: 8,
+        marginBottom: theme.spacing.sm,
     },
-    errorContainer: {
-        padding: 12,
-        backgroundColor: '#fff0f0',
-        borderRadius: 10,
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.dangerLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
         borderWidth: 1,
-        borderColor: '#e63946',
-        marginBottom: 12,
+        borderColor: theme.colors.danger,
     },
     errorText: {
-        color: '#e63946',
-        fontSize: 13,
-        textAlign: 'center',
+        ...theme.typography.label,
+        color: theme.colors.danger,
+        flex: 1,
     },
-    submitButton: {
-        backgroundColor: '#2d6a4f',
-        borderRadius: 12,
+    primaryButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.radius.md,
         paddingVertical: 16,
         alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 16,
+        marginTop: theme.spacing.sm,
+        marginBottom: theme.spacing.md,
+        ...theme.shadow.small,
     },
-    submitButtonDisabled: {
+    buttonDisabled: {
         opacity: 0.6,
     },
-    submitButtonText: {
-        color: '#fff',
+    buttonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },
+    primaryButtonText: {
+        color: theme.colors.white,
         fontSize: 16,
         fontWeight: '600',
     },
