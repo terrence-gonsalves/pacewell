@@ -139,12 +139,13 @@ Deno.serve(async (req) => {
 
             Respond ONLY with a valid JSON object in exactly this format, no preamble, no markdown:
             {
-              "insights": [
+            "insights": [
                 {
-                  "insight_type": "trend|correlation|anomaly|prediction",
-                  "content": "Your specific insight here, referencing actual data points."
+                "insight_type": "trend|correlation|anomaly|prediction",
+                "title": "A short 5-8 word title summarising the insight",
+                "content": "Your full insight here, referencing actual data points."
                 }
-              ]
+            ]
             }`;
 
         // ─── Call Anthropic API ──────────────────────────────────────────────────
