@@ -3,7 +3,7 @@
     "name": "pacewell",
     "slug": "pacewell",
     "scheme": "pacewell",
-    "version": "0.7.1",
+    "version": "0.8.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gonsalves.pacewell",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights.",
         "NSHealthUpdateUsageDescription": "Pacewell saves your activity data to help track your recovery."
@@ -29,7 +29,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.gonsalves.pacewell",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
