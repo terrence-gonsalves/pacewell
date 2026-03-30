@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,12 +11,13 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { getLocalDate } from '../../lib/locale';
 import { generateInsights } from '../../lib/anthropic';
+import { theme } from '../../lib/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -42,6 +43,48 @@ const DEFAULT_STATE: CheckInState = {
     nutritionQuality: 3,
     waterIntake: 6,
     notes: '',
+};
+
+// ─── Scale Labels ─────────────────────────────────────────────────────────────
+
+const SLEEP_QUALITY_LABELS: EmojiScaleLabels = {
+    1: { emoji: '😫', label: 'Terrible' },
+    2: { emoji: '😔', label: 'Poor' },
+    3: { emoji: '😐', label: 'OK' },
+    4: { emoji: '😊', label: 'Good' },
+    5: { emoji: '😴', label: 'Great' },
+};
+
+const MOOD_LABELS: EmojiScaleLabels = {
+    1: { emoji: '😞', label: 'Low' },
+    2: { emoji: '😕', label: 'Meh' },
+    3: { emoji: '😐', label: 'OK' },
+    4: { emoji: '😊', label: 'Good' },
+    5: { emoji: '😄', label: 'Great' },
+};
+
+const ENERGY_LABELS: EmojiScaleLabels = {
+    1: { emoji: '🪫', label: 'Drained' },
+    2: { emoji: '😪', label: 'Tired' },
+    3: { emoji: '😐', label: 'OK' },
+    4: { emoji: '⚡', label: 'Energised' },
+    5: { emoji: '🔥', label: 'Fired up' },
+};
+
+const STRESS_LABELS: EmojiScaleLabels = {
+    1: { emoji: '😌', label: 'Calm' },
+    2: { emoji: '🙂', label: 'Mild' },
+    3: { emoji: '😤', label: 'Moderate' },
+    4: { emoji: '😰', label: 'High' },
+    5: { emoji: '🤯', label: 'Overwhelmed' },
+};
+
+const NUTRITION_LABELS: EmojiScaleLabels = {
+    1: { emoji: '🍟', label: 'Poor' },
+    2: { emoji: '🥪', label: 'Fair' },
+    3: { emoji: '🍽️', label: 'OK' },
+    4: { emoji: '🥗', label: 'Good' },
+    5: { emoji: '🌱', label: 'Excellent' },
 };
 
 // ─── Sub Components ───────────────────────────────────────────────────────────
@@ -96,10 +139,12 @@ const Stepper = ({
         >
             <Text style={styles.stepperButtonText}>−</Text>
         </TouchableOpacity>
+
         <View style={styles.stepperValue}>
             <Text style={styles.stepperValueText}>{value}</Text>
             <Text style={styles.stepperUnit}>{unit}</Text>
         </View>
+
         <TouchableOpacity
             style={[styles.stepperButton, value >= max && styles.stepperButtonDisabled]}
             onPress={() => onChange(Math.min(max, value + step))}
@@ -123,10 +168,9 @@ export default function CheckIn() {
     const flatListRef = useRef<FlatList>(null);
 
     const update = <K extends keyof CheckInState>(key: K, value: CheckInState[K]) => {
-            setState(prev => ({ ...prev, [key]: value }));
+        setState(prev => ({ ...prev, [key]: value }));
     };
 
-    // load today's existing check-in when screen comes into focus
     useFocusEffect(
         useCallback(() => {
             loadTodayCheckIn();
@@ -136,6 +180,7 @@ export default function CheckIn() {
     const loadTodayCheckIn = async () => {
         setIsLoading(true);
         setSubmitted(false);
+        setCurrentIndex(0);
 
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -152,6 +197,7 @@ export default function CheckIn() {
 
         if (data) {
             setExistingId(data.id);
+
             setState({
                 sleepQuality: data.sleep_quality,
                 sleepHours: data.sleep_hours,
@@ -177,105 +223,61 @@ export default function CheckIn() {
     };
 
     const handleNext = () => {
-        if (currentIndex < CARDS.length - 1) {
-            scrollToIndex(currentIndex + 1);
-        }
+        if (currentIndex < CARDS.length - 1) scrollToIndex(currentIndex + 1);
     };
 
     const handleBack = () => {
-        if (currentIndex > 0) {
-            scrollToIndex(currentIndex - 1);
-        }
+        if (currentIndex > 0) scrollToIndex(currentIndex - 1);
     };
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setSubmitError(null);
-      
-        const { data: { user } } = await supabase.auth.getUser();
-      
-        if (!user) {
-          setSubmitError('No user session found. Please log in again.');
-          setIsSubmitting(false);
-          
-          return;
-        }
-      
-        const today = getLocalDate();
-      
-        const payload = {
-            user_id: user.id,
-            date: today,
-            sleep_quality: state.sleepQuality,
-            sleep_hours: state.sleepHours,
-            mood: state.mood,
-            energy: state.energy,
-            stress: state.stress,
-            nutrition_quality: state.nutritionQuality,
-            water_intake_glasses: state.waterIntake,
-            notes: state.notes || null,
-        };
-      
-        const { error } = existingId
-            ? await supabase.from('daily_checkins').update(payload).eq('id', existingId)
-            : await supabase.from('daily_checkins').insert(payload);
-      
-        if (error) {
-            setSubmitError(error.message);
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                setSubmitError('No user session found. Please log in again.');
+
+                return;
+            }
+
+            const today = getLocalDate();
+
+            const payload = {
+                user_id: user.id,
+                date: today,
+                sleep_quality: state.sleepQuality,
+                sleep_hours: state.sleepHours,
+                mood: state.mood,
+                energy: state.energy,
+                stress: state.stress,
+                nutrition_quality: state.nutritionQuality,
+                water_intake_glasses: state.waterIntake,
+                notes: state.notes || null,
+            };
+
+            const { error } = existingId
+                ? await supabase.from('daily_checkins').update(payload).eq('id', existingId)
+                : await supabase.from('daily_checkins').insert(payload);
+
+            if (error) {
+                setSubmitError(error.message);
+
+                return;
+            }
+
+            setSubmitted(true);
+
+            generateInsights().catch(err =>
+                console.error('Background insight generation failed:', err)
+            );
+        } catch (err) {
+            setSubmitError(err instanceof Error ? err.message : 'Something went wrong.');
+        } finally {
             setIsSubmitting(false);
-
-            return;
         }
-      
-        setSubmitted(true);
-        setIsSubmitting(false);
-      
-        // generate insights silently in the background after check-in
-        generateInsights().catch(err =>
-            console.error('Background insight generation failed:', err)
-        );
-    };
-
-    // ─── Custom Labels ───────────────────────────────────────────────────
-
-    const SLEEP_QUALITY_LABELS: EmojiScaleLabels = {
-        1: { emoji: '😫', label: 'Terrible' },
-        2: { emoji: '😔', label: 'Poor' },
-        3: { emoji: '😐', label: 'OK' },
-        4: { emoji: '😊', label: 'Good' },
-        5: { emoji: '😴', label: 'Great' },
-    };
-      
-    const MOOD_LABELS: EmojiScaleLabels = {
-        1: { emoji: '😞', label: 'Low' },
-        2: { emoji: '😕', label: 'Meh' },
-        3: { emoji: '😐', label: 'OK' },
-        4: { emoji: '😊', label: 'Good' },
-        5: { emoji: '😄', label: 'Great' },
-    };
-      
-    const ENERGY_LABELS: EmojiScaleLabels = {
-        1: { emoji: '🪫', label: 'Drained' },
-        2: { emoji: '😪', label: 'Tired' },
-        3: { emoji: '😐', label: 'OK' },
-        4: { emoji: '⚡', label: 'Energised' },
-        5: { emoji: '🔥', label: 'Fired up' },
-    };
-      
-    const STRESS_LABELS: EmojiScaleLabels = {
-        1: { emoji: '😌', label: 'Calm' },
-        2: { emoji: '🙂', label: 'Mild' },
-        3: { emoji: '😤', label: 'Moderate' },
-        4: { emoji: '😰', label: 'High' },
-        5: { emoji: '🤯', label: 'Overwhelmed' },
-    };
-      
-    const NUTRITION_LABELS: EmojiScaleLabels = {
-        1: { emoji: '🍟', label: 'Poor' },
-        2: { emoji: '🥪', label: 'Fair' },
-        3: { emoji: '🍽️', label: 'OK' },
-        4: { emoji: '🥗', label: 'Good' },
-        5: { emoji: '🌱', label: 'Excellent' },
     };
 
     // ─── Card Definitions ───────────────────────────────────────────────────
@@ -284,7 +286,9 @@ export default function CheckIn() {
         {
             key: 'sleepQuality',
             emoji: '😴',
-            question: 'How well did you sleep quality?',
+            question: 'How well did you sleep?',
+            subtitle: 'Think about how rested you feel this morning.',
+            tip: 'Quality sleep is one of the strongest predictors of recovery and performance.',
             input: (
                 <EmojiSelector
                     value={state.sleepQuality}
@@ -297,6 +301,8 @@ export default function CheckIn() {
             key: 'sleepHours',
             emoji: '⏰',
             question: 'How many hours did you sleep?',
+            subtitle: 'Include any naps or rest periods.',
+            tip: 'Adults 50+ typically need 7-9 hours for optimal recovery.',
             input: (
                 <Stepper
                     value={state.sleepHours}
@@ -312,6 +318,8 @@ export default function CheckIn() {
             key: 'mood',
             emoji: '😊',
             question: "How's your mood today?",
+            subtitle: 'Think about your general mood since waking up.',
+            tip: 'Mood patterns over time can reveal important recovery signals.',
             input: (
                 <EmojiSelector
                     value={state.mood}
@@ -324,6 +332,8 @@ export default function CheckIn() {
             key: 'energy',
             emoji: '⚡',
             question: 'How are your energy levels?',
+            subtitle: 'How energised do you feel right now?',
+            tip: 'Low energy for 3+ consecutive days may signal overtraining.',
             input: (
                 <EmojiSelector
                     value={state.energy}
@@ -336,6 +346,8 @@ export default function CheckIn() {
             key: 'stress',
             emoji: '🧠',
             question: 'How stressed do you feel?',
+            subtitle: 'Consider both physical and mental stress.',
+            tip: 'High stress slows recovery — even from light physical activity.',
             input: (
                 <EmojiSelector
                     value={state.stress}
@@ -345,21 +357,25 @@ export default function CheckIn() {
             ),
         },
         {
-            key: 'nutritionQuality',
-            emoji: '🥗',
-            question: 'How well did you eat today?',
-            input: (
-                <EmojiSelector
-                    value={state.nutritionQuality}
-                    onChange={val => update('nutritionQuality', val)}
-                    labels={NUTRITION_LABELS}
-                />
-            ),
+        key: 'nutritionQuality',
+        emoji: '🥗',
+        question: 'How well did you eat today?',
+        subtitle: 'Think about the quality of your meals so far.',
+        tip: 'Good nutrition accelerates recovery and stabilises energy levels.',
+        input: (
+            <EmojiSelector
+            value={state.nutritionQuality}
+            onChange={val => update('nutritionQuality', val)}
+            labels={NUTRITION_LABELS}
+            />
+        ),
         },
         {
             key: 'waterIntake',
             emoji: '💧',
             question: 'How many glasses of water?',
+            subtitle: 'Each glass is roughly 250ml or 8oz.',
+            tip: 'Staying hydrated reduces fatigue and supports joint health.',
             input: (
                 <Stepper
                     value={state.waterIntake}
@@ -374,11 +390,13 @@ export default function CheckIn() {
             key: 'notes',
             emoji: '📝',
             question: 'Anything else to note?',
+            subtitle: 'Optional — any symptoms, feelings or observations.',
+            tip: 'Notes help the AI identify patterns that numbers alone might miss.',
             input: (
                 <TextInput
                     style={styles.notesInput}
                     placeholder="Optional — how are you feeling overall?"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.colors.textLight}
                     value={state.notes}
                     onChangeText={val => update('notes', val)}
                     multiline
@@ -394,11 +412,23 @@ export default function CheckIn() {
     if (submitted) {
         return (
             <View style={styles.successContainer}>
-                <Text style={styles.successEmoji}>✅</Text>
+                <View style={styles.successIconContainer}>
+                    <Ionicons name="checkmark-circle" size={64} color={theme.colors.primary} />
+                </View>
                 <Text style={styles.successTitle}>Check-in saved!</Text>
                 <Text style={styles.successSubtitle}>
                     Your data helps Pacewell spot patterns and keep you on track.
                 </Text>
+
+                <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => router.replace('/(tabs)/dashboard')}
+                >
+                    <View style={styles.buttonInner}>
+                        <Text style={styles.primaryButtonText}>Back to Dashboard</Text>
+                        <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
+                    </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.editButton}
                     onPress={() => { setSubmitted(false); scrollToIndex(0); }}
@@ -414,7 +444,7 @@ export default function CheckIn() {
     if (isLoading) {
         return (
             <View style={styles.successContainer}>
-                <ActivityIndicator size="large" color="#2d6a4f" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
@@ -430,18 +460,26 @@ export default function CheckIn() {
                 <Text style={styles.headerTitle}>
                     {existingId ? 'Edit Check-in' : 'Daily Check-in'}
                 </Text>
-                <Text style={styles.headerSubtitle}>
-                    {currentIndex + 1} of {CARDS.length}
-                </Text>
+                <TouchableOpacity
+                    onPress={() => router.replace('/(tabs)/dashboard')}
+                    style={styles.closeButton}
+                >
+                    <Ionicons name="close" size={24} color={theme.colors.textDark} />
+                </TouchableOpacity>
             </View>
             
             <View style={styles.progressContainer}>
-                <View
-                    style={[
-                        styles.progressBar,
-                        { width: `${((currentIndex + 1) / CARDS.length) * 100}%` },
-                    ]}
-                />
+                <View style={styles.progressTrack}>
+                    <View
+                        style={[
+                            styles.progressBar,
+                            { width: `${((currentIndex + 1) / CARDS.length) * 100}%` },
+                        ]}
+                    />
+                </View>
+                <Text style={styles.progressLabel}>
+                    CHECK-IN PROGRESS — {currentIndex + 1} of {CARDS.length}
+                </Text>
             </View>
             
             <FlatList
@@ -457,45 +495,75 @@ export default function CheckIn() {
                     setCurrentIndex(index);
                 }}
                 renderItem={({ item }) => (
-                    <View style={styles.card}>
-                        <Text style={styles.cardEmoji}>{item.emoji}</Text>
-                        <Text style={styles.cardQuestion}>{item.question}</Text>
-                        {item.input}
+                    <View style={styles.cardWrapper}>
+                        <View style={styles.card}>
+                            <Text style={styles.cardEmoji}>{item.emoji}</Text>
+                            <Text style={styles.cardQuestion}>{item.question}</Text>
+                            <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+                            {item.input}
+                        </View>
+                        
+                        <View style={styles.tipCard}>
+                            <Ionicons
+                                name="information-circle-outline"
+                                size={16}
+                                color={theme.colors.primary}
+                            />
+                            <Text style={styles.tipText}>{item.tip}</Text>
+                        </View>
                     </View>
                 )}
             />
             
             {submitError && (
                 <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
                     <Text style={styles.errorText}>{submitError}</Text>
                 </View>
             )}
             
             <View style={styles.navigation}>
                 <TouchableOpacity
-                    style={[styles.navButton, currentIndex === 0 && styles.navButtonHidden]}
+                    style={[
+                        styles.navButton,
+                        currentIndex === 0 && styles.navButtonDisabled,
+                    ]}
                     onPress={handleBack}
                     disabled={currentIndex === 0}
                 >
-                    <Text style={styles.navButtonText}>← Back</Text>
+                    <Ionicons
+                        name="arrow-back"
+                        size={18}
+                        color={currentIndex === 0 ? theme.colors.textLight : theme.colors.primary}
+                    />
+                    <Text style={[
+                        styles.navButtonText,
+                        currentIndex === 0 && styles.navButtonTextDisabled,
+                    ]}>
+                        Back
+                    </Text>
                 </TouchableOpacity>
 
                 {currentIndex < CARDS.length - 1 ? (
                 <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-                    <Text style={styles.nextButtonText}>Next →</Text>
+                    <Text style={styles.nextButtonText}>Next</Text>
+                    <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
                 </TouchableOpacity>
                 ) : (
                 <TouchableOpacity
-                    style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+                    style={[styles.nextButton, isSubmitting && styles.buttonDisabled]}
                     onPress={handleSubmit}
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color={theme.colors.white} />
                     ) : (
-                    <Text style={styles.submitButtonText}>
-                        {existingId ? 'Update' : 'Submit'}
-                    </Text>
+                    <View style={styles.buttonInner}>
+                        <Text style={styles.nextButtonText}>
+                            {existingId ? 'Update' : 'Submit'}
+                        </Text>
+                        <Ionicons name="checkmark" size={18} color={theme.colors.white} />
+                    </View>
                     )}
                 </TouchableOpacity>
                 )}
@@ -510,107 +578,156 @@ export default function CheckIn() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.colors.background,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: theme.spacing.lg,
         paddingTop: 60,
-        paddingBottom: 12,
+        paddingBottom: theme.spacing.md,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1a1a2e',
+        ...theme.typography.sectionHeading,
+        color: theme.colors.textDark,
     },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#888',
-        fontWeight: '500',
-    },
-    progressContainer: {
-        height: 4,
-        backgroundColor: '#e0e0e0',
-        marginHorizontal: 24,
-        borderRadius: 2,
-        marginBottom: 8,
-    },
-    progressBar: {
-        height: 4,
-        backgroundColor: '#2d6a4f',
-        borderRadius: 2,
-    },
-    card: {
-        width: SCREEN_WIDTH,
-        flex: 1,
+    closeButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: theme.colors.card,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 32,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    progressContainer: {
+        paddingHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
+    },
+    progressTrack: {
+        height: 6,
+        backgroundColor: theme.colors.border,
+        borderRadius: 3,
+        marginBottom: theme.spacing.xs,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: 6,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 3,
+    },
+    progressLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+    },
+    cardWrapper: {
+        width: SCREEN_WIDTH,
+        flex: 1,
+        paddingHorizontal: theme.spacing.lg,
+        justifyContent: 'center',
+    },
+    card: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.lg,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        ...theme.shadow.small,
+        marginBottom: theme.spacing.md,
     },
     cardEmoji: {
-        fontSize: 64,
-        marginBottom: 24,
+        fontSize: 56,
+        marginBottom: theme.spacing.md,
     },
     cardQuestion: {
-        fontSize: 26,
+        fontSize: 22,
         fontWeight: '700',
-        color: '#1a1a2e',
+        color: theme.colors.textDark,
         textAlign: 'center',
-        marginBottom: 40,
-        lineHeight: 34,
+        marginBottom: theme.spacing.sm,
+        lineHeight: 30,
+    },
+    cardSubtitle: {
+        ...theme.typography.body,
+        color: theme.colors.textSubtle,
+        textAlign: 'center',
+        marginBottom: theme.spacing.lg,
+        lineHeight: 22,
+    },
+    tipCard: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.primaryLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
+    tipText: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+        flex: 1,
+        lineHeight: 18,
+        fontStyle: 'italic',
     },
     emojiRow: {
         flexDirection: 'row',
-        gap: 8,
+        gap: 6,
+        width: '100%',
     },
     emojiButton: {
+        flex: 1,
         alignItems: 'center',
-        padding: 12,
-        borderRadius: 16,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.md,
         borderWidth: 2,
-        borderColor: '#e0e0e0',
-        backgroundColor: '#fff',
-        minWidth: 56,
+        borderColor: theme.colors.border,
+        backgroundColor: theme.colors.background,
     },
     emojiButtonActive: {
-        borderColor: '#2d6a4f',
-        backgroundColor: '#f0faf4',
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primaryLight,
     },
     emojiText: {
-        fontSize: 28,
-        marginBottom: 4,
+        fontSize: 22,
+        marginBottom: 2,
     },
     emojiLabel: {
-        fontSize: 10,
-        color: '#888',
+        fontSize: 8,
+        color: theme.colors.textSubtle,
         fontWeight: '500',
         textAlign: 'center',
+        flexWrap: 'wrap',
     },
     emojiLabelActive: {
-        color: '#2d6a4f',
+        color: theme.colors.primary,
         fontWeight: '700',
     },
     stepper: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 24,
+        gap: theme.spacing.xl,
     },
     stepperButton: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#2d6a4f',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: theme.colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
     stepperButtonDisabled: {
-        backgroundColor: '#e0e0e0',
+        backgroundColor: theme.colors.border,
     },
     stepperButtonText: {
         fontSize: 28,
-        color: '#fff',
+        color: theme.colors.white,
         fontWeight: '300',
     },
     stepperValue: {
@@ -618,122 +735,140 @@ const styles = StyleSheet.create({
         minWidth: 80,
     },
     stepperValueText: {
-        fontSize: 48,
+        fontSize: 44,
         fontWeight: '700',
-        color: '#1a1a2e',
+        color: theme.colors.textDark,
     },
     stepperUnit: {
-        fontSize: 14,
-        color: '#888',
-        fontWeight: '500',
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
     },
     notesInput: {
         width: '100%',
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 16,
-        fontSize: 16,
-        color: '#1a1a2e',
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        fontSize: 15,
+        color: theme.colors.textDark,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: theme.colors.border,
         minHeight: 120,
+    },
+    errorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        marginHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
+        padding: theme.spacing.md,
+        backgroundColor: theme.colors.dangerLight,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.danger,
+    },
+    errorText: {
+        ...theme.typography.label,
+        color: theme.colors.danger,
+        flex: 1,
     },
     navigation: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: theme.spacing.lg,
         paddingBottom: 32,
-        paddingTop: 16,
+        paddingTop: theme.spacing.md,
+        gap: theme.spacing.md,
     },
     navButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 20,
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.spacing.sm,
+        paddingVertical: 14,
+        borderRadius: theme.radius.md,
+        borderWidth: 1.5,
+        borderColor: theme.colors.primary,
     },
-    navButtonHidden: {
-        opacity: 0,
+    navButtonDisabled: {
+        borderColor: theme.colors.border,
     },
     navButtonText: {
-        fontSize: 16,
-        color: '#2d6a4f',
+        fontSize: 15,
+        color: theme.colors.primary,
         fontWeight: '600',
+    },
+    navButtonTextDisabled: {
+        color: theme.colors.textLight,
     },
     nextButton: {
-        backgroundColor: '#2d6a4f',
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.spacing.sm,
         paddingVertical: 14,
-        paddingHorizontal: 32,
-        borderRadius: 12,
+        borderRadius: theme.radius.md,
+        backgroundColor: theme.colors.primary,
+        ...theme.shadow.small,
     },
     nextButtonText: {
-        fontSize: 16,
-        color: '#fff',
+        fontSize: 15,
+        color: theme.colors.white,
         fontWeight: '600',
     },
-    submitButton: {
-        backgroundColor: '#2d6a4f',
-        paddingVertical: 14,
-        paddingHorizontal: 32,
-        borderRadius: 12,
-        minWidth: 120,
-        alignItems: 'center',
-    },
-    submitButtonDisabled: {
+    buttonDisabled: {
         opacity: 0.6,
     },
-    submitButtonText: {
+    buttonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },
+    primaryButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.radius.md,
+        paddingVertical: 16,
+        paddingHorizontal: theme.spacing.xl,
+        alignItems: 'center',
+        marginBottom: theme.spacing.md,
+        ...theme.shadow.small,
+    },
+    primaryButtonText: {
+        color: theme.colors.white,
         fontSize: 16,
-        color: '#fff',
+        fontWeight: '600',
+    },
+    editButton: {
+        paddingVertical: theme.spacing.md,
+        alignItems: 'center',
+    },
+    editButtonText: {
+        ...theme.typography.body,
+        color: theme.colors.primary,
         fontWeight: '600',
     },
     successContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 32,
-        backgroundColor: '#f8f9fa',
+        paddingHorizontal: theme.spacing.xl,
+        backgroundColor: theme.colors.background,
     },
-    successEmoji: {
-        fontSize: 64,
-        marginBottom: 20,
+    successIconContainer: {
+        marginBottom: theme.spacing.lg,
     },
     successTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#1a1a2e',
-        marginBottom: 12,
+        ...theme.typography.screenTitle,
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.sm,
     },
     successSubtitle: {
-        fontSize: 16,
-        color: '#666',
+        ...theme.typography.body,
+        color: theme.colors.textSubtle,
         textAlign: 'center',
         lineHeight: 24,
-        marginBottom: 32,
+        marginBottom: theme.spacing.xl,
     },
-    editButton: {
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#2d6a4f',
-    },
-    editButtonText: {
-        fontSize: 15,
-        color: '#2d6a4f',
-        fontWeight: '600',
-    },
-
-    errorContainer: {
-        marginHorizontal: 24,
-        marginBottom: 8,
-        padding: 12,
-        backgroundColor: '#fff0f0',
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#e63946',
-      },
-      errorText: {
-        color: '#e63946',
-        fontSize: 13,
-        textAlign: 'center',
-      },
 });
