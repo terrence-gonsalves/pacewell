@@ -11,12 +11,7 @@ export const generateInsights = async (): Promise<{
             return { success: false, message: 'No active session' };
         }
 
-        console.log('Invoking Edge Function...');
-
         const { data, error } = await supabase.functions.invoke('generate-insights');
-
-        console.log('Edge Function response data:', JSON.stringify(data));
-        console.log('Edge Function response error:', JSON.stringify(error));
 
         if (error) {
             console.error('Edge Function error:', error);
