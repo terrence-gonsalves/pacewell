@@ -11,6 +11,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     TextInput,
+    Image,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -108,6 +109,7 @@ const getEmojiForAverage = (avg: number, labels: EmojiScaleLabels): string => {
 
 interface DashboardData {
     firstName: string;
+    avatarUrl: string | null;
     hasCheckedInToday: boolean;
     streak: number;
     avgMood: number | null;
@@ -200,6 +202,8 @@ export default function Dashboard() {
         setForm(prev => ({ ...prev, [key]: value }));
     };
 
+    // ─── load Dashboard ────────────────────────────────────────────────────────────────
+
     useFocusEffect(
         useCallback(() => {
             loadDashboard();
@@ -228,7 +232,7 @@ export default function Dashboard() {
             ] = await Promise.all([
                 supabase
                     .from('profiles')
-                    .select('full_name')
+                    .select('full_name, avatar_url')
                     .eq('id', user.id)
                     .single(),
                 supabase
@@ -275,6 +279,7 @@ export default function Dashboard() {
 
             setData({
                 firstName,
+                avatarUrl: profileResult.data?.avatar_url ?? null,
                 hasCheckedInToday: !!todayCheckInResult.data,
                 streak,
                 avgMood,
@@ -382,13 +387,22 @@ export default function Dashboard() {
                         style={styles.avatarContainer}
                         onPress={() => router.push('/(tabs)/profile')}
                     >
+
+                        {data?.avatarUrl ? (
+                        <Image
+                            source={{ uri: data.avatarUrl }}
+                            style={styles.headerAvatarImage}
+                        />
+                        ) : (
                         <View style={styles.headerAvatar}>
                             <Text style={styles.headerAvatarText}>
                                 {data?.firstName?.charAt(0).toUpperCase() ?? '?'}
                             </Text>
                         </View>
+                        )}
+
                         <View style={styles.onlineDot} />
-                    </TouchableOpacity>   
+                    </TouchableOpacity>  
                 </View>
 
                 <View style={styles.headerDivider} />
@@ -1277,21 +1291,21 @@ const styles = StyleSheet.create({
         position: 'relative',
         width: 40,
         height: 40,
-      },
-      headerAvatar: {
+    },
+    headerAvatar: {
         width: 40,
         height: 40,
         borderRadius: 20,
         backgroundColor: theme.colors.border,
         justifyContent: 'center',
         alignItems: 'center',
-      },
-      headerAvatarText: {
+    },
+    headerAvatarText: {
         fontSize: 16,
         fontWeight: '700',
         color: theme.colors.textDark,
-      },
-      onlineDot: {
+    },
+    onlineDot: {
         position: 'absolute',
         bottom: 0,
         right: 0,
@@ -1301,10 +1315,15 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.primary,
         borderWidth: 2,
         borderColor: theme.colors.background,
-      },
-      headerDivider: {
+    },
+    headerDivider: {
         height: 1,
         backgroundColor: theme.colors.border,
         marginBottom: theme.spacing.lg,
-      },
+    },
+    headerAvatarImage: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+    },
 });
