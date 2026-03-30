@@ -197,6 +197,7 @@ Deno.serve(async (req) => {
         const insightsToInsert = parsed.insights.map(insight => ({
             user_id: user.id,
             insight_type: insight.insight_type,
+            title: insight.title ?? null,
             content: insight.content,
             data_range_start: fourteenDaysAgoStr,
             data_range_end: today,

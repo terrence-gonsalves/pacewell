@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { generateInsights } from '../../lib/anthropic';
 import { AIInsight } from '../../types/health';
-import { formatDate, parseLocalDate } from '../../lib/locale';
+import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -54,28 +54,6 @@ const INSIGHT_CONFIG: Record<string, {
     },
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const extractTitle = (content: string): string => {
-
-    // take the first sentence as the title, max 60 chars
-    const firstSentence = content.split('.')[0];
-
-    if (firstSentence.length <= 60) return firstSentence;
-
-    return firstSentence;
-};
-
-const extractBody = (content: string): string => {
-
-    // everything after the first sentence
-    const dotIndex = content.indexOf('.');
-
-    if (dotIndex === -1 || dotIndex === content.length - 1) return content;
-
-    return content.substring(dotIndex + 1).trim();
-};
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Insights() {
@@ -99,10 +77,14 @@ export default function Insights() {
 
             if (!user) return;
 
+            const today = getLocalDate();
+
             const { data } = await supabase
                 .from('ai_insights')
                 .select('*')
                 .eq('user_id', user.id)
+                .gte('created_at', `${today}T00:00:00`)
+                .lte('created_at', `${today}T23:59:59`)
                 .order('created_at', { ascending: false });
 
             setInsights(data ?? []);
@@ -227,8 +209,7 @@ export default function Insights() {
                     {insights.map(insight => {
                     const config = INSIGHT_CONFIG[insight.insight_type] ?? INSIGHT_CONFIG.trend;
                     const isExpanded = expandedId === insight.id;
-                    const title = extractTitle(insight.content);
-                    const body = extractBody(insight.content);
+                    const isLong = insight.content.length > 120;
 
                     return (
                         <View
@@ -236,8 +217,8 @@ export default function Insights() {
                             style={[
                                 styles.insightCard,
                                 {
-                                    backgroundColor: config.bg,
-                                    borderColor: config.borderColor,
+                                backgroundColor: config.bg,
+                                borderColor: config.borderColor,
                                 },
                             ]}
                         >
@@ -261,7 +242,11 @@ export default function Insights() {
 
                                 </Text>
                             </View>
-
+                            
+                            {insight.title && (
+                                <Text style={styles.insightCardTitle}>{insight.title}</Text>
+                            )}
+                            
                             <Text style={styles.insightDataRange}>
                                 Data: {formatDate(parseLocalDate(insight.data_range_start), {
                                     day: 'numeric', month: 'short',
@@ -270,24 +255,23 @@ export default function Insights() {
                                 })}
                             </Text>
                             
-                            <Text style={styles.insightCardTitle}>{title}</Text>
+                            <Text
+                                style={styles.insightCardBody}
+                                numberOfLines={isExpanded ? undefined : 3}
+                            >
+                                {insight.content}
+                            </Text>
                             
-                            {isExpanded && body ? (
-                            <Text style={styles.insightCardBody}>{body}</Text>
-                            ) : null}
-                            
-                            
-                            {body ? (
+                            {isLong && (
                             <TouchableOpacity
                                 onPress={() => toggleExpand(insight.id)}
                                 style={styles.learnMoreButton}
                             >
                                 <Text style={[styles.learnMoreText, { color: config.colour }]}>
-                                    {isExpanded ? 'Show less' : 'More'} {isExpanded ? '↑' : '›'}
+                                    {isExpanded ? 'Show less ↑' : 'Learn more ›'}
                                 </Text>
                             </TouchableOpacity>
-                            ) : null}
-
+                            )}
                         </View>
                     );
                     })}
