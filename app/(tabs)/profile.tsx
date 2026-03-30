@@ -438,30 +438,7 @@ export default function Profile() {
                                 thumbColor={theme.colors.white}
                             />
                         </View>
-                    </View>
-                </View>
-                
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>ABOUT PACEWELL</Text>
-                    <View style={styles.card}>
-                        <View style={styles.aboutTextContainer}>
-                            <Text style={styles.aboutText}>
-                                Pacewell helps active adults 50+ track recovery, spot patterns, and stay ahead of injury — using AI to turn daily check-ins into genuinely useful insights.
-                            </Text>
-                        </View>
-
-                        <View style={styles.divider} />
-
-                        <View style={styles.settingRow}>
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons name="phone-portrait-outline" size={18} color={theme.colors.primary} />
-                                </View>
-                                <Text style={styles.settingLabel}>Version</Text>
-                            </View>
-                            <Text style={styles.versionText}>{APP_VERSION}</Text>
-                        </View>
-
+                        
                         <View style={styles.divider} />
 
                         <View style={styles.settingRow}>
@@ -472,7 +449,7 @@ export default function Profile() {
                                 <View>
                                     <Text style={styles.settingLabel}>Updates & Promotions</Text>
                                     <Text style={styles.settingSubtitle}>
-                                        Be notified of new features and offers
+                                        Be notified of updates & offers
                                     </Text>
                                 </View>
                             </View>
