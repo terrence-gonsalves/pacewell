@@ -24,6 +24,7 @@ export interface UserProfile {
     health_goals: string[];
     units: 'metric' | 'imperial';
     marketing_opt_in: boolean;
+    avatar_url: string | null;
     created_at: string;
 }
 
