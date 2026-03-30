@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ const EXERTION_LABELS: EmojiScaleLabels = {
 };
 
 const DEFAULT_WEEKLY_TARGET = 5; // placeholder — will be user-configurable
+const WEEKLY_GOAL_KEY = 'pacewell_weekly_goal';
 
 const DEFAULT_FORM = {
     activityType: 'walking' as ActivityType,
@@ -154,6 +156,7 @@ export default function Activity() {
     const [sheetVisible, setSheetVisible] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState(DEFAULT_FORM);
+    const [weeklyTarget, setWeeklyTarget] = useState(5);
 
     const updateForm = <K extends keyof typeof DEFAULT_FORM>(
         key: K,
@@ -179,6 +182,9 @@ export default function Activity() {
 
         const today = getLocalDate();
         const weekStart = getWeekStart();
+        const storedGoal = await AsyncStorage.getItem(WEEKLY_GOAL_KEY);
+
+        if (storedGoal) setWeeklyTarget(Number(storedGoal));
 
         const [todayResult, weekResult] = await Promise.all([
             supabase
@@ -256,7 +262,7 @@ export default function Activity() {
         ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
 
     const progressPercent = Math.min(
-        (weeklyCount / DEFAULT_WEEKLY_TARGET) * 100,
+        (weeklyCount / weeklyTarget) * 100,
         100
     );
 
@@ -372,7 +378,7 @@ export default function Activity() {
                             <Text style={styles.weeklyGoalTitle}>Weekly Goal</Text>
                         </View>
                         <Text style={styles.weeklyGoalCount}>
-                            {weeklyCount} of {DEFAULT_WEEKLY_TARGET} activities
+                            {weeklyCount} of {weeklyTarget} activities
                         </Text>
                     </View>
                     <View style={styles.progressTrack}>
@@ -383,9 +389,6 @@ export default function Activity() {
                             ]}
                         />
                     </View>
-                    <Text style={styles.weeklyGoalNote}>
-                        * Weekly target is customisable — coming soon in Profile settings
-                    </Text>
                 </View>
 
                 </ScrollView>
@@ -685,11 +688,6 @@ const styles = StyleSheet.create({
         height: 8,
         backgroundColor: theme.colors.primary,
         borderRadius: 4,
-    },
-    weeklyGoalNote: {
-        ...theme.typography.caption,
-        color: theme.colors.textLight,
-        fontStyle: 'italic',
     },
     fab: {
         position: 'absolute',
