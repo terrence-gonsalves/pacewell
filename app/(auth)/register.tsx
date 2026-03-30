@@ -147,9 +147,6 @@ export default function Register() {
     const renderStepOne = () => (
       <>
           <View style={styles.screenHeader}>
-              <TouchableOpacity onPress={() => router.back()}>
-                  <Ionicons name="arrow-back" size={24} color={theme.colors.textDark} />
-              </TouchableOpacity>
               <Text style={styles.screenHeaderTitle}>Create Account</Text>
               <View style={{ width: 24 }} />
           </View>
@@ -200,7 +197,7 @@ export default function Register() {
                   />
                   <TextInput
                       style={styles.input}
-                      placeholder="Must be at least 8 characters"
+                      placeholder="Password"
                       placeholderTextColor={theme.colors.textLight}
                       value={password}
                       onChangeText={setPassword}
