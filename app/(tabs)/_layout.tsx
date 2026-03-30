@@ -74,6 +74,7 @@ export default function TabsLayout() {
                 name="checkin"
                 options={{
                     href: null,
+                    tabBarStyle: { display: 'none' },
                 }}
             />
         </Tabs>
