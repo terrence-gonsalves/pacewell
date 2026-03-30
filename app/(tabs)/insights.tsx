@@ -7,24 +7,61 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { generateInsights } from '../../lib/anthropic';
 import { AIInsight } from '../../types/health';
-import { formatDate, parseLocalDate } from '../../lib/locale';
+import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
+import { theme } from '../../lib/theme';
 
-const INSIGHT_CONFIG: Record<string, { emoji: string; colour: string; bg: string }> = {
-    trend: { emoji: '📈', colour: '#2d6a4f', bg: '#f0faf4' },
-    correlation: { emoji: '🔗', colour: '#1565c0', bg: '#e3f2fd' },
-    anomaly: { emoji: '⚠️', colour: '#e65100', bg: '#fff3e0' },
-    prediction: { emoji: '🔮', colour: '#6a1b9a', bg: '#f3e5f5' },
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const INSIGHT_CONFIG: Record<string, {
+    icon: string;
+    colour: string;
+    bg: string;
+    borderColor: string;
+    label: string;
+}> = {
+    trend: {
+        icon: 'trending-up',
+        colour: theme.colors.primary,
+        bg: theme.colors.primaryLight,
+        borderColor: theme.colors.primary,
+        label: 'Trend',
+    },
+    correlation: {
+        icon: 'git-compare',
+        colour: theme.colors.info,
+        bg: theme.colors.infoLight,
+        borderColor: theme.colors.info,
+        label: 'Correlation',
+    },
+    anomaly: {
+        icon: 'warning',
+        colour: theme.colors.warning,
+        bg: theme.colors.warningLight,
+        borderColor: theme.colors.warning,
+        label: 'Anomaly',
+    },
+    prediction: {
+        icon: 'telescope',
+        colour: theme.colors.purple,
+        bg: theme.colors.purpleLight,
+        borderColor: theme.colors.purple,
+        label: 'Prediction',
+    },
 };
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Insights() {
     const [insights, setInsights] = useState<AIInsight[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
     useFocusEffect(
         useCallback(() => {
@@ -40,10 +77,14 @@ export default function Insights() {
 
             if (!user) return;
 
+            const today = getLocalDate();
+
             const { data } = await supabase
                 .from('ai_insights')
                 .select('*')
                 .eq('user_id', user.id)
+                .gte('created_at', `${today}T00:00:00`)
+                .lte('created_at', `${today}T23:59:59`)
                 .order('created_at', { ascending: false });
 
             setInsights(data ?? []);
@@ -65,7 +106,7 @@ export default function Insights() {
                 setMessage(result.message);
             } else {
                 await loadInsights();
-                setMessage('New insights generated successfully.');
+                setMessage(null);
             }
         } else {
             setMessage(result.message ?? 'Something went wrong. Please try again.');
@@ -74,6 +115,12 @@ export default function Insights() {
         setIsGenerating(false);
     };
 
+    const toggleExpand = (id: string) => {
+        setExpandedId(prev => prev === id ? null : id);
+    };
+
+    // ─── Render ───────────────────────────────────────────────────────────────
+
     return (
         <View style={styles.container}>
             <ScrollView
@@ -81,42 +128,69 @@ export default function Insights() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <Text style={styles.backButton}>← Back</Text>
+                    <Text style={styles.headerTitle}>Health Insights</Text>
+                    <TouchableOpacity
+                        onPress={handleGenerateInsights}
+                        disabled={isGenerating}
+                        style={styles.refreshButton}
+                    >
+
+                        {isGenerating ? (
+                        <ActivityIndicator size="small" color={theme.colors.primary} />
+                        ) : (
+                        <Ionicons
+                            name="refresh"
+                            size={22}
+                            color={theme.colors.primary}
+                        />
+                        )}
+
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Your Insights</Text>
-                    <View style={{ width: 60 }} />
                 </View>
+                <View style={styles.headerDivider} />
                 
-                <TouchableOpacity
-                    style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
-                    onPress={handleGenerateInsights}
-                    disabled={isGenerating}
-                >
-
-                    {isGenerating ? (
-                    <View style={styles.generateButtonInner}>
-                        <ActivityIndicator color="#fff" size="small" />
-                        <Text style={styles.generateButtonText}>Analysing your data...</Text>
+                <View style={styles.heroBanner}>
+                    <View style={styles.heroIconContainer}>
+                        <Ionicons name="flash" size={28} color={theme.colors.white} />
                     </View>
-                    ) : (
-                    <View style={styles.generateButtonInner}>
-                        <Text style={styles.generateButtonEmoji}>✨</Text>
-                        <Text style={styles.generateButtonText}>Generate New Insights</Text>
-                    </View>
-                    )}
+                    <Text style={styles.heroTitle}>Unlock Your AI Insights</Text>
+                    <Text style={styles.heroSubtitle}>
+                        We've analysed your health data. See what we found.
+                    </Text>
+                    <TouchableOpacity
+                        style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
+                        onPress={handleGenerateInsights}
+                        disabled={isGenerating}
+                    >
 
-                </TouchableOpacity>
+                        {isGenerating ? (
+                        <View style={styles.generateButtonInner}>
+                            <ActivityIndicator color={theme.colors.primary} size="small" />
+                            <Text style={styles.generateButtonText}>Analysing your data...</Text>
+                        </View>
+                        ) : (
+                        <View style={styles.generateButtonInner}>
+                            <Text style={styles.generateButtonText}>Generate New Insights</Text>
+                        </View>
+                        )}
+
+                    </TouchableOpacity>
+                </View>
                 
                 {message && (
                 <View style={styles.messageBox}>
+                    <Ionicons
+                        name="information-circle-outline"
+                        size={16}
+                        color={theme.colors.primary}
+                    />
                     <Text style={styles.messageText}>{message}</Text>
                 </View>
                 )}
                 
                 {isLoading ? (
                 <View style={styles.centred}>
-                    <ActivityIndicator size="large" color="#2d6a4f" />
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
                 ) : insights.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -128,50 +202,83 @@ export default function Insights() {
                 </View>
                 ) : (
                 <>
-                    <Text style={styles.sectionLabel}>                        
-                        {insights.length} insight{insights.length !== 1 ? 's' : ''} generated
+                    <Text style={styles.sectionLabel}>
+                        Your Latest Findings
                     </Text>
 
                     {insights.map(insight => {
                     const config = INSIGHT_CONFIG[insight.insight_type] ?? INSIGHT_CONFIG.trend;
+                    const isExpanded = expandedId === insight.id;
+                    const isLong = insight.content.length > 120;
 
                     return (
                         <View
                             key={insight.id}
-                            style={[styles.insightCard, { backgroundColor: config.bg }]}
+                            style={[
+                                styles.insightCard,
+                                {
+                                backgroundColor: config.bg,
+                                borderColor: config.borderColor,
+                                },
+                            ]}
                         >
-                            <View style={styles.insightHeader}>
-                                <Text style={styles.insightEmoji}>{config.emoji}</Text>
-                                <View style={[styles.insightBadge, { backgroundColor: config.colour }]}>
-                                    <Text style={styles.insightBadgeText}>
-                                        {insight.insight_type.charAt(0).toUpperCase() +
-                                        insight.insight_type.slice(1)}
+                            <View style={styles.insightCardHeader}>
+                                <View style={styles.insightTypeRow}>
+                                    <Ionicons
+                                        name={config.icon as any}
+                                        size={16}
+                                        color={config.colour}
+                                    />
+                                    <Text style={[styles.insightTypeLabel, { color: config.colour }]}>
+                                        {config.label}
                                     </Text>
                                 </View>
-                            </View>
-                            <Text style={styles.insightContent}>{insight.content}</Text>
-                            <View style={styles.insightFooter}>
-                                <Text style={styles.insightDate}>
-                                    Generated {formatDate(parseLocalDate(insight.created_at.split('T')[0]), {
-                                        day: 'numeric',
-                                        month: 'long',
-                                    })}
-                                </Text>
-                                <Text style={styles.insightRange}>
-                                    Data: {formatDate(parseLocalDate(insight.data_range_start), {
-                                        day: 'numeric',
-                                        month: 'short',
-                                    })} – {formatDate(parseLocalDate(insight.data_range_end), {
-                                        day: 'numeric',
-                                        month: 'short',
-                                    })}
+                                <Text style={styles.insightCardDate}>
+
+                                    {formatDate(
+                                        parseLocalDate(insight.created_at.split('T')[0]),
+                                        { day: 'numeric', month: 'short' }
+                                    )}
+
                                 </Text>
                             </View>
+                            
+                            {insight.title && (
+                                <Text style={styles.insightCardTitle}>{insight.title}</Text>
+                            )}
+                            
+                            <Text style={styles.insightDataRange}>
+                                Data: {formatDate(parseLocalDate(insight.data_range_start), {
+                                    day: 'numeric', month: 'short',
+                                })} – {formatDate(parseLocalDate(insight.data_range_end), {
+                                    day: 'numeric', month: 'short',
+                                })}
+                            </Text>
+                            
+                            <Text
+                                style={styles.insightCardBody}
+                                numberOfLines={isExpanded ? undefined : 3}
+                            >
+                                {insight.content}
+                            </Text>
+                            
+                            {isLong && (
+                            <TouchableOpacity
+                                onPress={() => toggleExpand(insight.id)}
+                                style={styles.learnMoreButton}
+                            >
+                                <Text style={[styles.learnMoreText, { color: config.colour }]}>
+                                    {isExpanded ? 'Show less ↑' : 'Learn more ›'}
+                                </Text>
+                            </TouchableOpacity>
+                            )}
                         </View>
                     );
                     })}
+
                 </>
                 )}
+
             </ScrollView>
         </View>
     );
@@ -182,36 +289,77 @@ export default function Insights() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.colors.background,
     },
     inner: {
-        paddingTop: 60,
-        paddingHorizontal: 24,
         paddingBottom: 48,
     },
     header: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 24,
-    },
-    backButton: {
-        fontSize: 15,
-        color: '#2d6a4f',
-        fontWeight: '600',
-        width: 60,
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: 60,
+        paddingBottom: theme.spacing.md,
     },
     headerTitle: {
-        fontSize: 18,
+        ...theme.typography.screenTitle,
+        color: theme.colors.textDark,
+    },
+    refreshButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: theme.colors.card,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    headerDivider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginBottom: theme.spacing.lg,
+    },
+    heroBanner: {
+        backgroundColor: theme.colors.primary,
+        marginHorizontal: theme.spacing.lg,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.lg,
+        alignItems: 'center',
+        marginBottom: theme.spacing.lg,
+        ...theme.shadow.medium,
+    },
+    heroIconContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: theme.spacing.md,
+    },
+    heroTitle: {
+        fontSize: 20,
         fontWeight: '700',
-        color: '#1a1a2e',
+        color: theme.colors.white,
+        textAlign: 'center',
+        marginBottom: theme.spacing.sm,
+    },
+    heroSubtitle: {
+        ...theme.typography.label,
+        color: 'rgba(255,255,255,0.8)',
+        textAlign: 'center',
+        marginBottom: theme.spacing.lg,
+        lineHeight: 20,
     },
     generateButton: {
-        backgroundColor: '#2d6a4f',
-        borderRadius: 14,
-        paddingVertical: 16,
-        paddingHorizontal: 20,
-        marginBottom: 16,
+        backgroundColor: theme.colors.white,
+        borderRadius: theme.radius.md,
+        paddingVertical: 12,
+        paddingHorizontal: theme.spacing.xl,
+        width: '100%',
+        alignItems: 'center',
     },
     generateButtonDisabled: {
         opacity: 0.7,
@@ -219,29 +367,29 @@ const styles = StyleSheet.create({
     generateButtonInner: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-    },
-    generateButtonEmoji: {
-        fontSize: 18,
+        gap: theme.spacing.sm,
     },
     generateButtonText: {
-        color: '#fff',
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
+        color: theme.colors.primary,
     },
     messageBox: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 16,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.primaryLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.lg,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: theme.colors.primary,
     },
     messageText: {
-        fontSize: 14,
-        color: '#555',
-        textAlign: 'center',
+        ...theme.typography.label,
+        color: theme.colors.primary,
+        flex: 1,
         lineHeight: 20,
     },
     centred: {
@@ -250,72 +398,81 @@ const styles = StyleSheet.create({
     },
     emptyState: {
         alignItems: 'center',
-        paddingTop: 48,
-        paddingHorizontal: 16,
+        paddingTop: theme.spacing.xxl,
+        paddingHorizontal: theme.spacing.xl,
     },
     emptyEmoji: {
         fontSize: 48,
-        marginBottom: 16,
+        marginBottom: theme.spacing.md,
     },
     emptyTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#1a1a2e',
-        marginBottom: 8,
+        ...theme.typography.sectionHeading,
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.sm,
     },
     emptyText: {
-        fontSize: 14,
-        color: '#888',
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
         textAlign: 'center',
         lineHeight: 22,
     },
     sectionLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#888',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginBottom: 14,
+        ...theme.typography.sectionHeading,
+        color: theme.colors.textDark,
+        paddingHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.md,
     },
     insightCard: {
-        borderRadius: 16,
-        padding: 18,
-        marginBottom: 14,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.lg,
+        marginHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.md,
+        borderWidth: 1,
     },
-    insightHeader: {
+    insightCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.sm,
+    },
+    insightTypeRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginBottom: 12,
+        gap: theme.spacing.xs,
     },
-    insightEmoji: {
-        fontSize: 22,
+    insightTypeLabel: {
+        ...theme.typography.caption,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
     },
-    insightBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
+    insightCardDate: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
     },
-    insightBadgeText: {
-        fontSize: 12,
-        color: '#fff',
+    insightCardTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.sm,
+        lineHeight: 22,
+    },
+    insightCardBody: {
+        ...theme.typography.body,
+        color: theme.colors.textBody,
+        lineHeight: 22,
+        marginBottom: theme.spacing.sm,
+    },
+    insightDataRange: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        marginBottom: theme.spacing.xs,
+    },
+    learnMoreButton: {
+        marginTop: theme.spacing.xs,
+    },
+    learnMoreText: {
+        ...theme.typography.label,
         fontWeight: '600',
-    },
-    insightContent: {
-        fontSize: 15,
-        color: '#1a1a2e',
-        lineHeight: 24,
-        marginBottom: 12,
-    },
-    insightFooter: {
-        gap: 2,
-    },
-    insightDate: {
-        fontSize: 12,
-        color: '#888',
-    },
-    insightRange: {
-        fontSize: 12,
-        color: '#aaa',
     },
 });

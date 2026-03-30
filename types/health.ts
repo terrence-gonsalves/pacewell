@@ -88,6 +88,7 @@ export interface AIInsight {
     id: string;
     user_id: string;
     insight_type: InsightType;
+    title: string | null;
     content: string;
     data_range_start: string;
     data_range_end: string;
