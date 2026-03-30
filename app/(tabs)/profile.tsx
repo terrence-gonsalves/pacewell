@@ -22,6 +22,7 @@ import { UserProfile } from '../../types/health';
 import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
+import { Image } from 'react-native';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -275,11 +276,19 @@ export default function Profile() {
                 
                 <View style={styles.profileCard}>
                     <View style={styles.avatarWrapper}>
+
+                        {profile?.avatar_url ? (
+                        <Image
+                            source={{ uri: profile.avatar_url }}
+                            style={styles.avatarImage}
+                        />
+                        ) : (
                         <View style={styles.avatar}>
                             <Text style={styles.avatarText}>
                                 {profile?.full_name?.charAt(0).toUpperCase() ?? '?'}
                             </Text>
                         </View>
+                        )}
 
                         <TouchableOpacity
                             style={styles.editAvatarButton}
@@ -1031,5 +1040,12 @@ const styles = StyleSheet.create({
         color: theme.colors.white,
         fontSize: 16,
         fontWeight: '600',
+    },
+    avatarImage: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 2,
+        borderColor: theme.colors.primary,
     },
 });

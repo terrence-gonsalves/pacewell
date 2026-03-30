@@ -2,23 +2,33 @@ import { useEffect, useState } from 'react';
 import {
     View,
     Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
     TextInput,
-    ActivityIndicator,
+    TouchableOpacity,
+    StyleSheet,
     KeyboardAvoidingView,
     Platform,
+    ActivityIndicator,
+    ScrollView,
+    Alert,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { ActivityLevel, UserProfile } from '../types/health';
+import { theme } from '../lib/theme';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
 
-const ACTIVITY_LEVELS: { value: ActivityLevel; label: string; description: string }[] = [
-    { value: 'light', label: '🚶 Light', description: 'Walking, gentle stretching' },
-    { value: 'moderate', label: '🚴 Moderate', description: 'Cycling, swimming, hiking' },
-    { value: 'active', label: '🏃 Active', description: 'Running, tennis, regular gym' },
-    { value: 'athlete', label: '🏅 Athlete', description: 'Competitive or high intensity' },
+const ACTIVITY_LEVELS: {
+    value: ActivityLevel;
+    label: string;
+    description: string;
+    icon: string;
+}[] = [
+    { value: 'light', label: 'Light', description: 'Sedentary work, stretching, or slow walking', icon: '🚶' },
+    { value: 'moderate', label: 'Moderate', description: 'Regular walks or 1-2 workouts per week', icon: '🚴' },
+    { value: 'active', label: 'Active', description: 'Strenuous exercise or sports 3-5 days a week', icon: '🏃' },
+    { value: 'athlete', label: 'Athlete', description: 'Intense daily training or physical profession', icon: '🏅' },
 ];
 
 const HEALTH_GOALS = [
@@ -30,6 +40,8 @@ const HEALTH_GOALS = [
     'Monitor recovery',
 ];
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function EditProfile() {
     const [fullName, setFullName] = useState('');
     const [age, setAge] = useState('');
@@ -38,6 +50,11 @@ export default function EditProfile() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+    // ─── Load Profile ──────────────────────────────────────────────────────────────
 
     useEffect(() => {
         loadProfile();
@@ -59,9 +76,107 @@ export default function EditProfile() {
             setAge(String(data.age));
             setActivityLevel(data.activity_level);
             setSelectedGoals(data.health_goals ?? []);
+            setAvatarUrl(data.avatar_url ?? null);
         }
 
         setIsLoading(false);
+    };
+
+    // ─── Pick Image ──────────────────────────────────────────────────────────────
+
+    const handlePickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (status !== 'granted') {
+            Alert.alert(
+                'Permission needed',
+                'Please allow access to your photo library to set a profile photo.'
+            );
+
+            return;
+        }
+      
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+      
+        if (!result.canceled && result.assets[0]) {
+          setAvatarPreview(result.assets[0].uri);
+        }
+    };
+      
+    const handleTakePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+        if (status !== 'granted') {
+            Alert.alert(
+                'Permission needed',
+                'Please allow camera access to take a profile photo.'
+            );
+
+            return;
+        }
+      
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+        });
+      
+        if (!result.canceled && result.assets[0]) {
+            setAvatarPreview(result.assets[0].uri);
+        }
+    };
+      
+    const handleSelectPhotoSource = () => {
+        Alert.alert(
+            'Profile Photo',
+            'Choose how to add your photo',
+            [
+                { text: 'Camera', onPress: handleTakePhoto },
+                { text: 'Photo Library', onPress: handlePickImage },
+                { text: 'Cancel', style: 'cancel' },
+            ]
+        );
+    };
+      
+    const uploadAvatar = async (uri: string): Promise<string | null> => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) return null;
+        
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            const fileExt = uri.split('.').pop() ?? 'jpg';
+            const filePath = `${user.id}/avatar.${fileExt}`;
+        
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, blob, {
+                    upsert: true,
+                    contentType: `image/${fileExt}`,
+                });
+        
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+
+                return null;
+            }
+        
+            const { data } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+        
+            return data.publicUrl;      
+        } catch (err) {
+            console.error('Avatar upload error:', err);
+
+            return null;
+        }
     };
 
     const toggleGoal = (goal: string) => {
@@ -72,27 +187,19 @@ export default function EditProfile() {
         );
     };
 
+    // ─── Save ──────────────────────────────────────────────────────────────
+
     const handleSave = async () => {
         setError(null);
 
-        if (!fullName) {
-            setError('Please enter your name.');
-
-            return;
-        }
-
+        if (!fullName) { setError('Please enter your name.'); return; }
         if (!age || isNaN(Number(age)) || Number(age) < 18 || Number(age) > 120) {
             setError('Please enter a valid age.');
 
             return;
         }
 
-        if (!activityLevel) {
-            setError('Please select your activity level.');
-
-            return;
-        }
-
+        if (!activityLevel) { setError('Please select your activity level.'); return; }
         if (selectedGoals.length === 0) {
             setError('Please select at least one health goal.');
 
@@ -106,6 +213,19 @@ export default function EditProfile() {
 
             if (!user) return;
 
+            // upload avatar if a new one was selected
+            let finalAvatarUrl = avatarUrl;
+
+            if (avatarPreview) {
+                setIsUploadingAvatar(true);
+
+                const uploaded = await uploadAvatar(avatarPreview);
+
+                if (uploaded) finalAvatarUrl = uploaded;
+
+                setIsUploadingAvatar(false);
+            }
+
             const { error } = await supabase
                 .from('profiles')
                 .update({
@@ -114,6 +234,7 @@ export default function EditProfile() {
                     activity_level: activityLevel,
                     primary_activity: activityLevel,
                     health_goals: selectedGoals,
+                    avatar_url: finalAvatarUrl,
                 })
                 .eq('id', user.id);
 
@@ -134,10 +255,12 @@ export default function EditProfile() {
     if (isLoading) {
         return (
             <View style={styles.centred}>
-                <ActivityIndicator size="large" color="#2d6a4f" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
+
+    // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <KeyboardAvoidingView
@@ -148,51 +271,155 @@ export default function EditProfile() {
                 contentContainerStyle={styles.inner}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.replace('/(tabs)/profile')}>
-                        <Text style={styles.backButton}>← Back</Text>
+                <View style={styles.screenHeader}>
+                    <TouchableOpacity
+                        onPress={() => router.replace('/(tabs)/profile')}
+                        style={styles.backButton}
+                    >
+                        <Ionicons name="arrow-back" size={24} color={theme.colors.textDark} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Edit Profile</Text>
-                    <View style={{ width: 60 }} />
+
+                    <Text style={styles.screenHeaderTitle}>Edit Profile</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <View style={styles.headerDivider} />
+                
+                <View style={styles.avatarSection}>
+                    <View style={styles.avatarPreviewContainer}>
+
+                        {avatarPreview || avatarUrl ? (
+                        <Image
+                            source={{ uri: avatarPreview ?? avatarUrl ?? '' }}
+                            style={styles.avatarImage}
+                        />
+                        ) : (
+                        <View style={styles.avatarPlaceholder}>
+                            <Text style={styles.avatarPlaceholderText}>
+                                {fullName?.charAt(0).toUpperCase() ?? '?'}
+                            </Text>
+                        </View>
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.avatarEditButton}
+                            onPress={handleSelectPhotoSource}
+                        >
+                            <Ionicons name="camera" size={16} color={theme.colors.white} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {avatarPreview && (
+                    <View style={styles.previewBadge}>
+                        <Ionicons
+                            name="information-circle-outline"
+                            size={14}
+                            color={theme.colors.primary}
+                        />
+                        <Text style={styles.previewBadgeText}>
+                            Preview — tap Save Changes to apply
+                        </Text>
+                    </View>
+                    )}
+
+                    <TouchableOpacity
+                        style={styles.changePhotoButton}
+                        onPress={handleSelectPhotoSource}
+                    >
+                        <Text style={styles.changePhotoText}>Change Profile Photo</Text>
+                    </TouchableOpacity>
                 </View>
                 
-                <Text style={styles.inputLabel}>Full name</Text>
-                <TextInput
-                    style={styles.input}
-                    value={fullName}
-                    onChangeText={setFullName}
-                    placeholder="Your name"
-                    placeholderTextColor="#999"
-                    autoComplete="name"
-                />
-                
-                <Text style={styles.inputLabel}>Age</Text>
-                <TextInput
-                    style={styles.input}
-                    value={age}
-                    onChangeText={setAge}
-                    placeholder="Your age"
-                    placeholderTextColor="#999"
-                    keyboardType="number-pad"
-                />
-                
-                <Text style={styles.inputLabel}>Activity level</Text>
+                <Text style={styles.sectionLabel}>PERSONAL DETAILS</Text>
+                <Text style={styles.sectionSubtitle}>Keep your basic information up to date.</Text>
 
-                {ACTIVITY_LEVELS.map(level => (
-                <TouchableOpacity
-                    key={level.value}
-                    style={[
-                        styles.optionCard,
-                        activityLevel === level.value && styles.optionCardActive,
-                    ]}
-                    onPress={() => setActivityLevel(level.value)}
-                >
-                    <Text style={styles.optionLabel}>{level.label}</Text>
-                    <Text style={styles.optionDescription}>{level.description}</Text>
-                </TouchableOpacity>
-                ))}
+                <View style={styles.formCard}>
+                    <Text style={styles.inputLabel}>Full Name</Text>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons
+                            name="person-outline"
+                            size={18}
+                            color={theme.colors.textSubtle}
+                            style={styles.inputIcon}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            value={fullName}
+                            onChangeText={setFullName}
+                            placeholder="Your full name"
+                            placeholderTextColor={theme.colors.textLight}
+                            autoComplete="name"
+                        />
+                    </View>
+
+                    <Text style={styles.inputLabel}>Age</Text>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons
+                            name="calendar-outline"
+                            size={18}
+                            color={theme.colors.textSubtle}
+                            style={styles.inputIcon}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            value={age}
+                            onChangeText={setAge}
+                            placeholder="Your age"
+                            placeholderTextColor={theme.colors.textLight}
+                            keyboardType="number-pad"
+                        />
+                    </View>
+                </View>
                 
-                <Text style={styles.inputLabel}>Health goals</Text>
+                <Text style={styles.sectionLabel}>ACTIVITY LEVEL</Text>
+                <Text style={styles.sectionSubtitle}>
+                    Select the option that best describes your daily lifestyle.
+                </Text>
+                <View style={styles.activityLevelList}>
+
+                    {ACTIVITY_LEVELS.map(level => (
+                    <TouchableOpacity
+                        key={level.value}
+                        style={[
+                            styles.activityCard,
+                            activityLevel === level.value && styles.activityCardActive,
+                        ]}
+                        onPress={() => setActivityLevel(level.value)}
+                    >
+                        <View style={styles.activityCardLeft}>
+                            <View style={[
+                                styles.activityIconContainer,
+                                activityLevel === level.value && styles.activityIconContainerActive,
+                            ]}>
+                                <Text style={styles.activityIcon}>{level.icon}</Text>
+                            </View>
+                            <View style={styles.activityCardText}>
+                                <Text style={[
+                                    styles.activityLabel,
+                                    activityLevel === level.value && styles.activityLabelActive,
+                                ]}>
+                                    {level.label}
+                                </Text>
+                                <Text style={styles.activityDescription}>{level.description}</Text>
+                            </View>
+                        </View>
+
+                        {activityLevel === level.value && (
+                        <Ionicons
+                            name="checkmark-circle"
+                            size={22}
+                            color={theme.colors.primary}
+                        />
+                        )}
+
+                    </TouchableOpacity>
+                    ))}
+
+                </View>
+                
+                <Text style={styles.sectionLabel}>HEALTH GOALS</Text>
+                <Text style={styles.sectionSubtitle}>
+                    What would you like to achieve in the next 3 months?
+                </Text>
                 <View style={styles.goalsGrid}>
 
                     {HEALTH_GOALS.map(goal => (
@@ -216,23 +443,43 @@ export default function EditProfile() {
                 </View>
                 
                 {error && (
-                <View style={styles.errorContainer}>
+                <View style={styles.errorBox}>
+                    <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
                     <Text style={styles.errorText}>{error}</Text>
                 </View>
                 )}
                 
+                <View style={styles.privacyNote}>
+                    <Ionicons
+                        name="information-circle-outline"
+                        size={16}
+                        color={theme.colors.textSubtle}
+                    />
+                    <Text style={styles.privacyText}>
+                        Your data is used to personalise your workout recommendations and recovery plans. We never share your health info.
+                    </Text>
+                </View>
+                
                 <TouchableOpacity
-                    style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                    style={[styles.primaryButton, (isSaving || isUploadingAvatar) && styles.buttonDisabled]}
                     onPress={handleSave}
-                    disabled={isSaving}
+                    disabled={isSaving || isUploadingAvatar}
                 >
 
-                    {isSaving ? (
-                    <ActivityIndicator color="#fff" />
+                    {isSaving || isUploadingAvatar ? (
+                    <View style={styles.buttonInner}>
+                        <ActivityIndicator color={theme.colors.white} size="small" />
+                        <Text style={styles.primaryButtonText}>
+                            {isUploadingAvatar ? 'Uploading photo...' : 'Saving...'}
+                        </Text>
+                    </View>
                     ) : (
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                    <View style={styles.buttonInner}>
+                        <Text style={styles.primaryButtonText}>Save Changes</Text>
+                        <Ionicons name="checkmark" size={18} color={theme.colors.white} />
+                    </View>
                     )}
-                    
+
                 </TouchableOpacity>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -244,7 +491,7 @@ export default function EditProfile() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: theme.colors.background,
     },
     centred: {
         flex: 1,
@@ -252,119 +499,278 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     inner: {
-        paddingHorizontal: 24,
+        paddingHorizontal: theme.spacing.lg,
         paddingTop: 60,
-        paddingBottom: 48,
+        paddingBottom: theme.spacing.xxl,
     },
-    header: {
+    screenHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 32,
+        marginBottom: theme.spacing.md,
     },
     backButton: {
-        fontSize: 15,
-        color: '#2d6a4f',
-        fontWeight: '600',
-        width: 60,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: theme.colors.card,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
-    headerTitle: {
-        fontSize: 18,
+    screenHeaderTitle: {
+        ...theme.typography.sectionHeading,
+        color: theme.colors.textDark,
+    },
+    headerDivider: {
+        height: 1,
+        backgroundColor: theme.colors.border,
+        marginBottom: theme.spacing.lg,
+    },
+    sectionLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
         fontWeight: '700',
-        color: '#1a1a2e',
+        letterSpacing: 0.8,
+        marginBottom: theme.spacing.xs,
+    },
+    sectionSubtitle: {
+        ...theme.typography.label,
+        color: theme.colors.textSubtle,
+        marginBottom: theme.spacing.md,
+        lineHeight: 20,
+    },
+    formCard: {
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        ...theme.shadow.small,
     },
     inputLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#555',
-        marginBottom: 10,
-        marginTop: 8,
+        ...theme.typography.label,
+        color: theme.colors.textBody,
+        marginBottom: theme.spacing.xs,
+        marginTop: theme.spacing.sm,
+    },
+    inputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radius.md,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        marginBottom: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+    },
+    inputIcon: {
+        marginRight: theme.spacing.sm,
     },
     input: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingHorizontal: 16,
+        flex: 1,
         paddingVertical: 14,
-        fontSize: 16,
-        color: '#1a1a2e',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-    },
-    optionCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 8,
-        borderWidth: 2,
-        borderColor: '#e0e0e0',
-    },
-    optionCardActive: {
-        borderColor: '#2d6a4f',
-        backgroundColor: '#f0faf4',
-    },
-    optionLabel: {
         fontSize: 15,
-        fontWeight: '600',
-        color: '#1a1a2e',
+        color: theme.colors.textDark,
+    },
+    activityLevelList: {
+        gap: theme.spacing.sm,
+        marginBottom: theme.spacing.lg,
+    },
+    activityCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        borderWidth: 1.5,
+        borderColor: theme.colors.border,
+    },
+    activityCardActive: {
+        borderColor: theme.colors.primary,
+        backgroundColor: theme.colors.primaryLight,
+    },
+    activityCardLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        flex: 1,
+    },
+    activityIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: theme.colors.background,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    activityIconContainerActive: {
+        backgroundColor: theme.colors.card,
+    },
+    activityIcon: {
+        fontSize: 22,
+    },
+    activityCardText: {
+        flex: 1,
+    },
+    activityLabel: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
         marginBottom: 2,
     },
-    optionDescription: {
-        fontSize: 13,
-        color: '#888',
+    activityLabelActive: {
+        color: theme.colors.primary,
+    },
+    activityDescription: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        lineHeight: 18,
     },
     goalsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
+        gap: theme.spacing.sm,
+        marginBottom: theme.spacing.lg,
     },
     goalChip: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.full,
+        backgroundColor: theme.colors.card,
         borderWidth: 1.5,
-        borderColor: '#e0e0e0',
+        borderColor: theme.colors.border,
     },
     goalChipActive: {
-        backgroundColor: '#2d6a4f',
-        borderColor: '#2d6a4f',
+        backgroundColor: theme.colors.primary,
+        borderColor: theme.colors.primary,
     },
     goalChipText: {
-        fontSize: 13,
-        color: '#555',
-        fontWeight: '500',
+        ...theme.typography.label,
+        color: theme.colors.textBody,
     },
     goalChipTextActive: {
-        color: '#fff',
+        color: theme.colors.white,
     },
-    errorContainer: {
-        padding: 12,
-        backgroundColor: '#fff0f0',
-        borderRadius: 10,
+    errorBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.dangerLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
         borderWidth: 1,
-        borderColor: '#e63946',
-        marginBottom: 12,
+        borderColor: theme.colors.danger,
     },
     errorText: {
-        color: '#e63946',
-        fontSize: 13,
-        textAlign: 'center',
+        ...theme.typography.label,
+        color: theme.colors.danger,
+        flex: 1,
     },
-    saveButton: {
-        backgroundColor: '#2d6a4f',
-        borderRadius: 12,
+    privacyNote: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    privacyText: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        flex: 1,
+        lineHeight: 18,
+        fontStyle: 'italic',
+    },
+    primaryButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.radius.md,
         paddingVertical: 16,
         alignItems: 'center',
-        marginTop: 8,
+        ...theme.shadow.small,
     },
-    saveButtonDisabled: {
+    buttonDisabled: {
         opacity: 0.6,
     },
-    saveButtonText: {
-        color: '#fff',
+    buttonInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },
+    primaryButtonText: {
+        color: theme.colors.white,
         fontSize: 16,
+        fontWeight: '600',
+    },
+    avatarSection: {
+        alignItems: 'center',
+        marginBottom: theme.spacing.lg,
+    },
+    avatarPreviewContainer: {
+        position: 'relative',
+        marginBottom: theme.spacing.sm,
+    },
+    avatarImage: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        borderWidth: 3,
+        borderColor: theme.colors.primary,
+    },
+    avatarPlaceholder: {
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: theme.colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarPlaceholderText: {
+        fontSize: 40,
+        color: theme.colors.white,
+        fontWeight: '700',
+    },
+    avatarEditButton: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: theme.colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: theme.colors.white,
+    },
+    previewBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        backgroundColor: theme.colors.primaryLight,
+        borderRadius: theme.radius.full,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: 6,
+        marginBottom: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
+    previewBadgeText: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+    },
+    changePhotoButton: {
+        paddingVertical: theme.spacing.sm,
+    },
+    changePhotoText: {
+        ...theme.typography.label,
+        color: theme.colors.primary,
         fontWeight: '600',
     },
 });
