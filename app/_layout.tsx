@@ -44,6 +44,8 @@ export default function RootLayout() {
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
+    // ─── Notification ──────────────────────────────────────────────────────────────
+
     useEffect(() => {
         setupAndroidChannel();
 
@@ -68,6 +70,8 @@ export default function RootLayout() {
             responseListener.current?.remove();
         };
     }, []);
+
+    // ─── Auth ──────────────────────────────────────────────────────────────
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -94,21 +98,25 @@ export default function RootLayout() {
         return () => subscription.unsubscribe();
     }, []);
 
+    // ─── Navigation ──────────────────────────────────────────────────────────────
+
     useEffect(() => {
         if (loading) return;
-
+      
         const timer = setTimeout(async () => {
-
-            // hide splash screen once we know auth state
-            await SplashScreen.hideAsync();
-
             if (session) {
                 router.replace('/(tabs)/dashboard');
             } else {
                 router.replace('/(auth)/login');
             }
-        }, 0);
 
+            // hide splash screen after navigation has been triggered
+            // small delay ensures the new screen has rendered
+            setTimeout(async () => {
+                await SplashScreen.hideAsync();
+            }, 100);
+        }, 0);
+      
         return () => clearTimeout(timer);
     }, [session, loading]);
 
@@ -119,6 +127,8 @@ export default function RootLayout() {
             </View>
         );
     }
+
+    // ─── Stack ──────────────────────────────────────────────────────────────
 
     return (
         <>
