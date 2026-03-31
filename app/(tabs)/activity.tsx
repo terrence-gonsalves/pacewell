@@ -5,15 +5,9 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    Modal,
-    Animated,
-    Pressable,
     ActivityIndicator,
-    TextInput,
-    KeyboardAvoidingView,
-    Platform,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
@@ -153,7 +147,6 @@ export default function Activity() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
-    const [sheetVisible, setSheetVisible] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState(DEFAULT_FORM);
     const [weeklyTarget, setWeeklyTarget] = useState(5);
@@ -235,7 +228,6 @@ export default function Activity() {
             }
 
             setForm(DEFAULT_FORM);
-            setSheetVisible(false);
 
             await loadActivities();
         } catch (err) {
@@ -396,113 +388,13 @@ export default function Activity() {
             
             <TouchableOpacity
                 style={styles.fab}
-                onPress={() => {
-                setError(null);
-                setSheetVisible(true);
-                }}
+                onPress={() => router.push({
+                    pathname: '/log-activity',
+                    params: { from: 'activity' },
+                })}
             >
                 <Ionicons name="add" size={28} color={theme.colors.white} />
             </TouchableOpacity>
-            
-            <Modal
-                visible={sheetVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setSheetVisible(false)}
-                statusBarTranslucent
-            >
-                <View style={styles.modalContainer}>
-                    <Pressable
-                        style={styles.backdrop}
-                        onPress={() => setSheetVisible(false)}
-                    />
-                        <View style={styles.sheet}>
-                            <View style={styles.sheetHandle} />
-                            <ScrollView showsVerticalScrollIndicator={false}>
-                                <Text style={styles.sheetTitle}>Log Activity</Text>
-                                
-                                <Text style={styles.inputLabel}>Activity type</Text>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    contentContainerStyle={styles.activityTypeRow}
-                                >
-                                    {ACTIVITY_TYPES.map(({ type, emoji, label }) => (
-                                    <TouchableOpacity
-                                        key={type}
-                                        style={[
-                                            styles.activityTypeButton,
-                                            form.activityType === type && styles.activityTypeButtonActive,
-                                        ]}
-                                        onPress={() => updateForm('activityType', type)}
-                                    >
-                                        <Text style={styles.activityTypeEmoji}>{emoji}</Text>
-                                        <Text style={[
-                                            styles.activityTypeLabel,
-                                            form.activityType === type && styles.activityTypeLabelActive,
-                                        ]}>
-                                            {label}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    ))}
-
-                                </ScrollView>
-                                
-                                <Text style={styles.inputLabel}>Duration</Text>
-                                <Stepper
-                                    value={form.duration}
-                                    onChange={val => updateForm('duration', val)}
-                                    min={5}
-                                    max={300}
-                                    step={1}
-                                    unit="minutes"
-                                />
-                                
-                                <Text style={styles.inputLabel}>Effort level</Text>
-                                <EmojiSelector
-                                    value={form.perceivedExertion}
-                                    onChange={val => updateForm('perceivedExertion', val)}
-                                    labels={EXERTION_LABELS}
-                                />
-                                
-                                <Text style={styles.inputLabel}>Notes (optional)</Text>
-                                <TextInput
-                                    style={styles.notesInput}
-                                    placeholder="How did it feel?"
-                                    placeholderTextColor={theme.colors.textLight}
-                                    value={form.notes}
-                                    onChangeText={val => updateForm('notes', val)}
-                                    multiline
-                                    numberOfLines={3}
-                                    textAlignVertical="top"
-                                />
-
-                                {error && (
-                                    <View style={styles.errorBox}>
-                                        <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
-                                        <Text style={styles.errorText}>{error}</Text>
-                                    </View>
-                                )}
-
-                                <TouchableOpacity
-                                    style={[styles.primaryButton, isSubmitting && styles.buttonDisabled]}
-                                    onPress={handleSubmit}
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? (
-                                    <ActivityIndicator color={theme.colors.white} />
-                                    ) : (
-                                    <View style={styles.buttonInner}>
-                                        <Text style={styles.primaryButtonText}>Log Activity</Text>
-                                        <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
-                                    </View>
-                                    )}
-                                    
-                                </TouchableOpacity>
-                            </ScrollView>
-                        </View>
-                </View>
-            </Modal>
         </View>
     );
 }
@@ -699,54 +591,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         ...theme.shadow.medium,
     },
-    sheetHandle: {
-        width: 40,
-        height: 4,
-        backgroundColor: theme.colors.border,
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginBottom: theme.spacing.lg,
-    },
-    sheetTitle: {
-        ...theme.typography.sectionHeading,
-        color: theme.colors.textDark,
-        marginBottom: theme.spacing.lg,
-    },
     inputLabel: {
         ...theme.typography.label,
         color: theme.colors.textBody,
         marginBottom: theme.spacing.sm,
         marginTop: theme.spacing.sm,
-    },
-    activityTypeRow: {
-        gap: theme.spacing.sm,
-        paddingBottom: theme.spacing.sm,
-    },
-    activityTypeButton: {
-        alignItems: 'center',
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        backgroundColor: theme.colors.card,
-        minWidth: 72,
-    },
-    activityTypeButtonActive: {
-        borderColor: theme.colors.primary,
-        backgroundColor: theme.colors.primaryLight,
-    },
-    activityTypeEmoji: {
-        fontSize: 24,
-        marginBottom: 4,
-    },
-    activityTypeLabel: {
-        ...theme.typography.caption,
-        color: theme.colors.textSubtle,
-    },
-    activityTypeLabelActive: {
-        color: theme.colors.primary,
-        fontWeight: '700',
     },
     emojiRow: {
         flexDirection: 'row',
@@ -864,28 +713,5 @@ const styles = StyleSheet.create({
         color: theme.colors.white,
         fontSize: 16,
         fontWeight: '600',
-    },
-    sheetWrapper: {
-        width: '100%',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    backdrop: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    },
-    sheet: {
-        backgroundColor: theme.colors.card,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: theme.spacing.lg,
-        maxHeight: '75%',
-        paddingBottom: 40,
     },
 });
