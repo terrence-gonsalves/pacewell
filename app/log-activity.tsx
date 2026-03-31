@@ -230,7 +230,7 @@ export default function LogActivity() {
                         onChange={setDuration}
                         min={5}
                         max={300}
-                        step={5}
+                        step={1}
                         unit="minutes"
                     />
                 </View>
