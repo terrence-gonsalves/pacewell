@@ -297,28 +297,29 @@ export default function Dashboard() {
 
     const calculateStreak = (dates: string[], today: string): number => {
         if (dates.length === 0) return 0;
+      
+        const sortedDates = [...new Set(dates)].sort((a, b) => b.localeCompare(a));
 
-        const sortedDates = [...dates].sort((a, b) => b.localeCompare(a));
-
-        let streak = 0;
-        let current = new Date(today);
-
+        let streakCount = 0;
+        let current = new Date(today + 'T12:00:00');
+      
+        // if today isn't checked in start counting from yesterday
         if (sortedDates[0] !== today) {
             current.setDate(current.getDate() - 1);
         }
-
+      
         for (const date of sortedDates) {
             const expected = getLocalDate(current);
 
             if (date === expected) {
-                streak++;
+                streakCount++;
                 current.setDate(current.getDate() - 1);
             } else {
                 break;
             }
         }
-
-        return streak;
+      
+        return streakCount;
     };
 
     const handleActivitySubmit = async () => {
@@ -413,7 +414,7 @@ export default function Dashboard() {
                     <Text style={styles.greetingSubtitle}>Ready for a healthy day?</Text>
                 </View>
                 
-                {data?.streak !== undefined && data.streak > 0 && (
+                {data?.streak !== undefined && data.streak >= 1 && (
                 <View style={styles.streakCard}>
                     <View style={styles.streakLeft}>
                         <Text style={styles.streakLabel}>CURRENT STREAK</Text>

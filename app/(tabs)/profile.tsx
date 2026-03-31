@@ -120,19 +120,19 @@ export default function Profile() {
 
     const calculateStreak = (dates: string[], today: string): number => {
         if (dates.length === 0) return 0;
-
-        const sortedDates = [...dates].sort((a, b) => b.localeCompare(a));
+      
+        const sortedDates = [...new Set(dates)].sort((a, b) => b.localeCompare(a));
 
         let streakCount = 0;
-        let current = new Date(today);
-
+        let current = new Date(today + 'T12:00:00');
+      
         if (sortedDates[0] !== today) {
             current.setDate(current.getDate() - 1);
         }
-
+      
         for (const date of sortedDates) {
             const expected = getLocalDate(current);
-
+            
             if (date === expected) {
                 streakCount++;
                 current.setDate(current.getDate() - 1);
@@ -140,6 +140,7 @@ export default function Profile() {
                 break;
             }
         }
+      
         return streakCount;
     };
 
