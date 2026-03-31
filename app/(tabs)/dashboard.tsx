@@ -6,11 +6,6 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    Modal,
-    Pressable,
-    KeyboardAvoidingView,
-    Platform,
-    TextInput,
     Image,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -190,7 +185,6 @@ const Stepper = ({
 export default function Dashboard() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [sheetVisible, setSheetVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [form, setForm] = useState(DEFAULT_FORM);
@@ -349,7 +343,6 @@ export default function Dashboard() {
             }
 
             setForm(DEFAULT_FORM);
-            setSheetVisible(false);
 
             await loadDashboard();
         } catch (err) {
@@ -627,119 +620,13 @@ export default function Dashboard() {
             
             <TouchableOpacity
                 style={styles.fab}
-                onPress={() => {
-                setSubmitError(null);
-                setSheetVisible(true);
-                }}
+                onPress={() => router.push({
+                    pathname: '/log-activity',
+                    params: { from: 'dashboard' },
+                })}
             >
                 <Ionicons name="add" size={28} color={theme.colors.white} />
             </TouchableOpacity>
-            
-            <Modal
-                visible={sheetVisible}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setSheetVisible(false)}
-            >
-                <Pressable
-                    style={styles.backdrop}
-                    onPress={() => setSheetVisible(false)}
-                />
-
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={styles.sheetWrapper}
-                >
-                    <View style={styles.sheet}>
-                        <View style={styles.sheetHandle} />
-
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            <Text style={styles.sheetTitle}>Log Activity</Text>
-                            
-                            <Text style={styles.inputLabel}>Activity type</Text>
-                            <ScrollView
-                                horizontal
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.activityTypeRow}
-                            >
-
-                                {ACTIVITY_TYPES.map(({ type, emoji, label }) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    style={[
-                                        styles.activityTypeButton,
-                                        form.activityType === type && styles.activityTypeButtonActive,
-                                    ]}
-                                    onPress={() => updateForm('activityType', type)}
-                                >
-                                    <Text style={styles.activityTypeEmoji}>{emoji}</Text>
-                                    <Text style={[
-                                        styles.activityTypeLabel,
-                                        form.activityType === type && styles.activityTypeLabelActive,
-                                    ]}>
-                                        {label}
-                                    </Text>
-                                </TouchableOpacity>
-                                ))}
-
-                            </ScrollView>
-                            
-                            <Text style={styles.inputLabel}>Duration</Text>
-                            <Stepper
-                                value={form.duration}
-                                onChange={val => updateForm('duration', val)}
-                                min={5}
-                                max={300}
-                                step={1}
-                                unit="minutes"
-                            />
-                            
-                            <Text style={styles.inputLabel}>Effort level</Text>
-                            <EmojiSelector
-                                value={form.perceivedExertion}
-                                onChange={val => updateForm('perceivedExertion', val)}
-                                labels={EXERTION_LABELS}
-                            />
-                            
-                            <Text style={styles.inputLabel}>Notes (optional)</Text>
-                            <TextInput
-                                style={styles.notesInput}
-                                placeholder="How did it feel?"
-                                placeholderTextColor={theme.colors.textLight}
-                                value={form.notes}
-                                onChangeText={val => updateForm('notes', val)}
-                                multiline
-                                numberOfLines={3}
-                                textAlignVertical="top"
-                            />
-
-                            {submitError && (
-                                <View style={styles.errorBox}>
-                                    <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
-                                    <Text style={styles.errorText}>{submitError}</Text>
-                                </View>
-                            )}
-
-                            <TouchableOpacity
-                                style={[styles.primaryButton, isSubmitting && styles.buttonDisabled]}
-                                onPress={handleActivitySubmit}
-                                disabled={isSubmitting}
-                            >
-
-                                {isSubmitting ? (
-                                <ActivityIndicator color={theme.colors.white} />
-                                ) : (
-                                <View style={styles.buttonInner}>
-                                    <Text style={styles.primaryButtonText}>Log Activity</Text>
-                                    <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
-                                </View>
-                                )}
-
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
         </View>
     );
 }
