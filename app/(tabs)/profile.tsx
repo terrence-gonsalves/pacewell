@@ -550,8 +550,9 @@ export default function Profile() {
             <Modal
                 visible={goalsModalVisible}
                 transparent
-                animationType="slide"
+                animationType="fade"
                 onRequestClose={() => setGoalsModalVisible(false)}
+                statusBarTranslucent
             >
                 <Pressable
                     style={styles.backdrop}
@@ -606,8 +607,9 @@ export default function Profile() {
             <Modal
                 visible={deleteModalVisible}
                 transparent
-                animationType="slide"
+                animationType="fade"
                 onRequestClose={() => setDeleteModalVisible(false)}
+                statusBarTranslucent
             >
                 <Pressable
                     style={styles.backdrop}

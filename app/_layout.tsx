@@ -3,12 +3,17 @@ import { ActivityIndicator, View } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Session } from '@supabase/supabase-js';
 import * as Notifications from 'expo-notifications';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
 import {
     setupAndroidChannel,
     requestNotificationPermissions,
     scheduleDailyCheckInNotification,
 } from '../lib/notifications';
+
+// keep splash screen visible while we check auth
+SplashScreen.preventAutoHideAsync();
 
 const ensureProfile = async (session: Session) => {
     const { data: existingProfile } = await supabase
@@ -19,6 +24,7 @@ const ensureProfile = async (session: Session) => {
 
     if (!existingProfile) {
         const meta = session.user.user_metadata;
+
         await supabase.from('profiles').insert({
             id: session.user.id,
             full_name: meta.full_name ?? 'Pacewell User',
@@ -30,6 +36,8 @@ const ensureProfile = async (session: Session) => {
     }
 };
 
+ // ─── Root Component ──────────────────────────────────────────────────────────
+
 export default function RootLayout() {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
@@ -37,25 +45,21 @@ export default function RootLayout() {
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
     useEffect(() => {
-        
-        // set up Android notification channel
         setupAndroidChannel();
 
-        // listen for notifications received while app is open
         notificationListener.current = Notifications.addNotificationReceivedListener(
             notification => {
                 console.log('Notification received:', notification);
             }
         );
 
-        // listen for notification taps
         responseListener.current = Notifications.addNotificationResponseReceivedListener(
             response => {
-                    const screen = response.notification.request.content.data?.screen;
+                const screen = response.notification.request.content.data?.screen;
 
-                    if (screen === 'checkin') {
-                        router.push('/(tabs)/checkin');
-                    }
+                if (screen === 'checkin') {
+                    router.push('/(tabs)/checkin');
+                }
             }
         );
 
@@ -76,7 +80,6 @@ export default function RootLayout() {
                 if (session) {
                     await ensureProfile(session);
 
-                    // request notification permissions and schedule after login
                     const granted = await requestNotificationPermissions();
 
                     if (granted) {
@@ -94,8 +97,11 @@ export default function RootLayout() {
     useEffect(() => {
         if (loading) return;
 
-        // small delay to allow navigation to fully mount
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
+
+            // hide splash screen once we know auth state
+            await SplashScreen.hideAsync();
+
             if (session) {
                 router.replace('/(tabs)/dashboard');
             } else {
@@ -108,18 +114,21 @@ export default function RootLayout() {
 
     if (loading) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2E7D52' }}>
+                <ActivityIndicator size="large" color="#ffffff" />
             </View>
         );
     }
 
     return (
-        <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="edit-profile" />
-            <Stack.Screen name="log-activity" />
-        </Stack>
+        <>
+            <StatusBar hidden />
+            <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="edit-profile" />
+                <Stack.Screen name="log-activity" />
+            </Stack>
+        </>
     );
 }
