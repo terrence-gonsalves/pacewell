@@ -19,6 +19,8 @@ import { theme } from '../lib/theme';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'react-native';
 
+// ─── Constants ───────────────────────────────────────────────────────────
+
 const ACTIVITY_LEVELS: {
     value: ActivityLevel;
     label: string;
@@ -53,6 +55,7 @@ export default function EditProfile() {
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -97,14 +100,16 @@ export default function EditProfile() {
         }
       
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: 'images',
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
+            base64: true,
         });
       
         if (!result.canceled && result.assets[0]) {
-          setAvatarPreview(result.assets[0].uri);
+            setAvatarPreview(result.assets[0].uri);
+            setAvatarBase64(result.assets[0].base64 ?? null);
         }
     };
       
@@ -121,13 +126,16 @@ export default function EditProfile() {
         }
       
         const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: 'images',
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.7,
+            base64: true,
         });
       
         if (!result.canceled && result.assets[0]) {
             setAvatarPreview(result.assets[0].uri);
+            setAvatarBase64(result.assets[0].base64 ?? null);
         }
     };
       
@@ -143,27 +151,34 @@ export default function EditProfile() {
         );
     };
       
-    const uploadAvatar = async (uri: string): Promise<string | null> => {
+    const uploadAvatar = async (base64: string, uri: string): Promise<string | null> => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) return null;
         
-            const response = await fetch(uri);
-            const blob = await response.blob();
-            const fileExt = uri.split('.').pop() ?? 'jpg';
+            const fileExt = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+            const contentType = fileExt === 'png' ? 'image/png' : 'image/jpeg';
             const filePath = `${user.id}/avatar.${fileExt}`;
+        
+            // convert base64 to Uint8Array for upload
+            const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
+            const byteCharacters = atob(base64Data);
+            const byteArray = new Uint8Array(byteCharacters.length);
+
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteArray[i] = byteCharacters.charCodeAt(i);
+            }
         
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, blob, {
-                    upsert: true,
-                    contentType: `image/${fileExt}`,
+                .upload(filePath, byteArray, {
+                upsert: true,
+                contentType,
                 });
         
             if (uploadError) {
                 console.error('Upload error:', uploadError);
-
                 return null;
             }
         
@@ -171,11 +186,11 @@ export default function EditProfile() {
                 .from('avatars')
                 .getPublicUrl(filePath);
         
-            return data.publicUrl;      
+            // add cache buster so updated photos reload correctly
+            return `${data.publicUrl}?t=${Date.now()}`;      
         } catch (err) {
-            console.error('Avatar upload error:', err);
-
-            return null;
+          console.error('Avatar upload error:', err);
+          return null;
         }
     };
 
@@ -216,10 +231,10 @@ export default function EditProfile() {
             // upload avatar if a new one was selected
             let finalAvatarUrl = avatarUrl;
 
-            if (avatarPreview) {
+            if (avatarPreview && avatarBase64) {
                 setIsUploadingAvatar(true);
 
-                const uploaded = await uploadAvatar(avatarPreview);
+                const uploaded = await uploadAvatar(avatarBase64, avatarPreview);
 
                 if (uploaded) finalAvatarUrl = uploaded;
 
