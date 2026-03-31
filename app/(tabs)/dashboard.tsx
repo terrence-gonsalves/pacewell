@@ -992,63 +992,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         ...theme.shadow.medium,
     },
-    backdrop: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-    },
-    sheetWrapper: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-    },
-    sheet: {
-        backgroundColor: theme.colors.card,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        padding: theme.spacing.lg,
-        maxHeight: '90%',
-    },
-    sheetHandle: {
-        width: 40,
-        height: 4,
-        backgroundColor: theme.colors.border,
-        borderRadius: 2,
-        alignSelf: 'center',
-        marginBottom: theme.spacing.lg,
-    },
-    sheetTitle: {
-        ...theme.typography.sectionHeading,
-        color: theme.colors.textDark,
-        marginBottom: theme.spacing.lg,
-    },
     inputLabel: {
         ...theme.typography.label,
         color: theme.colors.textBody,
         marginBottom: theme.spacing.sm,
         marginTop: theme.spacing.sm,
-    },
-    activityTypeRow: {
-        gap: theme.spacing.sm,
-        paddingBottom: theme.spacing.sm,
-    },
-    activityTypeButton: {
-        alignItems: 'center',
-        paddingVertical: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.md,
-        borderWidth: 2,
-        borderColor: theme.colors.border,
-        backgroundColor: theme.colors.card,
-        minWidth: 72,
-    },
-    activityTypeButtonActive: {
-        borderColor: theme.colors.primary,
-        backgroundColor: theme.colors.primaryLight,
-    },
-    activityTypeEmoji: {
-        fontSize: 24,
-        marginBottom: 4,
     },
     activityTypeLabel: {
         ...theme.typography.caption,
