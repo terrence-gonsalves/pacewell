@@ -491,7 +491,6 @@ export default function EditProfile() {
                     ) : (
                     <View style={styles.buttonInner}>
                         <Text style={styles.primaryButtonText}>Save Changes</Text>
-                        <Ionicons name="checkmark" size={18} color={theme.colors.white} />
                     </View>
                     )}
 

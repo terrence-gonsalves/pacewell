@@ -274,7 +274,6 @@ export default function LogActivity() {
                     ) : (
                     <View style={styles.buttonInner}>
                         <Text style={styles.primaryButtonText}>Log Activity</Text>
-                        <Ionicons name="checkmark" size={18} color={theme.colors.white} />
                     </View>
                     )}
 

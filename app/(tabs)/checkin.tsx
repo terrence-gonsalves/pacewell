@@ -562,7 +562,6 @@ export default function CheckIn() {
                         <Text style={styles.nextButtonText}>
                             {existingId ? 'Update' : 'Submit'}
                         </Text>
-                        <Ionicons name="checkmark" size={18} color={theme.colors.white} />
                     </View>
                     )}
                 </TouchableOpacity>
