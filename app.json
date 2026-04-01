@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-        "image": "./assets/icon.png",
+        "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#2E7D52"
     },
@@ -23,10 +23,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#2E7D52",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundImage": "./assets/android-icon-background.png"
       },
       "package": "com.gonsalves.pacewell",
       "versionCode": 5,
