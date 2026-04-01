@@ -8,14 +8,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-        "image": "./assets/icon.png",
+        "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#2E7D52"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gonsalves.pacewell",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "infoPlist": {
         "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights.",
         "NSHealthUpdateUsageDescription": "Pacewell saves your activity data to help track your recovery."
@@ -23,13 +23,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#2E7D52",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundImage": "./assets/android-icon-background.png"
       },
       "package": "com.gonsalves.pacewell",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
