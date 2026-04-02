@@ -109,3 +109,47 @@ export interface WeeklySummary {
     total_activity_minutes: number;
     avg_nutrition_quality: number;
 }
+
+// ─── Wearable / Health Data ───────────────────────────────────────────────────
+
+export interface SleepData {
+    totalHours: number;
+    quality: EmojiScale;
+    startTime: string;
+    endTime: string;
+    source: string;
+  }
+  
+  export interface WorkoutData {
+    id: string;
+    activityType: ActivityType;
+    durationMinutes: number;
+    startTime: string;
+    endTime: string;
+    activeCalories: number | null;
+    source: string;
+  }
+  
+  export interface HeartRateData {
+    average: number;
+    min: number;
+    max: number;
+    resting: number | null;
+    hrv: number | null;
+    recordedAt: string;
+  }
+  
+  export interface StepData {
+    count: number;
+    date: string;
+  }
+  
+  export interface HealthSummary {
+    sleep: SleepData | null;
+    workouts: WorkoutData[];
+    heartRate: HeartRateData | null;
+    steps: StepData | null;
+    lastSynced: string;
+  }
+  
+  export type HealthPermissionStatus = 'granted' | 'denied' | 'not_determined';
