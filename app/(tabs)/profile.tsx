@@ -23,6 +23,8 @@ import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { Image } from 'react-native';
+import { requestHealthPermissions, hasHealthPermissions } from '../../lib/healthPermissions';
+import { getHealthSummary } from '../../lib/health';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -61,6 +63,8 @@ export default function Profile() {
     const [isSavingMarketing, setIsSavingMarketing] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [tempGoal, setTempGoal] = useState(5);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [healthConnected, setHealthConnected] = useState(false);
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -82,6 +86,9 @@ export default function Profile() {
             const sevenDaysAgo = getLocalDate(
                 new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
             );
+
+            const healthStatus = await hasHealthPermissions();      
+            setHealthConnected(healthStatus);
 
             const [profileResult, checkInsResult, storedUnits, storedNotifTime, storedGoal] =
                 await Promise.all([
@@ -113,6 +120,58 @@ export default function Profile() {
             console.error('Error loading profile:', err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // ─── Device Syncing ──────────────────────────────────────────────────────────────
+
+    const handleSyncDevices = async () => {
+        if (!healthConnected) {
+            const granted = await requestHealthPermissions();
+
+            if (!granted) {
+                Alert.alert(
+                    'Permission Required',
+                    'Please allow Pacewell to access your health data in your device settings.',
+                    [{ text: 'OK' }]
+                );
+
+                return;
+            }
+
+            setHealthConnected(true);
+        }
+      
+        setIsSyncing(true);
+
+        try {
+            const summary = await getHealthSummary();
+        
+            // save heart rate and steps to supabase
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user && (summary.heartRate || summary.steps)) {
+                await supabase.from('health_metrics').upsert({
+                    user_id: user.id,
+                    date: getLocalDate(),
+                    avg_heart_rate: summary.heartRate?.average ?? null,
+                    min_heart_rate: summary.heartRate?.min ?? null,
+                    max_heart_rate: summary.heartRate?.max ?? null,
+                    resting_heart_rate: summary.heartRate?.resting ?? null,
+                    hrv: summary.heartRate?.hrv ?? null,
+                    step_count: summary.steps?.count ?? null,
+                    source: 'wearable',
+                });
+            }
+        
+            Alert.alert(
+                'Sync Complete',
+                `Health data synced successfully.\n\nSteps today: ${summary.steps?.count ?? 'N/A'}\nResting HR: ${summary.heartRate?.resting ?? 'N/A'} bpm\nHRV: ${summary.heartRate?.hrv ?? 'N/A'} ms`
+            );              
+        } catch (err) {
+            Alert.alert('Sync Failed', 'Could not read health data. Please try again.');
+        } finally {
+            setIsSyncing(false);
         }
     };
 
@@ -359,10 +418,8 @@ export default function Profile() {
 
                         <TouchableOpacity
                             style={styles.settingRow}
-                            onPress={() => Alert.alert(
-                                'Coming Soon',
-                                'Device sync will be available in the next update.'
-                            )}
+                            onPress={handleSyncDevices}
+                            disabled={isSyncing}
                         >
                             <View style={styles.settingLeft}>
                                 <View style={styles.settingIconContainer}>
@@ -371,11 +428,24 @@ export default function Profile() {
                                 <View>
                                     <Text style={styles.settingLabel}>Sync Devices</Text>
                                     <Text style={styles.settingSubtitle}>
-                                        Apple Health, Fitbit, Garmin
+                                        {healthConnected ? 'Connected · Tap to sync' : 'Apple Health, Fitbit, Garmin'}
                                     </Text>
                                 </View>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+
+                            {isSyncing ? (
+                            <ActivityIndicator size="small" color={theme.colors.primary} />
+                            ) : (
+                            <View style={styles.settingRight}>
+
+                                {healthConnected && (
+                                    <View style={styles.connectedDot} />
+                                )}
+
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </View>
+                            )}
+
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -1050,5 +1120,16 @@ const styles = StyleSheet.create({
         borderRadius: 40,
         borderWidth: 2,
         borderColor: theme.colors.primary,
+    },
+    settingRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+    },
+    connectedDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: theme.colors.primary,
     },
 });
