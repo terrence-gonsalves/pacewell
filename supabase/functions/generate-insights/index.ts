@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
         const fromDate = fourteenDaysAgo.toISOString().split('T')[0];
 
-        const [profileResult, checkInsResult, activitiesResult] = await Promise.all([
+        const [profileResult, checkInsResult, activitiesResult, healthMetricsResut] = await Promise.all([
             supabase
                 .from('profiles')
                 .select('full_name, age, activity_level, health_goals')
@@ -88,11 +88,18 @@ Deno.serve(async (req) => {
                 .eq('user_id', user.id)
                 .gte('date', fromDate)
                 .order('date', { ascending: true }),
+            supabase
+                .from('health_metrics')
+                .select('date, avg_heart_rate, resting_heart_rate, hrv, step_count')
+                .eq('user_id', user.id)
+                .gte('date', fromDate)
+                .order('date', { ascending: true }),
         ]);
 
         const profile = profileResult.data;
         const checkIns = checkInsResult.data ?? [];
         const activities = activitiesResult.data ?? [];
+        const healthMetrics = healthMetricsResut.data ?? [];
 
         // need at least 3 check-ins to generate meaningful insights
         if (checkIns.length < 3) {
@@ -125,6 +132,14 @@ Deno.serve(async (req) => {
                     `${a.date}: ${a.activity_type}, ${a.duration_minutes} minutes, exertion=${a.perceived_exertion}/5${a.notes ? `, notes: ${a.notes}` : ''}`
                 ).join('\n')
               : 'No activities logged in this period.'
+            }
+
+            HEALTH METRICS (from wearable device, last 14 days):
+            ${healthMetrics.length > 0
+                ? healthMetrics.map((m: any) =>
+                    `${m.date}: avg_hr=${m.avg_heart_rate ?? 'N/A'}, resting_hr=${m.resting_heart_rate ?? 'N/A'}, hrv=${m.hrv ?? 'N/A'}ms, steps=${m.step_count ?? 'N/A'}`
+                ).join('\n')
+                : 'No wearable data available.'
             }
 
             STRESS SCALE NOTE: For stress, 1=calm and 5=overwhelmed (inverted from other metrics).
