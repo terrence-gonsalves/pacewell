@@ -151,5 +151,19 @@ export interface SleepData {
     steps: StepData | null;
     lastSynced: string;
   }
+
+  export interface HealthMetrics {
+      id: string;
+      user_id: string;
+      date: string;
+      avg_heart_rate: number | null;
+      min_heart_rate: number | null;
+      max_heart_rate: number | null;
+      resting_heart_rate: number | null;
+      hrv: number | null;
+      step_count: number | null;
+      source: string;
+      created_at: string;
+  }
   
   export type HealthPermissionStatus = 'granted' | 'denied' | 'not_determined';
