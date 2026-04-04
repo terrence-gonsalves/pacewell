@@ -18,6 +18,8 @@ import { EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { getLocalDate } from '../../lib/locale';
 import { generateInsights } from '../../lib/anthropic';
 import { theme } from '../../lib/theme';
+import { getSleepData } from '../../lib/health';
+import { hasHealthPermissions } from '../../lib/healthPermissions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -181,23 +183,22 @@ export default function CheckIn() {
         setIsLoading(true);
         setSubmitted(false);
         setCurrentIndex(0);
-
+      
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) return;
-
+      
         const today = getLocalDate();
-
+      
         const { data } = await supabase
             .from('daily_checkins')
             .select('*')
             .eq('user_id', user.id)
             .eq('date', today)
             .single();
-
+      
         if (data) {
             setExistingId(data.id);
-
             setState({
                 sleepQuality: data.sleep_quality,
                 sleepHours: data.sleep_hours,
@@ -210,9 +211,27 @@ export default function CheckIn() {
             });
         } else {
             setExistingId(null);
-            setState(DEFAULT_STATE);
-        }
 
+            // try to pre-populate sleep from wearable
+            const hasPermission = await hasHealthPermissions();
+
+            if (hasPermission) {
+                const sleepData = await getSleepData();
+
+                if (sleepData) {
+                    setState({
+                        ...DEFAULT_STATE,
+                        sleepHours: sleepData.totalHours,
+                        sleepQuality: sleepData.quality,
+                    });
+                } else {
+                    setState(DEFAULT_STATE);
+                }
+            } else {
+                setState(DEFAULT_STATE);
+            }
+        }
+      
         setIsLoading(false);
     };
 

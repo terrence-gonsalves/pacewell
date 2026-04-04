@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -16,6 +16,9 @@ import { supabase } from '../lib/supabase';
 import { ActivityType, EmojiScale, EmojiScaleLabels } from '../types/health';
 import { getLocalDate } from '../lib/locale';
 import { theme } from '../lib/theme';
+import { getRecentWorkouts } from '../lib/health';
+import { hasHealthPermissions } from '../lib/healthPermissions';
+import { WorkoutData } from '../types/health';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -118,6 +121,35 @@ export default function LogActivity() {
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [recentWorkouts, setRecentWorkouts] = useState<WorkoutData[]>([]);
+    const [showWorkoutImport, setShowWorkoutImport] = useState(false);
+
+    // ─── Load Recent Workout ───────────────────────────────────────────────────────────────
+
+    useEffect(() => {
+        loadRecentWorkouts();
+    }, []);
+      
+    const loadRecentWorkouts = async () => {
+        const hasPermission = await hasHealthPermissions();
+
+        if (!hasPermission) return;
+
+        const workouts = await getRecentWorkouts();
+
+        if (workouts.length > 0) {
+            setRecentWorkouts(workouts);
+            setShowWorkoutImport(true);
+        }
+    };
+      
+    // ─── Import Workout ───────────────────────────────────────────────────────────────
+
+    const handleImportWorkout = (workout: WorkoutData) => {
+        setActivityType(workout.activityType);
+        setDuration(workout.durationMinutes);
+        setShowWorkoutImport(false);
+    };
 
     const handleBack = () => {
         if (from === 'dashboard') {
@@ -126,6 +158,8 @@ export default function LogActivity() {
             router.replace('/(tabs)/activity');
         }
     };
+
+    // ─── Submit ───────────────────────────────────────────────────────────────
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
@@ -184,6 +218,58 @@ export default function LogActivity() {
                 <View style={{ width: 40 }} />
             </View>
             <View style={styles.headerDivider} />
+            
+            {showWorkoutImport && recentWorkouts.length > 0 && (
+            <View style={styles.importBanner}>
+                <View style={styles.importBannerLeft}>
+                    <Ionicons name="watch-outline" size={18} color={theme.colors.primary} />
+                    <View>
+                        <Text style={styles.importBannerTitle}>
+                            {recentWorkouts.length} workout{recentWorkouts.length > 1 ? 's' : ''} detected
+                        </Text>
+                        <Text style={styles.importBannerSubtitle}>
+                            From your health data today
+                        </Text>
+                    </View>
+                </View>
+                <TouchableOpacity
+                    onPress={() => setShowWorkoutImport(false)}
+                    style={styles.importBannerClose}
+                >
+                    <Ionicons name="close" size={16} color={theme.colors.textSubtle} />
+                </TouchableOpacity>
+            </View>
+            )}
+            
+            {showWorkoutImport && recentWorkouts.map(workout => (
+            <TouchableOpacity
+                key={workout.id}
+                style={styles.workoutImportCard}
+                onPress={() => handleImportWorkout(workout)}
+            >
+                <View style={styles.workoutImportLeft}>
+                    <Text style={styles.workoutImportEmoji}>
+                        {ACTIVITY_TYPES.find(a => a.type === workout.activityType)?.emoji ?? '⚡'}
+                    </Text>
+                    <View>
+                        <Text style={styles.workoutImportTitle}>
+                            {ACTIVITY_TYPES.find(a => a.type === workout.activityType)?.label ?? 'Workout'}
+                        </Text>
+                        <Text style={styles.workoutImportMeta}>
+
+                            {workout.durationMinutes} min · {new Date(workout.startTime).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                            })}
+
+                        </Text>
+                    </View>
+                </View>
+                <View style={styles.importButton}>
+                    <Text style={styles.importButtonText}>Import</Text>
+                </View>
+            </TouchableOpacity>
+            ))}
 
             <ScrollView
                 contentContainerStyle={styles.inner}
@@ -490,5 +576,74 @@ const styles = StyleSheet.create({
     activityTypeButtonActive: {
         borderColor: '#2d6a4f',
         backgroundColor: '#f0faf4',
+    },
+    importBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.colors.primaryLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
+    importBannerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        flex: 1,
+    },
+    importBannerTitle: {
+        ...theme.typography.label,
+        color: theme.colors.primary,
+        fontWeight: '600',
+    },
+    importBannerSubtitle: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+    },
+    importBannerClose: {
+        padding: 4,
+    },
+    workoutImportCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        ...theme.shadow.small,
+    },
+    workoutImportLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        flex: 1,
+    },
+    workoutImportEmoji: {
+        fontSize: 28,
+    },
+    workoutImportTitle: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
+    },
+    workoutImportMeta: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+    },
+    importButton: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.sm,
+    },
+    importButtonText: {
+        ...theme.typography.caption,
+        color: theme.colors.white,
+        fontWeight: '600',
     },
 });
