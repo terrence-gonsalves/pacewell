@@ -124,7 +124,7 @@ export default function RootLayout() {
 
     return (
         <>
-        <StatusBar style="light" hidden={showCustomSplash} />
+        <StatusBar hidden={showCustomSplash} />
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
