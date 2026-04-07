@@ -23,7 +23,7 @@ import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { Image } from 'react-native';
-import { requestHealthPermissions, hasHealthPermissions } from '../../lib/healthPermissions';
+import { requestHealthPermissions, hasHealthPermissions, checkAndRefreshPermissions } from '../../lib/healthPermissions';
 import { getHealthSummary } from '../../lib/health';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -127,29 +127,55 @@ export default function Profile() {
 
     const handleSyncDevices = async () => {
         if (!healthConnected) {
-            const granted = await requestHealthPermissions();
+            try {
+                const granted = await requestHealthPermissions();
+        
+                if (granted) {
+                    setHealthConnected(true);
 
-            if (!granted) {
-                Alert.alert(
-                    'Permission Required',
-                    'Please allow Pacewell to access your health data in your device settings.',
-                    [{ text: 'OK' }]
-                );
+                    Alert.alert(
+                        'Connected ✅',
+                        'Health Connect permissions granted. Tap Sync Devices to sync your health data.'
+                    );
+                } else {
 
-                return;
+                    // check if permissions were already granted previously
+                    const existing = await checkAndRefreshPermissions();
+
+                    if (existing) {
+                        setHealthConnected(true);
+                    } else {
+                        Alert.alert(
+                            'Permissions Required',
+                            'Please open Health Connect and grant Pacewell permission to read your health data.',
+                            [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Open Health Connect',
+                                    onPress: () => {
+                                        const { openHealthConnectSettings } = require('react-native-health-connect');
+                                        openHealthConnectSettings();
+                                    },
+                                },
+                            ]
+                        );
+                    }
+                }
+            } catch (err) {
+                console.error('Sync devices error:', err);
+
+                Alert.alert('Error', 'Could not connect to Health Connect. Please try again.');
             }
-
-            setHealthConnected(true);
+            return;
         }
       
+        // already connected — sync data
         setIsSyncing(true);
 
         try {
             const summary = await getHealthSummary();
-        
-            // save heart rate and steps to supabase
             const { data: { user } } = await supabase.auth.getUser();
-
+        
             if (user && (summary.heartRate || summary.steps)) {
                 await supabase.from('health_metrics').upsert({
                     user_id: user.id,
@@ -165,15 +191,17 @@ export default function Profile() {
             }
         
             Alert.alert(
-                'Sync Complete',
-                `Health data synced successfully.\n\nSteps today: ${summary.steps?.count ?? 'N/A'}\nResting HR: ${summary.heartRate?.resting ?? 'N/A'} bpm\nHRV: ${summary.heartRate?.hrv ?? 'N/A'} ms`
-            );              
+                'Sync Complete ✅',
+                `Steps today: ${summary.steps?.count ?? 'N/A'}\nResting HR: ${summary.heartRate?.resting ?? 'N/A'} bpm\nHRV: ${summary.heartRate?.hrv ?? 'N/A'} ms`
+            );      
         } catch (err) {
+            console.error('Sync error:', err);
+
             Alert.alert('Sync Failed', 'Could not read health data. Please try again.');
         } finally {
             setIsSyncing(false);
         }
-    };
+      };
 
     // ─── Calculate Streak ──────────────────────────────────────────────────────────────
 
