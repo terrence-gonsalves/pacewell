@@ -216,7 +216,7 @@ const getHealthKitSteps = async (): Promise<StepData | null> => {
 
 const getHealthConnectSleep = async (): Promise<SleepData | null> => {
     try {
-        const { readRecords, initialize } = require('react-native-health-connect');
+        const { readRecords, initialize } = require('expo-health-connect');
 
         await initialize();
 
@@ -256,7 +256,7 @@ const getHealthConnectSleep = async (): Promise<SleepData | null> => {
 
 const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
     try {
-        const { readRecords, initialize } = require('react-native-health-connect');
+        const { readRecords, initialize } = require('expo-health-connect');
 
         await initialize();
 
@@ -297,7 +297,7 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
 
 const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
     try {
-        const { readRecords, initialize } = require('react-native-health-connect');
+        const { readRecords, initialize } = require('expo-health-connect');
 
         await initialize();
 
@@ -357,7 +357,7 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
 
 const getHealthConnectSteps = async (): Promise<StepData | null> => {
     try {
-        const { readRecords, initialize } = require('react-native-health-connect');
+        const { readRecords, initialize } = require('expo-health-connect');
         await initialize();
 
         const today = new Date();

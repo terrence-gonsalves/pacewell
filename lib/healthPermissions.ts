@@ -14,7 +14,7 @@ const requestHealthConnectPermissions = async (): Promise<boolean> => {
             initialize,
             requestPermission,
             SdkAvailabilityStatus,
-        } = require('react-native-health-connect');
+        } = require('expo-health-connect');
 
         const status = await getSdkStatus();
 
@@ -55,7 +55,7 @@ const requestHealthConnectPermissions = async (): Promise<boolean> => {
 
         // if requestPermission crashes fall back to opening settings
         try {
-            const { openHealthConnectSettings } = require('react-native-health-connect');
+            const { openHealthConnectSettings } = require('expo-health-connect');
             openHealthConnectSettings();
 
             // optimistically mark as granted — user will need to manually grant
@@ -123,7 +123,7 @@ export const checkAndRefreshPermissions = async (): Promise<boolean> => {
         const {
             getGrantedPermissions,
             initialize,
-        } = require('react-native-health-connect');
+        } = require('expo-health-connect');
 
         await initialize();
 
