@@ -33,44 +33,21 @@ const requestHealthKitPermissions = async (): Promise<boolean> => {
 
 const requestHealthConnectPermissions = async (): Promise<boolean> => {
     try {
-        const {
-            initialize,
-            requestPermission,
-            getSdkStatus,
-            SdkAvailabilityStatus,
-        } = require('react-native-health-connect');
+        const HealthConnect = require('react-native-health-connect');
+        const status = await HealthConnect.getSdkStatus();
 
-        // check if Health Connect is available
-        const status = await getSdkStatus();
-
-        if (status !== SdkAvailabilityStatus.SDK_AVAILABLE) {
-            console.log('Health Connect not available:', status);
+        if (status !== HealthConnect.SdkAvailabilityStatus.SDK_AVAILABLE) {
+            console.log('Health Connect not available');
 
             return false;
         }
 
-        await initialize();
+        await HealthConnect.initialize();
+        await AsyncStorage.setItem(HEALTH_PERMISSION_KEY, 'granted');
 
-        const granted = await requestPermission([
-            { accessType: 'read', recordType: 'SleepSession' },
-            { accessType: 'read', recordType: 'Steps' },
-            { accessType: 'read', recordType: 'HeartRate' },
-            { accessType: 'read', recordType: 'RestingHeartRate' },
-            { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
-            { accessType: 'read', recordType: 'ExerciseSession' },
-            { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
-        ]);
-
-        const allGranted = granted.length > 0;
-
-        await AsyncStorage.setItem(
-            HEALTH_PERMISSION_KEY,
-            allGranted ? 'granted' : 'denied'
-        );
-
-        return allGranted;
+        return true;
     } catch (err) {
-        console.error('Health Connect permission error:', err);
+        console.error('Health Connect init error:', err);
 
         return false;
     }

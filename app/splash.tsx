@@ -88,12 +88,6 @@ export default function CustomSplash({ onComplete }: SplashScreenProps) {
             <Animated.Text style={[styles.tagline, { opacity: taglineOpacity }]}>
                 Recovery tracking powered by AI
             </Animated.Text>
-            
-            <Animated.View style={[styles.dotsContainer, { opacity: taglineOpacity }]}>
-                <View style={styles.dot} />
-                <View style={[styles.dot, styles.dotActive]} />
-                <View style={styles.dot} />
-            </Animated.View>
         </Animated.View>
     );
 }
@@ -131,22 +125,5 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.7)',
         fontWeight: '400',
         letterSpacing: 0.3,
-    },
-    dotsContainer: {
-        position: 'absolute',
-        bottom: 60,
-        flexDirection: 'row',
-        gap: 8,
-        alignItems: 'center',
-    },
-    dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-    },
-    dotActive: {
-        width: 20,
-        backgroundColor: 'rgba(255,255,255,0.8)',
     },
 });
