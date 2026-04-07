@@ -33,25 +33,36 @@ const requestHealthKitPermissions = async (): Promise<boolean> => {
 
 const requestHealthConnectPermissions = async (): Promise<boolean> => {
     try {
+        const HealthConnect = require('react-native-health-connect');
         const {
             initialize,
             requestPermission,
             getSdkStatus,
             SdkAvailabilityStatus,
-        } = require('react-native-health-connect');
+        } = HealthConnect;
 
         // check if Health Connect is available
         const status = await getSdkStatus();
 
         if (status !== SdkAvailabilityStatus.SDK_AVAILABLE) {
-            console.log('Health Connect not available:', status);
+            console.log('Health Connect SDK not available:', status);
 
             return false;
         }
 
-        await initialize();
+        // must initialize before requesting permissions
+        const initialized = await initialize();
+        
+        if (!initialized) {
+            console.log('Health Connect failed to initialize');
 
-        const granted = await requestPermission([
+            return false;
+        }
+
+        // small delay to ensure native module is fully ready
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const permissions = [
             { accessType: 'read', recordType: 'SleepSession' },
             { accessType: 'read', recordType: 'Steps' },
             { accessType: 'read', recordType: 'HeartRate' },
@@ -59,9 +70,10 @@ const requestHealthConnectPermissions = async (): Promise<boolean> => {
             { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
             { accessType: 'read', recordType: 'ExerciseSession' },
             { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
-        ]);
+        ];
 
-        const allGranted = granted.length > 0;
+        const granted = await requestPermission(permissions);
+        const allGranted = granted && granted.length > 0;
 
         await AsyncStorage.setItem(
             HEALTH_PERMISSION_KEY,
@@ -69,9 +81,10 @@ const requestHealthConnectPermissions = async (): Promise<boolean> => {
         );
 
         return allGranted;
+
     } catch (err) {
         console.error('Health Connect permission error:', err);
-
+        
         return false;
     }
 };
