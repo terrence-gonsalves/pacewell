@@ -28,7 +28,6 @@
       },
       "package": "com.gonsalves.pacewell",
       "versionCode": 9,
-      "minSdkVersion": 26,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
@@ -49,6 +48,14 @@
       "expo-image-picker",
       "@react-native-community/datetimepicker",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      [
         "react-native-health",
         {
           "isClinicalDataEnabled": false
@@ -64,7 +71,8 @@
         }
       ],
       "expo-font",
-      "react-native-health-connect"
+      "react-native-health-connect",
+      "expo-build-properties"
     ],
     "extra": {
       "router": {},
