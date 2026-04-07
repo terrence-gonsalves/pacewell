@@ -8,9 +8,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-        "image": "./assets/splash-icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#265946"
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#265946"
     },
     "ios": {
       "supportsTablet": true,
@@ -53,6 +53,7 @@
           "isClinicalDataEnabled": false
         }
       ],
+      "react-native-health-connect",
       "@kingstinct/react-native-healthkit",
       [
         "expo-notifications",
@@ -61,7 +62,8 @@
           "color": "#2d6a4f"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "react-native-health-connect"
     ],
     "extra": {
       "router": {},
