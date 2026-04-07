@@ -47,10 +47,13 @@
       "expo-localization",
       "expo-image-picker",
       "@react-native-community/datetimepicker",
+      "expo-health-connect",
       [
         "expo-build-properties",
         {
           "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
             "minSdkVersion": 26
           }
         }
@@ -61,7 +64,6 @@
           "isClinicalDataEnabled": false
         }
       ],
-      "react-native-health-connect",
       "@kingstinct/react-native-healthkit",
       [
         "expo-notifications",
@@ -70,8 +72,7 @@
           "color": "#2d6a4f"
         }
       ],
-      "expo-font",
-      "expo-build-properties"
+      "expo-font"
     ],
     "extra": {
       "router": {},
