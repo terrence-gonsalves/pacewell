@@ -117,14 +117,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     appName: {
-        fontSize: 42,
+        fontSize: 37,
         fontWeight: '700',
         color: '#FFFFFF',
         letterSpacing: 1,
-        marginBottom: 12,
+        marginBottom: 10,
     },
     tagline: {
         fontSize: 16,

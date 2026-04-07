@@ -132,19 +132,17 @@ export default function RootLayout() {
             <Stack.Screen name="log-activity" />
             <Stack.Screen name="splash" options={{ headerShown: false }} />
         </Stack>
-
-        {/* Custom splash overlays everything until animation completes */}
+        
         {showCustomSplash && authReady && (
             <CustomSplash onComplete={handleSplashComplete} />
         )}
-
-        {/* Keep green background visible while auth is checking */}
+        
         {showCustomSplash && !authReady && (
             <View style={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: '#2E7D52',
-            zIndex: 998,
+                position: 'absolute',
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: '#2E7D52',
+                zIndex: 998,
             }} />
         )}
         </>
