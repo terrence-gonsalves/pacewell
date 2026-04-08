@@ -153,7 +153,7 @@ export default function Profile() {
                                 {
                                     text: 'Open Health Connect',
                                     onPress: () => {
-                                        const { openHealthConnectSettings } = require('react-native-health-connect');
+                                        const { openHealthConnectSettings } = require('expo-health-connect');
                                         openHealthConnectSettings();
                                     },
                                 },
