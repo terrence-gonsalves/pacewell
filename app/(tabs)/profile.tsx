@@ -23,7 +23,11 @@ import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { Image } from 'react-native';
-import { requestHealthPermissions, hasHealthPermissions, checkAndRefreshPermissions } from '../../lib/healthPermissions';
+import {
+    openHealthConnectForPermissions,
+    checkHealthConnectPermissions,
+    hasHealthPermissions,
+} from '../../lib/healthPermissions';
 import { getHealthSummary } from '../../lib/health';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -87,7 +91,7 @@ export default function Profile() {
                 new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
             );
 
-            const healthStatus = await hasHealthPermissions();      
+            const healthStatus = await checkHealthConnectPermissions();
             setHealthConnected(healthStatus);
 
             const [profileResult, checkInsResult, storedUnits, storedNotifTime, storedGoal] =
@@ -126,56 +130,34 @@ export default function Profile() {
     // ─── Device Syncing ──────────────────────────────────────────────────────────────
 
     const handleSyncDevices = async () => {
-        if (!healthConnected) {
-            try {
-                const granted = await requestHealthPermissions();
-        
-                if (granted) {
-                    setHealthConnected(true);
-
-                    Alert.alert(
-                        'Connected ✅',
-                        'Health Connect permissions granted. Tap Sync Devices to sync your health data.'
-                    );
-                } else {
-
-                    // check if permissions were already granted previously
-                    const existing = await checkAndRefreshPermissions();
-
-                    if (existing) {
-                        setHealthConnected(true);
-                    } else {
-                        Alert.alert(
-                            'Permissions Required',
-                            'Please open Health Connect and grant Pacewell permission to read your health data.',
-                            [
-                                { text: 'Cancel', style: 'cancel' },
-                                {
-                                    text: 'Open Health Connect',
-                                    onPress: () => {
-                                        const { openHealthConnectSettings } = require('expo-health-connect');
-                                        openHealthConnectSettings();
-                                    },
-                                },
-                            ]
-                        );
-                    }
-                }
-            } catch (err) {
-                console.error('Sync devices error:', err);
-
-                Alert.alert('Error', 'Could not connect to Health Connect. Please try again.');
-            }
-            return;
-        }
-      
-        // already connected — sync data
         setIsSyncing(true);
-
+      
         try {
+            const hasPermissions = await checkHealthConnectPermissions();
+      
+            if (!hasPermissions) {
+                setIsSyncing(false);
+
+                Alert.alert(
+                    'Connect Health Data',
+                    'Pacewell needs access to your health data. Tap Open Health Connect, grant all Pacewell permissions, then return here and tap Sync Devices again.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                            text: 'Open Health Connect',
+                            onPress: () => openHealthConnectForPermissions(),
+                        },
+                    ]
+                );
+
+                return;
+            }
+      
+            setHealthConnected(true);
+
             const summary = await getHealthSummary();
             const { data: { user } } = await supabase.auth.getUser();
-        
+      
             if (user && (summary.heartRate || summary.steps)) {
                 await supabase.from('health_metrics').upsert({
                     user_id: user.id,
@@ -189,19 +171,35 @@ export default function Profile() {
                     source: 'wearable',
                 });
             }
-        
+      
+            const stepCount = summary.steps?.count;
+            const restingHR = summary.heartRate?.resting;
+            const hrv = summary.heartRate?.hrv;
+            const sleepHours = summary.sleep?.totalHours;
+      
             Alert.alert(
                 'Sync Complete ✅',
-                `Steps today: ${summary.steps?.count ?? 'N/A'}\nResting HR: ${summary.heartRate?.resting ?? 'N/A'} bpm\nHRV: ${summary.heartRate?.hrv ?? 'N/A'} ms`
+                [
+                    stepCount ? `Steps today: ${stepCount}` : 'Steps: Not available',
+                    restingHR ? `Resting HR: ${restingHR} bpm` : 'Resting HR: Not available',
+                    hrv ? `HRV: ${hrv} ms` : 'HRV: Not available',
+                    sleepHours ? `Sleep last night: ${sleepHours}h` : 'Sleep: Not available',
+                ].join('\n'),
+                [
+                    { text: 'OK' },
+                    {
+                        text: 'Check Permissions',
+                        onPress: () => openHealthConnectForPermissions(),
+                    },
+                ]
             );      
         } catch (err) {
             console.error('Sync error:', err);
-
             Alert.alert('Sync Failed', 'Could not read health data. Please try again.');
         } finally {
             setIsSyncing(false);
         }
-      };
+    };
 
     // ─── Calculate Streak ──────────────────────────────────────────────────────────────
 
