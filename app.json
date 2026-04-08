@@ -3,7 +3,7 @@
     "name": "Pacewell",
     "slug": "pacewell",
     "scheme": "pacewell",
-    "version": "0.9.3",
+    "version": "0.9.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -52,8 +52,8 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minSdkVersion": 26
           }
         }
