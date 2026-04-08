@@ -5,64 +5,44 @@ const HEALTH_PERMISSION_KEY = 'pacewell_health_permission';
 
 // ─── Android Health Connect ───────────────────────────────────────────────────
 
-const requestHealthConnectPermissions = async (): Promise<boolean> => {
+export const openHealthConnectForPermissions = async (): Promise<void> => {
+    if (Platform.OS !== 'android') return;
+
+    try {
+        const { getSdkStatus, initialize, openHealthConnectSettings } = require('react-native-health-connect');
+        const status = await getSdkStatus();
+
+        if (status !== 3) return;
+
+        await initialize();
+        openHealthConnectSettings();
+    } catch (err) {
+        console.error('Health Connect settings error:', err);
+    }
+};
+
+export const checkHealthConnectPermissions = async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
 
     try {
-        const {
-            getSdkStatus,
-            initialize,
-            requestPermission,
-            SdkAvailabilityStatus,
-        } = require('expo-health-connect');
-
+        const { getSdkStatus, initialize, getGrantedPermissions } = require('react-native-health-connect');
         const status = await getSdkStatus();
 
-        if (status !== SdkAvailabilityStatus.SDK_AVAILABLE) {
-            console.log('Health Connect not available, status:', status);
+        if (status !== 3) return false;
 
-            return false;
-        }
+        await initialize();
 
-        const initialized = await initialize();
-
-        if (!initialized) {
-            console.log('Health Connect failed to initialize');
-
-            return false;
-        }
-
-        const granted = await requestPermission([
-            { accessType: 'read', recordType: 'SleepSession' },
-            { accessType: 'read', recordType: 'Steps' },
-            { accessType: 'read', recordType: 'HeartRate' },
-            { accessType: 'read', recordType: 'RestingHeartRate' },
-            { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
-            { accessType: 'read', recordType: 'ExerciseSession' },
-            { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
-        ]);
-
+        const granted = await getGrantedPermissions();
         const hasPermissions = granted && granted.length > 0;
 
         await AsyncStorage.setItem(
             HEALTH_PERMISSION_KEY,
-            hasPermissions ? 'granted' : 'denied'
+            hasPermissions ? 'granted' : 'not_determined'
         );
 
         return hasPermissions;
     } catch (err) {
-        console.error('Health Connect permission error:', err);
-
-        // if requestPermission crashes fall back to opening settings
-        try {
-            const { openHealthConnectSettings } = require('expo-health-connect');
-            openHealthConnectSettings();
-
-            // optimistically mark as granted — user will need to manually grant
-            await AsyncStorage.setItem(HEALTH_PERMISSION_KEY, 'pending');
-        } catch (settingsErr) {
-            console.error('Could not open Health Connect settings:', settingsErr);
-        }
+        console.error('Health Connect check error:', err);
 
         return false;
     }
@@ -73,7 +53,6 @@ const requestHealthConnectPermissions = async (): Promise<boolean> => {
 const requestHealthKitPermissions = async (): Promise<boolean> => {
     try {
         const HealthKit = require('@kingstinct/react-native-healthkit').default;
-
         const readPermissions = [
             'HKCategoryTypeIdentifierSleepAnalysis',
             'HKQuantityTypeIdentifierStepCount',
@@ -99,9 +78,11 @@ const requestHealthKitPermissions = async (): Promise<boolean> => {
 export const requestHealthPermissions = async (): Promise<boolean> => {
     if (Platform.OS === 'ios') {
         return requestHealthKitPermissions();
-    } else {
-        return requestHealthConnectPermissions();
     }
+
+    await openHealthConnectForPermissions();
+
+    return false;
 };
 
 export const getHealthPermissionStatus = async (): Promise<string> => {
@@ -112,33 +93,6 @@ export const getHealthPermissionStatus = async (): Promise<string> => {
 
 export const hasHealthPermissions = async (): Promise<boolean> => {
     const status = await getHealthPermissionStatus();
-
+    
     return status === 'granted';
-};
-
-export const checkAndRefreshPermissions = async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') return hasHealthPermissions();
-
-    try {
-        const {
-            getGrantedPermissions,
-            initialize,
-        } = require('expo-health-connect');
-
-        await initialize();
-
-        const granted = await getGrantedPermissions();
-        const hasPermissions = granted && granted.length > 0;
-
-        await AsyncStorage.setItem(
-            HEALTH_PERMISSION_KEY,
-            hasPermissions ? 'granted' : 'not_determined'
-        );
-
-        return hasPermissions;
-    } catch (err) {
-        console.error('Error checking permissions:', err);
-        
-        return false;
-    }
 };

@@ -17,14 +17,12 @@ const deriveSleepQuality = (hours: number): EmojiScale => {
     if (hours < 6) return 2;
     if (hours < 7) return 3;
     if (hours < 8) return 4;
-
+    
     return 5;
 };
 
 const mapWorkoutType = (type: string): ActivityType => {
     const map: Record<string, ActivityType> = {
-
-        // HealthKit types
         'HKWorkoutActivityTypeRunning': 'running',
         'HKWorkoutActivityTypeCycling': 'cycling',
         'HKWorkoutActivityTypeSwimming': 'swimming',
@@ -33,8 +31,6 @@ const mapWorkoutType = (type: string): ActivityType => {
         'HKWorkoutActivityTypeYoga': 'yoga',
         'HKWorkoutActivityTypeTennis': 'tennis',
         'HKWorkoutActivityTypeGolf': 'golf',
-        
-        // Health Connect types
         'RUNNING': 'running',
         'BIKING': 'cycling',
         'SWIMMING_POOL': 'swimming',
@@ -48,15 +44,14 @@ const mapWorkoutType = (type: string): ActivityType => {
     return map[type] ?? 'other';
 };
 
-// ─── iOS HealthKit Implementation ─────────────────────────────────────────────
+// ─── iOS HealthKit ────────────────────────────────────────────────────────────
 
 const getHealthKitSleep = async (): Promise<SleepData | null> => {
     try {
         const HealthKit = require('@kingstinct/react-native-healthkit').default;
-
         const endDate = new Date();
         const startDate = new Date();
-        
+
         startDate.setHours(startDate.getHours() - 16);
 
         const samples = await HealthKit.querySamples(
@@ -66,7 +61,6 @@ const getHealthKitSleep = async (): Promise<SleepData | null> => {
 
         if (!samples || samples.length === 0) return null;
 
-        // calculate total sleep duration
         const asleepSamples = samples.filter((s: any) =>
             s.value === 'HKCategoryValueSleepAnalysisAsleepUnspecified' ||
             s.value === 'HKCategoryValueSleepAnalysisAsleepCore' ||
@@ -75,24 +69,18 @@ const getHealthKitSleep = async (): Promise<SleepData | null> => {
         );
 
         const totalMs = asleepSamples.reduce((sum: number, s: any) => {
-            const start = new Date(s.startDate).getTime();
-            const end = new Date(s.endDate).getTime();
-
-            return sum + (end - start);
+            return sum + (new Date(s.endDate).getTime() - new Date(s.startDate).getTime());
         }, 0);
 
         const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 2) / 2;
 
         if (totalHours === 0) return null;
 
-        const firstSample = samples[0];
-        const lastSample = samples[samples.length - 1];
-
         return {
             totalHours,
             quality: deriveSleepQuality(totalHours),
-            startTime: firstSample.startDate,
-            endTime: lastSample.endDate,
+            startTime: samples[0].startDate,
+            endTime: samples[samples.length - 1].endDate,
             source: 'healthkit',
         };
     } catch (err) {
@@ -105,10 +93,9 @@ const getHealthKitSleep = async (): Promise<SleepData | null> => {
 const getHealthKitWorkouts = async (): Promise<WorkoutData[]> => {
     try {
         const HealthKit = require('@kingstinct/react-native-healthkit').default;
-
         const endDate = new Date();
         const startDate = new Date();
-        
+
         startDate.setHours(startDate.getHours() - 24);
 
         const workouts = await HealthKit.queryWorkoutSamples({
@@ -137,38 +124,45 @@ const getHealthKitWorkouts = async (): Promise<WorkoutData[]> => {
 const getHealthKitHeartRate = async (): Promise<HeartRateData | null> => {
     try {
         const HealthKit = require('@kingstinct/react-native-healthkit').default;
-
         const endDate = new Date();
         const startDate = new Date();
 
         startDate.setDate(startDate.getDate() - 1);
 
-        const [hrSamples, restingHR, hrv] = await Promise.all([
-            HealthKit.queryQuantitySamples(
+        let hrSamples: any[] = [];
+        let restingHR: any = null;
+        let hrv: any = null;
+
+        try {
+            hrSamples = await HealthKit.queryQuantitySamples(
                 'HKQuantityTypeIdentifierHeartRate',
                 { from: startDate, to: endDate, unit: 'count/min' }
-            ),
-            HealthKit.getMostRecentQuantitySample(
-                'HKQuantityTypeIdentifierRestingHeartRate',
-                'count/min'
-            ),
-            HealthKit.getMostRecentQuantitySample(
-                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-                'ms'
-            ),
-        ]);
+            ) ?? [];
+        } catch (err) { console.log('HealthKit HR not available'); }
 
-        if (!hrSamples || hrSamples.length === 0) return null;
+        try {
+            restingHR = await HealthKit.getMostRecentQuantitySample(
+                'HKQuantityTypeIdentifierRestingHeartRate', 'count/min'
+            );
+        } catch (err) { console.log('HealthKit resting HR not available'); }
+
+        try {
+            hrv = await HealthKit.getMostRecentQuantitySample(
+                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN', 'ms'
+            );
+        } catch (err) { console.log('HealthKit HRV not available'); }
+
+        if (hrSamples.length === 0 && !restingHR) return null;
 
         const values = hrSamples.map((s: any) => s.quantity);
-        const average = Math.round(values.reduce((a: number, b: number) => a + b, 0) / values.length);
-        const min = Math.round(Math.min(...values));
-        const max = Math.round(Math.max(...values));
+        const average = values.length > 0
+            ? Math.round(values.reduce((a: number, b: number) => a + b, 0) / values.length)
+            : 0;
 
         return {
             average,
-            min,
-            max,
+            min: values.length > 0 ? Math.round(Math.min(...values)) : 0,
+            max: values.length > 0 ? Math.round(Math.max(...values)) : 0,
             resting: restingHR?.quantity ? Math.round(restingHR.quantity) : null,
             hrv: hrv?.quantity ? Math.round(hrv.quantity) : null,
             recordedAt: new Date().toISOString(),
@@ -183,16 +177,13 @@ const getHealthKitHeartRate = async (): Promise<HeartRateData | null> => {
 const getHealthKitSteps = async (): Promise<StepData | null> => {
     try {
         const HealthKit = require('@kingstinct/react-native-healthkit').default;
-
         const today = new Date();
 
         today.setHours(0, 0, 0, 0);
 
-        const endDate = new Date();
-
         const steps = await HealthKit.queryQuantitySamples(
             'HKQuantityTypeIdentifierStepCount',
-            { from: today, to: endDate, unit: 'count' }
+            { from: today, to: new Date(), unit: 'count' }
         );
 
         if (!steps || steps.length === 0) return null;
@@ -201,10 +192,7 @@ const getHealthKitSteps = async (): Promise<StepData | null> => {
             steps.reduce((sum: number, s: any) => sum + s.quantity, 0)
         );
 
-        return {
-            count: total,
-            date: getLocalDate(),
-        };
+        return { count: total, date: getLocalDate() };
     } catch (err) {
         console.error('HealthKit steps error:', err);
 
@@ -212,31 +200,39 @@ const getHealthKitSteps = async (): Promise<StepData | null> => {
     }
 };
 
-// ─── Android Health Connect Implementation ────────────────────────────────────
+// ─── Android Health Connect ───────────────────────────────────────────────────
 
 const getHealthConnectSleep = async (): Promise<SleepData | null> => {
     try {
-        const { readRecords, initialize } = require('expo-health-connect');
+        const { getSdkStatus, initialize, readRecords } = require('react-native-health-connect');
+        const status = await getSdkStatus();
+
+        if (status !== 3) return null;
 
         await initialize();
 
         const endTime = new Date().toISOString();
         const startTime = new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString();
 
-        const { records } = await readRecords('SleepSession', {
-            timeRangeFilter: {
-                operator: 'between',
-                startTime,
-                endTime,
-            },
-        });
+        let records: any[] = [];
 
-        if (!records || records.length === 0) return null;
+        try {
+            records = await readRecords('SleepSession', {
+                timeRangeFilter: { operator: 'between', startTime, endTime },
+            }) ?? [];
+        } catch (err) {
+            console.log('Sleep permission not granted');
+
+            return null;
+        }
+
+        if (records.length === 0) return null;
 
         const latest = records[records.length - 1];
-        const startMs = new Date(latest.startTime).getTime();
-        const endMs = new Date(latest.endTime).getTime();
-        const totalHours = Math.round(((endMs - startMs) / (1000 * 60 * 60)) * 2) / 2;
+        const totalHours = Math.round(
+            ((new Date(latest.endTime).getTime() - new Date(latest.startTime).getTime()) /
+                (1000 * 60 * 60)) * 2
+        ) / 2;
 
         if (totalHours === 0) return null;
 
@@ -256,28 +252,33 @@ const getHealthConnectSleep = async (): Promise<SleepData | null> => {
 
 const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
     try {
-        const { readRecords, initialize } = require('expo-health-connect');
+        const { getSdkStatus, initialize, readRecords } = require('react-native-health-connect');
+        const status = await getSdkStatus();
+
+        if (status !== 3) return [];
 
         await initialize();
 
         const endTime = new Date().toISOString();
         const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-        const { records } = await readRecords('ExerciseSession', {
-            timeRangeFilter: {
-                operator: 'between',
-                startTime,
-                endTime,
-            },
-        });
+        let records: any[] = [];
 
-        if (!records || records.length === 0) return [];
+        try {
+            records = await readRecords('ExerciseSession', {
+                timeRangeFilter: { operator: 'between', startTime, endTime },
+            }) ?? [];
+        } catch (err) {
+            console.log('Exercise permission not granted');
+
+            return [];
+        }
 
         return records.map((w: any) => {
-            const startMs = new Date(w.startTime).getTime();
-            const endMs = new Date(w.endTime).getTime();
-            const durationMinutes = Math.round((endMs - startMs) / (1000 * 60));
-
+            const durationMinutes = Math.round(
+                (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / (1000 * 60)
+            );
+            
             return {
                 id: w.metadata?.id ?? Math.random().toString(),
                 activityType: mapWorkoutType(w.exerciseType ?? ''),
@@ -297,53 +298,55 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
 
 const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
     try {
-        const { readRecords, initialize } = require('expo-health-connect');
+        const { getSdkStatus, initialize, readRecords } = require('react-native-health-connect');
+        const status = await getSdkStatus();
+
+        if (status !== 3) return null;
 
         await initialize();
 
         const endTime = new Date().toISOString();
         const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const timeRange = { timeRangeFilter: { operator: 'between', startTime, endTime } };
 
-        const [hrResult, restingResult, hrvResult] = await Promise.all([
-            readRecords('HeartRate', {
-                timeRangeFilter: { operator: 'between', startTime, endTime },
-            }),
-            readRecords('RestingHeartRate', {
-                timeRangeFilter: { operator: 'between', startTime, endTime },
-            }),
-            readRecords('HeartRateVariabilityRmssd', {
-                timeRangeFilter: { operator: 'between', startTime, endTime },
-            }),
-        ]);
+        let hrRecords: any[] = [];
+        let restingRecords: any[] = [];
+        let hrvRecords: any[] = [];
 
-        const hrRecords = hrResult.records ?? [];
+        try {
+            hrRecords = await readRecords('HeartRate', timeRange) ?? [];
+        } catch (err) { console.log('Heart rate permission not granted'); }
 
-        if (hrRecords.length === 0) return null;
+        try {
+            restingRecords = await readRecords('RestingHeartRate', timeRange) ?? [];
+        } catch (err) { console.log('Resting heart rate permission not granted'); }
+
+        try {
+            hrvRecords = await readRecords('HeartRateVariabilityRmssd', timeRange) ?? [];
+        } catch (err) { console.log('HRV permission not granted'); }
+
+        if (hrRecords.length === 0 && restingRecords.length === 0) return null;
 
         const allValues = hrRecords.flatMap((r: any) =>
             r.samples?.map((s: any) => s.beatsPerMinute) ?? []
         );
 
-        if (allValues.length === 0) return null;
+        const average = allValues.length > 0
+            ? Math.round(allValues.reduce((a: number, b: number) => a + b, 0) / allValues.length)
+            : 0;
 
-        const average = Math.round(allValues.reduce((a: number, b: number) => a + b, 0) / allValues.length);
-        const min = Math.round(Math.min(...allValues));
-        const max = Math.round(Math.max(...allValues));
-
-        const restingRecords = restingResult.records ?? [];
         const resting = restingRecords.length > 0
             ? Math.round(restingRecords[restingRecords.length - 1].beatsPerMinute)
             : null;
 
-        const hrvRecords = hrvResult.records ?? [];
         const hrv = hrvRecords.length > 0
             ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis)
             : null;
 
         return {
             average,
-            min,
-            max,
+            min: allValues.length > 0 ? Math.round(Math.min(...allValues)) : 0,
+            max: allValues.length > 0 ? Math.round(Math.max(...allValues)) : 0,
             resting,
             hrv,
             recordedAt: new Date().toISOString(),
@@ -352,33 +355,43 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
         console.error('Health Connect heart rate error:', err);
 
         return null;
-    } 
+    }
 };
 
 const getHealthConnectSteps = async (): Promise<StepData | null> => {
     try {
-        const { readRecords, initialize } = require('expo-health-connect');
+        const { getSdkStatus, initialize, readRecords } = require('react-native-health-connect');
+        const status = await getSdkStatus();
+
+        if (status !== 3) return null;
+
         await initialize();
 
         const today = new Date();
+
         today.setHours(0, 0, 0, 0);
 
-        const { records } = await readRecords('Steps', {
-            timeRangeFilter: {
+        let records: any[] = [];
+
+        try {
+            records = await readRecords('Steps', {
+                timeRangeFilter: {
                 operator: 'between',
                 startTime: today.toISOString(),
                 endTime: new Date().toISOString(),
-            },
-        });
+                },
+            }) ?? [];
+        } catch (err) {
+            console.log('Steps permission not granted');
 
-        if (!records || records.length === 0) return null;
+            return null;
+        }
+
+        if (records.length === 0) return null;
 
         const total = records.reduce((sum: number, r: any) => sum + r.count, 0);
 
-        return {
-            count: total,
-            date: getLocalDate(),
-        };
+        return { count: total, date: getLocalDate() };
     } catch (err) {
         console.error('Health Connect steps error:', err);
 
@@ -390,7 +403,6 @@ const getHealthConnectSteps = async (): Promise<StepData | null> => {
 
 export const getHealthSummary = async (): Promise<HealthSummary> => {
     const isIOS = Platform.OS === 'ios';
-
     const [sleep, workouts, heartRate, steps] = await Promise.all([
         isIOS ? getHealthKitSleep() : getHealthConnectSleep(),
         isIOS ? getHealthKitWorkouts() : getHealthConnectWorkouts(),
@@ -398,35 +410,21 @@ export const getHealthSummary = async (): Promise<HealthSummary> => {
         isIOS ? getHealthKitSteps() : getHealthConnectSteps(),
     ]);
 
-    return {
-        sleep,
-        workouts,
-        heartRate,
-        steps,
-        lastSynced: new Date().toISOString(),
-    };
+    return { sleep, workouts, heartRate, steps, lastSynced: new Date().toISOString() };
 };
 
 export const getSleepData = async (): Promise<SleepData | null> => {
-    return Platform.OS === 'ios'
-        ? getHealthKitSleep()
-        : getHealthConnectSleep();
+    return Platform.OS === 'ios' ? getHealthKitSleep() : getHealthConnectSleep();
 };
 
 export const getRecentWorkouts = async (): Promise<WorkoutData[]> => {
-    return Platform.OS === 'ios'
-        ? getHealthKitWorkouts()
-        : getHealthConnectWorkouts();
+    return Platform.OS === 'ios' ? getHealthKitWorkouts() : getHealthConnectWorkouts();
 };
 
 export const getHeartRateData = async (): Promise<HeartRateData | null> => {
-    return Platform.OS === 'ios'
-        ? getHealthKitHeartRate()
-        : getHealthConnectHeartRate();
+    return Platform.OS === 'ios' ? getHealthKitHeartRate() : getHealthConnectHeartRate();
 };
 
 export const getStepData = async (): Promise<StepData | null> => {
-    return Platform.OS === 'ios'
-        ? getHealthKitSteps()
-        : getHealthConnectSteps();
+    return Platform.OS === 'ios' ? getHealthKitSteps() : getHealthConnectSteps();
 };
