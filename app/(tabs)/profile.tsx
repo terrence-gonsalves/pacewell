@@ -471,11 +471,6 @@ export default function Profile() {
                             <ActivityIndicator size="small" color={theme.colors.primary} />
                             ) : (
                             <View style={styles.settingRight}>
-
-                                {healthConnected && (
-                                    <View style={styles.connectedDot} />
-                                )}
-
                                 <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
                             </View>
                             )}
