@@ -12,8 +12,15 @@ import {
     requestNotificationPermissions,
     scheduleDailyCheckInNotification,
 } from '../lib/notifications';
+import {
+    getSyncSettings,
+    scheduleBackgroundSync,
+    cancelBackgroundSync,
+} from '../lib/syncManager';
 
 SplashScreen.preventAutoHideAsync();
+
+// ─── Profile Data ───────────────────────────────────────────────────────────────
 
 const ensureProfile = async (session: Session) => {
     const { data: existingProfile } = await supabase
@@ -24,11 +31,10 @@ const ensureProfile = async (session: Session) => {
 
     if (!existingProfile) {
         const meta = session.user.user_metadata;
-
         await supabase.from('profiles').insert({
             id: session.user.id,
             full_name: meta.full_name ?? 'Pacewell User',
-            age: meta.age ?? 40,
+            age: meta.age ?? 50,
             primary_activity: meta.primary_activity ?? 'walking',
             activity_level: meta.activity_level ?? 'moderate',
             health_goals: meta.health_goals ?? [],
@@ -36,7 +42,21 @@ const ensureProfile = async (session: Session) => {
     }
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Background Sync ──────────────────────────────────────────────────────────
+
+const initializeBackgroundSync = async () => {
+    try {
+        const settings = await getSyncSettings();
+
+        if (settings.enabled) {
+            await scheduleBackgroundSync(settings.intervalHours);
+        }
+    } catch (err) {
+        console.error('Background sync init error:', err);
+    }
+};
+
+// ─── Main Cmponent ──────────────────────────────────────────────────────────
 
 export default function RootLayout() {
     const [session, setSession] = useState<Session | null>(null);
@@ -46,10 +66,11 @@ export default function RootLayout() {
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
-    // ─── Notification ──────────────────────────────────────────────────────────
-
     useEffect(() => {
         setupAndroidChannel();
+
+        // initialize background sync on app launch
+        initializeBackgroundSync();
 
         notificationListener.current = Notifications.addNotificationReceivedListener(
             notification => {
@@ -83,14 +104,12 @@ export default function RootLayout() {
             async (_event, session) => {
                 if (session) {
                     await ensureProfile(session);
-
                     const granted = await requestNotificationPermissions();
 
                     if (granted) {
                         await scheduleDailyCheckInNotification();
                     }
                 }
-
                 setSession(session);
             }
         );
@@ -98,12 +117,8 @@ export default function RootLayout() {
         return () => subscription.unsubscribe();
     }, []);
 
-    // ─── Hide Native Splash Screen ───────────────────────────────────────────────
-
     useEffect(() => {
         if (!loading) {
-
-            // hide native splash immediately — our custom splash takes over
             SplashScreen.hideAsync();
             setAuthReady(true);
         }
@@ -112,7 +127,6 @@ export default function RootLayout() {
     const handleSplashComplete = () => {
         setShowCustomSplash(false);
 
-        // navigate based on auth state
         if (session) {
             router.replace('/(tabs)/dashboard');
         } else {
@@ -124,27 +138,26 @@ export default function RootLayout() {
 
     return (
         <>
-        <StatusBar hidden={showCustomSplash} />
-        <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="edit-profile" />
-            <Stack.Screen name="log-activity" />
-            <Stack.Screen name="splash" options={{ headerShown: false }} />
-        </Stack>
-        
-        {showCustomSplash && authReady && (
-            <CustomSplash onComplete={handleSplashComplete} />
-        )}
-        
-        {showCustomSplash && !authReady && (
-            <View style={{
-                position: 'absolute',
-                top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: '#2E7D52',
-                zIndex: 998,
-            }} />
-        )}
+            <StatusBar style="light" hidden={showCustomSplash} />
+            <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="edit-profile" />
+                <Stack.Screen name="log-activity" />
+            </Stack>
+
+            {showCustomSplash && authReady && (
+                <CustomSplash onComplete={handleSplashComplete} />
+            )}
+
+            {showCustomSplash && !authReady && (
+                <View style={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: '#2E7D52',
+                    zIndex: 998,
+                }} />
+            )}
         </>
     );
 }
