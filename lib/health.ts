@@ -223,12 +223,12 @@ const getHealthConnectSleep = async (): Promise<SleepData | null> => {
         const status = await getSdkStatus();
 
         if (status !== 3) return null;
-
+        
         await initialize();
-
+    
         const endTime = new Date().toISOString();
-        const startTime = new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString();
-
+        const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
         let records: any[] = [];
 
         try {
@@ -238,29 +238,78 @@ const getHealthConnectSleep = async (): Promise<SleepData | null> => {
 
             records = result?.records ?? [];
         } catch (err) {
+            console.log('Sleep permission not granted');
+
             return null;
         }
-
+    
         if (records.length === 0) return null;
-
+    
         const latest = records[records.length - 1];
-        const totalHours = Math.round(
-            ((new Date(latest.endTime).getTime() - new Date(latest.startTime).getTime()) /
-                (1000 * 60 * 60)) * 2
-        ) / 2;
+    
+        // sum only actual sleep stages (4=light, 5=REM, 6=deep)
+        const SLEEP_STAGES = [4, 5, 6];
+    
+        let totalSleepMs = 0;
+    
+        if (latest.stages && latest.stages.length > 0) {
+            totalSleepMs = latest.stages
+                .filter((s: any) => SLEEP_STAGES.includes(s.stage))
+                .reduce((sum: number, s: any) => {
+                    const duration =
+                    new Date(s.endTime).getTime() - new Date(s.startTime).getTime();
+                
+                    return sum + duration;
+            }, 0);
+        } else {
 
+            // no stages available — fall back to full session duration
+            totalSleepMs = new Date(latest.endTime).getTime() - new Date(latest.startTime).getTime();
+        }
+    
+        const totalHours = Math.round((totalSleepMs / (1000 * 60 * 60)) * 2) / 2;
+    
         if (totalHours === 0) return null;
+    
+        // derive quality from sleep stage composition
+        const totalStageMs = latest.stages?.reduce((sum: number, s: any) => {
+            return sum + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime());
+        }, 0) ?? totalSleepMs;
+    
+        const deepMs = latest.stages
+            ?.filter((s: any) => s.stage === 6)
+            .reduce((sum: number, s: any) =>
+                sum + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0
+            ) ?? 0;
+    
+        const remMs = latest.stages
+            ?.filter((s: any) => s.stage === 5)
+            .reduce((sum: number, s: any) =>
+                sum + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0
+            ) ?? 0;
+    
+        const deepPercent = totalStageMs > 0 ? deepMs / totalStageMs : 0;
+        const remPercent = totalStageMs > 0 ? remMs / totalStageMs : 0;
+        const qualityScore = deepPercent + remPercent;
+    
+        let quality: EmojiScale;
 
+        if (qualityScore > 0.4) quality = 5;
+        else if (qualityScore > 0.3) quality = 4;
+        else if (qualityScore > 0.2) quality = 3;
+        else if (qualityScore > 0.1) quality = 2;
+        else quality = 1;
+    
         return {
             totalHours,
-            quality: deriveSleepQuality(totalHours),
+            quality,
             startTime: latest.startTime,
             endTime: latest.endTime,
             source: 'health_connect',
-        };
+        };  
     } catch (err) {
         console.error('Health Connect sleep error:', err);
-
+      
         return null;
     }
 };
@@ -271,12 +320,17 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
         const status = await getSdkStatus();
 
         if (status !== 3) return [];
-
+        
         await initialize();
+    
+        // use local date midnight to only get today's workouts
+        const today = new Date();
 
+        today.setHours(0, 0, 0, 0);
+        
+        const startTime = today.toISOString();
         const endTime = new Date().toISOString();
-        const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
+    
         let records: any[] = [];
 
         try {
@@ -286,27 +340,41 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
 
             records = result?.records ?? [];
         } catch (err) {
+            console.log('Exercise permission not granted');
+
             return [];
         }
-
-        return records.map((w: any) => {
-            const durationMinutes = Math.round(
-                (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / (1000 * 60)
-            );
-
-            return {
-                id: w.metadata?.id ?? Math.random().toString(),
-                activityType: mapWorkoutType(w.exerciseType ?? ''),
-                durationMinutes,
-                startTime: w.startTime,
-                endTime: w.endTime,
-                activeCalories: null,
-                source: 'health_connect',
-            };
-        });
+  
+      // Map Health Connect exercise types to our ActivityType
+      const exerciseTypeMap: Record<number, ActivityType> = {
+        79: 'walking',
+        56: 'running',
+        8: 'cycling',
+        82: 'swimming',
+        64: 'strength',
+        61: 'yoga',
+        73: 'tennis',
+        30: 'golf',
+      };
+  
+      return records.map((w: any) => {
+        const durationMinutes = Math.round(
+          (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / (1000 * 60)
+        );
+        return {
+          id: w.metadata?.id ?? Math.random().toString(),
+          activityType: exerciseTypeMap[w.exerciseType] ?? 'other',
+          durationMinutes,
+          startTime: w.startTime,
+          endTime: w.endTime,
+          activeCalories: null,
+          source: 'health_connect',
+        };
+      });
+  
     } catch (err) {
         console.error('Health Connect workouts error:', err);
-
+        
         return [];
     }
 };
@@ -365,7 +433,7 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
 
 const getHealthConnectSteps = async (): Promise<StepData | null> => {
     try {
-        const { getSdkStatus, initialize, readRecords } = require('react-native-health-connect');
+        const { getSdkStatus, initialize, aggregateRecord } = require('react-native-health-connect');
         const status = await getSdkStatus();
 
         if (status !== 3) return null;
@@ -376,10 +444,9 @@ const getHealthConnectSteps = async (): Promise<StepData | null> => {
 
         today.setHours(0, 0, 0, 0);
 
-        let records: any[] = [];
-
         try {
-            const result = await readRecords('Steps', {
+            const result = await aggregateRecord({
+                recordType: 'Steps',
                 timeRangeFilter: {
                     operator: 'between',
                     startTime: today.toISOString(),
@@ -387,16 +454,16 @@ const getHealthConnectSteps = async (): Promise<StepData | null> => {
                 },
             });
 
-            records = result?.records ?? [];
+            const total = result?.COUNT_TOTAL ?? 0;
+
+            if (total === 0) return null;
+
+            return { count: total, date: getLocalDate() };
         } catch (err) {
+            console.log('Steps aggregation error:', err);
+
             return null;
         }
-
-        if (records.length === 0) return null;
-
-        const total = records.reduce((sum: number, r: any) => sum + r.count, 0);
-
-        return { count: total, date: getLocalDate() };
     } catch (err) {
         console.error('Health Connect steps error:', err);
 

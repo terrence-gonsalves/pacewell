@@ -73,7 +73,9 @@
           "color": "#2d6a4f"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-background-fetch",
+      "expo-task-manager"
     ],
     "extra": {
       "router": {},
