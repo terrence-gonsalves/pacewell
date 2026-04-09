@@ -118,9 +118,9 @@ export interface SleepData {
     startTime: string;
     endTime: string;
     source: string;
-  }
+}
   
-  export interface WorkoutData {
+export interface WorkoutData {
     id: string;
     activityType: ActivityType;
     durationMinutes: number;
@@ -128,42 +128,44 @@ export interface SleepData {
     endTime: string;
     activeCalories: number | null;
     source: string;
-  }
+}
   
-  export interface HeartRateData {
+export interface HeartRateData {
     average: number;
     min: number;
     max: number;
     resting: number | null;
     hrv: number | null;
     recordedAt: string;
-  }
+}
   
-  export interface StepData {
+export interface StepData {
     count: number;
     date: string;
-  }
+}
   
-  export interface HealthSummary {
+export interface HealthSummary {
     sleep: SleepData | null;
     workouts: WorkoutData[];
     heartRate: HeartRateData | null;
     steps: StepData | null;
+    weight: number | null;
     lastSynced: string;
-  }
+}
 
-  export interface HealthMetrics {
-      id: string;
-      user_id: string;
-      date: string;
-      avg_heart_rate: number | null;
-      min_heart_rate: number | null;
-      max_heart_rate: number | null;
-      resting_heart_rate: number | null;
-      hrv: number | null;
-      step_count: number | null;
-      source: string;
-      created_at: string;
-  }
+export interface HealthMetrics {
+    id: string;
+    user_id: string;
+    date: string;
+    avg_heart_rate: number | null;
+    min_heart_rate: number | null;
+    max_heart_rate: number | null;
+    resting_heart_rate: number | null;
+    hrv: number | null;
+    step_count: number | null;
+    weight_kg: number | null;
+    source: string;
+    created_at: string;
+}
   
   export type HealthPermissionStatus = 'granted' | 'denied' | 'not_determined';

@@ -27,8 +27,8 @@ import {
     openHealthConnectForPermissions,
     checkHealthConnectPermissions,
     hasHealthPermissions,
-} from '../../lib/healthPermissions';
-import { getHealthSummary } from '../../lib/health';
+  } from '../../lib/healthPermissions';
+  import { getHealthSummary } from '../../lib/health';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -134,7 +134,7 @@ export default function Profile() {
       
         try {
             const hasPermissions = await checkHealthConnectPermissions();
-      
+        
             if (!hasPermissions) {
                 setIsSyncing(false);
 
@@ -152,38 +152,45 @@ export default function Profile() {
 
                 return;
             }
-      
+        
             setHealthConnected(true);
 
             const summary = await getHealthSummary();
             const { data: { user } } = await supabase.auth.getUser();
-      
-            if (user && (summary.heartRate || summary.steps)) {
+        
+            if (user) {
                 await supabase.from('health_metrics').upsert({
                     user_id: user.id,
                     date: getLocalDate(),
                     avg_heart_rate: summary.heartRate?.average ?? null,
                     min_heart_rate: summary.heartRate?.min ?? null,
                     max_heart_rate: summary.heartRate?.max ?? null,
-                    resting_heart_rate: summary.heartRate?.resting ?? null,
-                    hrv: summary.heartRate?.hrv ?? null,
+                    resting_heart_rate: null,
+                    hrv: null,
                     step_count: summary.steps?.count ?? null,
+                    weight_kg: summary.weight ?? null,
                     source: 'wearable',
                 });
             }
-      
-            const stepCount = summary.steps?.count;
-            const restingHR = summary.heartRate?.resting;
-            const hrv = summary.heartRate?.hrv;
-            const sleepHours = summary.sleep?.totalHours;
-      
+        
             Alert.alert(
                 'Sync Complete ✅',
                 [
-                    stepCount ? `Steps today: ${stepCount}` : 'Steps: Not available',
-                    restingHR ? `Resting HR: ${restingHR} bpm` : 'Resting HR: Not available',
-                    hrv ? `HRV: ${hrv} ms` : 'HRV: Not available',
-                    sleepHours ? `Sleep last night: ${sleepHours}h` : 'Sleep: Not available',
+                    summary.steps?.count
+                        ? `Steps today: ${summary.steps.count}`
+                        : 'Steps: Not available',
+                    summary.heartRate?.average
+                        ? `Avg HR: ${summary.heartRate.average} bpm`
+                        : 'Heart rate: Not available',
+                    summary.sleep?.totalHours
+                        ? `Sleep last night: ${summary.sleep.totalHours}h`
+                        : 'Sleep: Not available',
+                    summary.workouts.length > 0
+                        ? `Workouts: ${summary.workouts.length} logged today`
+                        : 'Workouts: None today',
+                    summary.weight
+                        ? `Weight: ${summary.weight} kg`
+                        : 'Weight: Not available',
                 ].join('\n'),
                 [
                     { text: 'OK' },
@@ -195,17 +202,18 @@ export default function Profile() {
             );      
         } catch (err) {
             console.error('Sync error:', err);
+
             Alert.alert('Sync Failed', 'Could not read health data. Please try again.');
         } finally {
             setIsSyncing(false);
         }
     };
 
-    // ─── Calculate Streak ──────────────────────────────────────────────────────────────
+    //─── Calculate Streak ──────────────────────────────────────────────────────────────
 
     const calculateStreak = (dates: string[], today: string): number => {
         if (dates.length === 0) return 0;
-      
+       
         const sortedDates = [...new Set(dates)].sort((a, b) => b.localeCompare(a));
 
         let streakCount = 0;
