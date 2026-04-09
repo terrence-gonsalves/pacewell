@@ -14,6 +14,8 @@ interface SplashScreenProps {
     onComplete: () => void;
 }
 
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function CustomSplash({ onComplete }: SplashScreenProps) {
     const iconScale = useRef(new Animated.Value(0.3)).current;
     const iconOpacity = useRef(new Animated.Value(0)).current;
@@ -67,6 +69,8 @@ export default function CustomSplash({ onComplete }: SplashScreenProps) {
         });
     }, []);
 
+    // ─── Render ───────────────────────────────────────────────────────────────
+    
     return (
         <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
             <Animated.View
@@ -91,6 +95,8 @@ export default function CustomSplash({ onComplete }: SplashScreenProps) {
         </Animated.View>
     );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
     container: {
