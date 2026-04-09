@@ -9,7 +9,7 @@ export const openHealthConnectForPermissions = async (): Promise<void> => {
     if (Platform.OS !== 'android') return;
 
     try {
-        const { getSdkStatus, initialize, openHealthConnectSettings } = require('react-native-health-connect');
+        const { getSdkStatus, initialize, openHealthConnectSettings } = require('react-native-health-connect');        
         const status = await getSdkStatus();
 
         if (status !== 3) return;
@@ -48,6 +48,41 @@ export const checkHealthConnectPermissions = async (): Promise<boolean> => {
     }
 };
 
+export const requestHealthConnectPermissions = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') return false;
+
+    try {
+        const { getSdkStatus, initialize, requestPermission } = require('react-native-health-connect');
+        const status = await getSdkStatus();
+
+        if (status !== 3) return false;
+        
+        await initialize();
+
+        const granted = await requestPermission([
+            { accessType: 'read', recordType: 'SleepSession' },
+            { accessType: 'read', recordType: 'Steps' },
+            { accessType: 'read', recordType: 'HeartRate' },
+            { accessType: 'read', recordType: 'ExerciseSession' },
+            { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
+            { accessType: 'read', recordType: 'Weight' },
+        ]);
+
+        const hasPermissions = granted && granted.length > 0;
+
+        await AsyncStorage.setItem(
+            HEALTH_PERMISSION_KEY,
+            hasPermissions ? 'granted' : 'denied'
+        );
+
+        return hasPermissions;
+    } catch (err) {
+        console.error('Health Connect permission error:', err);
+
+        return false;
+    }
+};
+
 // ─── iOS HealthKit ────────────────────────────────────────────────────────────
 
 const requestHealthKitPermissions = async (): Promise<boolean> => {
@@ -60,6 +95,7 @@ const requestHealthKitPermissions = async (): Promise<boolean> => {
             'HKQuantityTypeIdentifierRestingHeartRate',
             'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
             'HKWorkoutType',
+            'HKQuantityTypeIdentifierBodyMass',
         ];
 
         await HealthKit.requestAuthorization(readPermissions, []);
