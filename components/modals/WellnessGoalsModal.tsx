@@ -29,6 +29,7 @@ export default function WellnessGoalsModal({
     onIncrement,
     onDecrement,
 }: WellnessGoalsModalProps) {
+    const [mounted, setMounted] = useState(false);
 
     // animation values
     const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -36,6 +37,7 @@ export default function WellnessGoalsModal({
 
     useEffect(() => {
         if (visible) {
+            setMounted(true);
 
             // fade in backdrop and slide up sheet simultaneously
             Animated.parallel([
@@ -65,7 +67,9 @@ export default function WellnessGoalsModal({
                     duration: 250,
                     useNativeDriver: true,
                 }),
-            ]).start();
+            ]).start(() => {
+                setMounted(false);
+            });
         }
     }, [visible]);
 
@@ -73,7 +77,7 @@ export default function WellnessGoalsModal({
 
     return (
         <Modal
-            visible={visible}
+            visible={mounted}
             transparent
             animationType="none"
             onRequestClose={onClose}

@@ -9,6 +9,9 @@ import {
     TextInput,
     ActivityIndicator,
     Animated,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { theme } from '../../lib/theme';
   
@@ -31,6 +34,7 @@ export default function DeleteAccountModal({
     onConfirmTextChange,
     onDelete,
 }: DeleteAccountModalProps) {
+    const [mounted, setMounted] = useState(false);
 
     // animation values
     const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -38,6 +42,7 @@ export default function DeleteAccountModal({
 
     useEffect(() => {
         if (visible) {
+            setMounted(true);
 
             // fade in backdrop and slide up sheet simultaneously
             Animated.parallel([
@@ -67,7 +72,9 @@ export default function DeleteAccountModal({
                     duration: 250,
                     useNativeDriver: true,
                 }),
-            ]).start();
+            ]).start(() => {
+                setMounted(false);
+            });
         }
     }, [visible]);
 
@@ -75,61 +82,71 @@ export default function DeleteAccountModal({
 
     return (
         <Modal
-            visible={visible}
+            visible={mounted}
             transparent
             animationType="none"
             onRequestClose={onClose}
             statusBarTranslucent
         >
-            <Animated.View
-                style={[styles.backdrop, { opacity: backdropOpacity }]}
+            <KeyboardAvoidingView
+                style={styles.keyboardView}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-            </Animated.View>
-
-            <Animated.View
-                style={[
-                    styles.sheetContainer,
-                    { transform: [{ translateY: sheetTranslateY }] },
-                ]}
-            >
-                <View style={styles.sheetHandle} />
-        
-                <Text style={styles.deleteModalTitle}>Delete Account</Text>
-                <Text style={styles.deleteModalText}>
-                    This will permanently delete your account and all your health data. This cannot be undone.
-                </Text>
-                <Text style={styles.deleteModalText}>
-                    Type <Text style={styles.deleteModalBold}>DELETE</Text> to confirm:
-                </Text>
-                <TextInput
-                    style={styles.deleteInput}
-                    value={deleteConfirmText}
-                    onChangeText={onConfirmTextChange}
-                    placeholder="Type DELETE here"
-                    placeholderTextColor={theme.colors.textLight}
-                    autoCapitalize="characters"
-                />
-                <TouchableOpacity
-                    style={[
-                        styles.deleteConfirmButton,
-                        deleteConfirmText !== 'DELETE' && styles.deleteConfirmButtonDisabled,
-                    ]}
-                    onPress={onDelete}
-                    disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                <Animated.View
+                    style={[styles.backdrop, { opacity: backdropOpacity }]}
                 >
+                    <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+                </Animated.View>
 
-                    {isDeleting ? (
-                    <ActivityIndicator color={theme.colors.white} />
-                    ) : (
-                    <Text style={styles.deleteConfirmButtonText}>Delete My Account</Text>
-                    )}
-                    
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-            </Animated.View>
+                <Animated.View
+                    style={[
+                        styles.sheetContainer,
+                        { transform: [{ translateY: sheetTranslateY }] },
+                    ]}
+                >
+                    <View style={styles.sheetHandle} />
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        bounces={false}
+                    >            
+                        <Text style={styles.deleteModalTitle}>Delete Account</Text>
+                        <Text style={styles.deleteModalText}>
+                            This will permanently delete your account and all your health data. This cannot be undone.
+                        </Text>
+                        <Text style={styles.deleteModalText}>
+                            Type <Text style={styles.deleteModalBold}>DELETE</Text> to confirm:
+                        </Text>
+                        <TextInput
+                            style={styles.deleteInput}
+                            value={deleteConfirmText}
+                            onChangeText={onConfirmTextChange}
+                            placeholder="Type DELETE here"
+                            placeholderTextColor={theme.colors.textLight}
+                            autoCapitalize="characters"
+                        />
+                        <TouchableOpacity
+                            style={[
+                                styles.deleteConfirmButton,
+                                deleteConfirmText !== 'DELETE' && styles.deleteConfirmButtonDisabled,
+                            ]}
+                            onPress={onDelete}
+                            disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                        >
+
+                            {isDeleting ? (
+                            <ActivityIndicator color={theme.colors.white} />
+                            ) : (
+                            <Text style={styles.deleteConfirmButtonText}>Delete My Account</Text>
+                            )}
+                            
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
+                </Animated.View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
@@ -137,8 +154,12 @@ export default function DeleteAccountModal({
 // ─── Styles ───────────────────────────────────────────────────────────────────
   
 const styles = StyleSheet.create({
-    backdrop: {
+    keyboardView: {
         flex: 1,
+        justifyContent: 'flex-end',
+      },
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.4)',
     },
     sheetContainer: {
@@ -153,15 +174,12 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
     },
     sheet: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
         backgroundColor: theme.colors.card,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         padding: theme.spacing.lg,
         paddingBottom: 40,
+        maxHeight: '80%',
     },
     sheetHandle: {
         width: 40,

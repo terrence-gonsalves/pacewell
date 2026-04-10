@@ -48,6 +48,7 @@ export default function SyncSettingsModal({
     const [isSaving, setIsSaving] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
 
     // animation values
     const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -56,6 +57,7 @@ export default function SyncSettingsModal({
     useEffect(() => {
         if (visible) {
             loadSettings();
+            setMounted(true);
 
             // fade in backdrop and slide up sheet simultaneously
             Animated.parallel([
@@ -85,7 +87,9 @@ export default function SyncSettingsModal({
                     duration: 250,
                     useNativeDriver: true,
                 }),
-            ]).start();
+            ]).start(() => {
+                setMounted(false);
+            });
         }
     }, [visible]);
 
@@ -151,7 +155,7 @@ export default function SyncSettingsModal({
 
     return (
         <Modal
-            visible={visible}
+            visible={mounted}
             transparent
             animationType="none"
             onRequestClose={onClose}

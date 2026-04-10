@@ -250,6 +250,20 @@ export default function Profile() {
         }
     };
 
+    // ─── Modal Close ─────────────────────────────────────────────────────────────
+
+    const handleCloseGoalsModal = () => {
+        setTimeout(() => setGoalsModalVisible(false), 50);
+    };
+
+    const handleCloseSyncModal = () => {
+        setTimeout(() => setSyncModalVisible(false), 50);
+    };
+
+    const handleCloseDeleteModal = () => {
+        setTimeout(() => setDeleteModalVisible(false), 50);
+    };
+
     // ─── Sign Out ───────────────────────────────────────────────────────────────
 
     const handleSignOut = () => {
@@ -564,7 +578,7 @@ export default function Profile() {
             <WellnessGoalsModal
                 visible={goalsModalVisible}
                 tempGoal={tempGoal}
-                onClose={() => setGoalsModalVisible(false)}
+                onClose={handleCloseGoalsModal}
                 onSave={handleSaveWeeklyGoal}
                 onIncrement={() => setTempGoal(prev => Math.min(14, prev + 1))}
                 onDecrement={() => setTempGoal(prev => Math.max(1, prev - 1))}
@@ -574,14 +588,14 @@ export default function Profile() {
                 visible={deleteModalVisible}
                 deleteConfirmText={deleteConfirmText}
                 isDeleting={isDeleting}
-                onClose={() => setDeleteModalVisible(false)}
+                onClose={handleCloseDeleteModal}
                 onConfirmTextChange={setDeleteConfirmText}
                 onDelete={handleDeleteAccount}
             />
             
             <SyncSettingsModal
                 visible={syncModalVisible}
-                onClose={() => setSyncModalVisible(false)}
+                onClose={handleCloseSyncModal}
                 onSyncComplete={async () => {
                     const lastSynced = await getLastSyncedFormatted();
                     setLastSyncedText(lastSynced);
