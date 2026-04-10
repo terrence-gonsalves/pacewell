@@ -1,241 +1,288 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import Anthropic from 'npm:@anthropic-ai/sdk';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-interface CheckIn {
-    date: string;
-    mood: number;
-    energy: number;
-    stress: number;
-    sleep_hours: number;
-    sleep_quality: number;
-    nutrition_quality: number;
-    water_intake_glasses: number;
-    notes: string | null;
-}
+const anthropic = new Anthropic({
+    apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
+});
 
-interface ActivityEntry {
-    date: string;
-    activity_type: string;
-    duration_minutes: number;
-    perceived_exertion: number;
-    notes: string | null;
-}
-
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-Deno.serve(async (req) => {
-
-    // handle CORS preflight
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders });
-    }
-
+serve(async (req) => {
     try {
-
-        // ─── Auth Check ──────────────────────────────────────────────────────────
-
-        const authHeader = req.headers.get('Authorization');
-
-        if (!authHeader) {
-            return new Response(
-                JSON.stringify({ error: 'No authorization header' }),
-                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-        }
-
-        // ─── Supabase Client ─────────────────────────────────────────────────────
-
         const supabase = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: authHeader } } }
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
         );
 
-        // ─── Get Current User ────────────────────────────────────────────────────
+        const { user_id } = await req.json();
 
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user) {
+        if (!user_id) {
             return new Response(
-                JSON.stringify({ error: 'Unauthorized' }),
-                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                JSON.stringify({ error: 'user_id is required' }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // ─── Fetch Data ──────────────────────────────────────────────────────────
+        // ─── Date Range ───────────────────────────────────────────────────────────
 
-        const fourteenDaysAgo = new Date();
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        const fourteenDaysAgo = new Date(today);
+
         fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
         const fromDate = fourteenDaysAgo.toISOString().split('T')[0];
 
-        const [profileResult, checkInsResult, activitiesResult, healthMetricsResut] = await Promise.all([
+        // ─── Fetch All Data In Parallel ───────────────────────────────────────────
+
+        const [
+            profileResult,
+            checkInsResult,
+            activityLogsResult,
+            healthMetricsResult,
+        ] = await Promise.all([
             supabase
                 .from('profiles')
                 .select('full_name, age, activity_level, health_goals')
-                .eq('id', user.id)
+                .eq('id', user_id)
                 .single(),
+
             supabase
                 .from('daily_checkins')
-                .select('date, mood, energy, stress, sleep_hours, sleep_quality, nutrition_quality, water_intake_glasses, notes')
-                .eq('user_id', user.id)
+                .select('date, mood, energy, stress, sleep_quality, sleep_hours, nutrition_quality, water_intake_glasses, notes')
+                .eq('user_id', user_id)
                 .gte('date', fromDate)
                 .order('date', { ascending: true }),
+
             supabase
                 .from('activity_logs')
-                .select('date, activity_type, duration_minutes, perceived_exertion, notes')
-                .eq('user_id', user.id)
+                .select('date, activity_type, duration_minutes, perceived_exertion, source')
+                .eq('user_id', user_id)
                 .gte('date', fromDate)
                 .order('date', { ascending: true }),
+
             supabase
                 .from('health_metrics')
-                .select('date, avg_heart_rate, resting_heart_rate, hrv, step_count')
-                .eq('user_id', user.id)
+                .select('date, avg_heart_rate, min_heart_rate, max_heart_rate, resting_heart_rate, hrv, step_count, weight_kg, source')
+                .eq('user_id', user_id)
                 .gte('date', fromDate)
                 .order('date', { ascending: true }),
         ]);
 
         const profile = profileResult.data;
         const checkIns = checkInsResult.data ?? [];
-        const activities = activitiesResult.data ?? [];
-        const healthMetrics = healthMetricsResut.data ?? [];
+        const activityLogs = activityLogsResult.data ?? [];
+        const healthMetrics = healthMetricsResult.data ?? [];
 
-        // need at least 3 check-ins to generate meaningful insights
-        if (checkIns.length < 3) {
+        if (checkIns.length < 1) {
             return new Response(
-                JSON.stringify({ message: 'Not enough data yet', insights: [] }),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                JSON.stringify({ error: 'Not enough check-in data' }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // ─── Build Prompt ────────────────────────────────────────────────────────
+        // ─── Format Data For Prompt ───────────────────────────────────────────────
 
-        const prompt = `You are a recovery and wellness analyst specialising in active adults aged 50 and over. 
-    
-            Your job is to analyse the following health tracking data and identify genuinely meaningful patterns. Be specific — reference actual numbers and dates from the data. Avoid generic advice.
+        const formatMood = (val: number): string => {
+            const labels: Record<number, string> = {
+                1: 'Low 😞',
+                2: 'Meh 😕',
+                3: 'OK 😐',
+                4: 'Good 😊',
+                5: 'Great 😄',
+            };
 
-            USER PROFILE:
-            - Name: ${profile?.full_name}
-            - Age: ${profile?.age}
-            - Activity Level: ${profile?.activity_level}
-            - Health Goals: ${profile?.health_goals?.join(', ')}
+            return labels[val] ?? String(val);
+        };
+          
+        const formatEnergy = (val: number): string => {
+            const labels: Record<number, string> = {
+                1: 'Drained 🪫',
+                2: 'Tired 😪',
+                3: 'OK 😐',
+                4: 'Energised ⚡',
+                5: 'Fired up 🔥',
+            };
 
-            DAILY CHECK-INS (last 14 days, scale 1-5 where applicable):
-            ${(checkIns as CheckIn[]).map((c: CheckIn) =>
-                `${c.date}: mood=${c.mood}, energy=${c.energy}, stress=${c.stress}, sleep_hours=${c.sleep_hours}, sleep_quality=${c.sleep_quality}, nutrition=${c.nutrition_quality}, water=${c.water_intake_glasses} glasses${c.notes ? `, notes: ${c.notes}` : ''}`
-            ).join('\n')}
+            return labels[val] ?? String(val);
+        };
+          
+        const formatStress = (val: number): string => {
+            const labels: Record<number, string> = {
+                1: 'Calm 😌',
+                2: 'Mild 🙂',
+                3: 'Moderate 😤',
+                4: 'High 😰',
+                5: 'Overwhelmed 🤯',
+            };
 
-            ACTIVITY LOGS (last 14 days):
-            ${activities.length > 0 
-              ? (activities as ActivityEntry[]).map((a: ActivityEntry) =>
-                    `${a.date}: ${a.activity_type}, ${a.duration_minutes} minutes, exertion=${a.perceived_exertion}/5${a.notes ? `, notes: ${a.notes}` : ''}`
+            return labels[val] ?? String(val);
+        };
+          
+        const formatSleepQuality = (val: number): string => {
+            const labels: Record<number, string> = {
+                1: 'Terrible 😫',
+                2: 'Poor 😔',
+                3: 'OK 😐',
+                4: 'Good 😊',
+                5: 'Great 😴',
+            };
+
+            return labels[val] ?? String(val);
+        };
+          
+        const formatNutrition = (val: number): string => {
+            const labels: Record<number, string> = {
+                1: 'Poor 🍟',
+                2: 'Fair 🥪',
+                3: 'OK 🍽️',
+                4: 'Good 🥗',
+                5: 'Excellent 🌱',
+            };
+
+            return labels[val] ?? String(val);
+        };
+          
+        const formatExertion = (val: number): string => {
+            const labels: Record<number, string> = {
+                1: 'Easy 🌿',
+                2: 'Light 😊',
+                3: 'Moderate 😤',
+                4: 'Hard 🔥',
+                5: 'Maximum 💀',
+            };
+
+            return labels[val] ?? String(val);
+        };
+
+        const checkInsFormatted = checkIns.map(c =>
+            `${c.date}: mood=${formatMood(c.mood)}, energy=${formatEnergy(c.energy)}, ` +
+            `stress=${formatStress(c.stress)}, sleep_quality=${formatSleepQuality(c.sleep_quality)}, ` +
+            `sleep_hours=${c.sleep_hours}h, nutrition=${formatNutrition(c.nutrition_quality)}, ` +
+            `water=${c.water_intake_glasses} glasses${c.notes ? `, notes="${c.notes}"` : ''}`
+        ).join('\n');
+
+        const activitiesFormatted = activityLogs.length > 0
+            ? activityLogs.map(a =>
+                    `${a.date}: ${a.activity_type}, ${a.duration_minutes} min, ` +
+                    `effort=${formatExertion(a.perceived_exertion)}, source=${a.source}`
                 ).join('\n')
-              : 'No activities logged in this period.'
-            }
+            : 'No activities logged in this period';
 
-            HEALTH METRICS (from wearable device, last 14 days):
-            ${healthMetrics.length > 0
-                ? healthMetrics.map((m: any) =>
-                    `${m.date}: avg_hr=${m.avg_heart_rate ?? 'N/A'}, resting_hr=${m.resting_heart_rate ?? 'N/A'}, hrv=${m.hrv ?? 'N/A'}ms, steps=${m.step_count ?? 'N/A'}`
-                ).join('\n')
-                : 'No wearable data available.'
-            }
+        const healthMetricsFormatted = healthMetrics.length > 0
+            ? healthMetrics.map(m => {
+                    const parts = [`${m.date}:`];
 
-            STRESS SCALE NOTE: For stress, 1=calm and 5=overwhelmed (inverted from other metrics).
+                    if (m.avg_heart_rate) parts.push(`avg_hr=${m.avg_heart_rate}bpm`);
+                    if (m.min_heart_rate) parts.push(`min_hr=${m.min_heart_rate}bpm`);
+                    if (m.max_heart_rate) parts.push(`max_hr=${m.max_heart_rate}bpm`);
+                    if (m.resting_heart_rate) parts.push(`resting_hr=${m.resting_heart_rate}bpm`);
+                    if (m.hrv) parts.push(`hrv=${m.hrv}ms`);
+                    if (m.step_count) parts.push(`steps=${m.step_count}`);
+                    if (m.weight_kg) parts.push(`weight=${m.weight_kg}kg`);
 
-            Analyse this data and identify 1 to 3 of the most meaningful patterns. Focus on:
-            - Trends (things improving or declining over time)
-            - Correlations (relationships between different metrics)
-            - Anomalies (unusual readings compared to the person's baseline)
-            - Predictions (where current patterns may lead if unchanged)
+                    return parts.join(' ');
+                }).join('\n')
+            : 'No wearable health metrics available';
 
-            Only report patterns that are clearly supported by the data. If the data is too limited or inconsistent to draw a conclusion, say so rather than speculating.
+        const goalsFormatted = Array.isArray(profile?.health_goals) && profile.health_goals.length > 0
+            ? profile.health_goals.join(', ')
+            : 'General wellness and recovery';
 
-            Respond ONLY with a valid JSON object in exactly this format, no preamble, no markdown:
+        // ─── Build Prompt ─────────────────────────────────────────────────────────
+
+        const prompt = `You are a personal wellness coach analysing health data for an active adult aged ${profile?.age ?? 40}+. 
+            Their activity level is ${profile?.activity_level ?? 'moderate'} and their health goals are: ${goalsFormatted}.
+
+            Analyse the following 14 days of data and generate exactly 3 personalised wellness insights. Each insight must be specific, actionable and reference actual patterns you observe in the data.
+
+            DAILY CHECK-INS (mood, energy, stress, sleep quality 1-5 scale where 5=excellent):
+            ${checkInsFormatted}
+
+            ACTIVITY LOGS:
+            ${activitiesFormatted}
+
+            WEARABLE HEALTH METRICS (from connected device):
+            ${healthMetricsFormatted}
+
+            Generate exactly 3 insights in this JSON format. Do not include any text outside the JSON:
             {
             "insights": [
                 {
-                "insight_type": "trend|correlation|anomaly|prediction",
-                "title": "A short 5-8 word title summarising the insight",
-                "content": "Your full insight here, referencing actual data points."
+                "insight_type": "recovery|sleep|activity|nutrition|stress|heart_rate|steps|weight|pattern",
+                "title": "Short compelling title (max 8 words)",
+                "content": "Detailed insight referencing specific data points and dates. Include a concrete recommendation. (2-4 sentences)"
                 }
             ]
-            }`;
+            }
 
-        // ─── Call Anthropic API ──────────────────────────────────────────────────
+            Rules for good insights:
+            - Reference specific dates, numbers or trends from the data
+            - Connect patterns across different data types (e.g. sleep affecting energy, steps correlating with mood)
+            - Be encouraging but honest
+            - Give one clear actionable recommendation per insight
+            - Prioritise insights that reference wearable data when available
+            - Focus on patterns over the full 14 days not just recent days`;
 
-        const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') ?? '',
-                'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 1024,
-                messages: [{ role: 'user', content: prompt }],
-            }),
+        // ─── Call Claude ──────────────────────────────────────────────────────────
+
+        const message = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            messages: [
+                {
+                role: 'user',
+                content: prompt,
+                },
+            ],
         });
 
-        if (!anthropicResponse.ok) {
-            const error = await anthropicResponse.text();
-            throw new Error(`Anthropic API error: ${error}`);
-        }
+        const responseText = message.content[0].type === 'text'
+            ? message.content[0].text
+            : '';
 
-        const anthropicData = await anthropicResponse.json();
-        const rawContent = anthropicData.content[0]?.text ?? '{}';
+        // ─── Parse Response ───────────────────────────────────────────────────────
 
-        // ─── Parse Response ──────────────────────────────────────────────────────
-
-        let parsed: { insights: { insight_type: string; content: string }[] };
+        let parsedInsights;
 
         try {
-            parsed = JSON.parse(rawContent);
-        } catch {
-            throw new Error(`Failed to parse Claude response: ${rawContent}`);
-        }
+            const cleaned = responseText.replace(/```json|```/g, '').trim();
 
-        if (!parsed.insights || parsed.insights.length === 0) {
+            parsedInsights = JSON.parse(cleaned);
+        } catch {
+            console.error('Failed to parse insights JSON:', responseText);
+
             return new Response(
-                JSON.stringify({ message: 'No patterns found yet', insights: [] }),
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                JSON.stringify({ error: 'Failed to parse AI response' }),
+                { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // ─── Save Insights to Supabase ───────────────────────────────────────────
-        
-        const today = new Date().toISOString().split('T')[0];
-        const fourteenDaysAgoStr = fromDate;
+        // ─── Save Insights ────────────────────────────────────────────────────────
 
-        const insightsToInsert = parsed.insights.map(insight => ({
-            user_id: user.id,
+        const insightsToInsert = parsedInsights.insights.map((insight: any) => ({
+            user_id,
             insight_type: insight.insight_type,
-            title: insight.title ?? null,
+            title: insight.title,
             content: insight.content,
-            data_range_start: fourteenDaysAgoStr,
-            data_range_end: today,
+            data_range_start: fromDate,
+            data_range_end: todayStr,
+            created_at: new Date().toISOString(),
         }));
 
-        const { error: insertError } = await supabase
+        await supabase
             .from('ai_insights')
             .insert(insightsToInsert);
 
-        if (insertError) {
-            throw new Error(`Failed to save insights: ${insertError.message}`);
-        }
-
-        // ─── Return Success ──────────────────────────────────────────────────────
-
         return new Response(
-            JSON.stringify({ insights: parsed.insights }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ insights: parsedInsights.insights }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
+
     } catch (err) {
+        console.error('Edge Function error:', err);
+
         return new Response(
-            JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Internal server error' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
     }
 });
