@@ -8,9 +8,7 @@ import {
     Switch,
     Alert,
     ActivityIndicator,
-    TextInput,
-    Modal,
-    Pressable,
+    Image,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,13 +20,13 @@ import { UserProfile } from '../../types/health';
 import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
-import { Image } from 'react-native';
 import {
-    openHealthConnectForPermissions,
     checkHealthConnectPermissions,
-    hasHealthPermissions,
-  } from '../../lib/healthPermissions';
-  import { getHealthSummary } from '../../lib/health';
+} from '../../lib/healthPermissions';
+import { getLastSyncedFormatted } from '../../lib/syncManager';
+import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
+import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
+import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -67,8 +65,9 @@ export default function Profile() {
     const [isSavingMarketing, setIsSavingMarketing] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [tempGoal, setTempGoal] = useState(5);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [healthConnected, setHealthConnected] = useState(false);
+    const [syncModalVisible, setSyncModalVisible] = useState(false);
+    const [lastSyncedText, setLastSyncedText] = useState('Never');
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -90,6 +89,9 @@ export default function Profile() {
             const sevenDaysAgo = getLocalDate(
                 new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
             );
+
+            const lastSynced = await getLastSyncedFormatted();
+            setLastSyncedText(lastSynced);
 
             const healthStatus = await checkHealthConnectPermissions();
             setHealthConnected(healthStatus);
@@ -124,88 +126,6 @@ export default function Profile() {
             console.error('Error loading profile:', err);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    // ─── Device Syncing ──────────────────────────────────────────────────────────────
-
-    const handleSyncDevices = async () => {
-        setIsSyncing(true);
-      
-        try {
-            const hasPermissions = await checkHealthConnectPermissions();
-        
-            if (!hasPermissions) {
-                setIsSyncing(false);
-
-                Alert.alert(
-                    'Connect Health Data',
-                    'Pacewell needs access to your health data. Tap Open Health Connect, grant all Pacewell permissions, then return here and tap Sync Devices again.',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                            text: 'Open Health Connect',
-                            onPress: () => openHealthConnectForPermissions(),
-                        },
-                    ]
-                );
-
-                return;
-            }
-        
-            setHealthConnected(true);
-
-            const summary = await getHealthSummary();
-            const { data: { user } } = await supabase.auth.getUser();
-        
-            if (user) {
-                await supabase.from('health_metrics').upsert({
-                    user_id: user.id,
-                    date: getLocalDate(),
-                    avg_heart_rate: summary.heartRate?.average ?? null,
-                    min_heart_rate: summary.heartRate?.min ?? null,
-                    max_heart_rate: summary.heartRate?.max ?? null,
-                    resting_heart_rate: null,
-                    hrv: null,
-                    step_count: summary.steps?.count ?? null,
-                    weight_kg: summary.weight ?? null,
-                    source: 'wearable',
-                });
-            }
-        
-            Alert.alert(
-                'Sync Complete ✅',
-                [
-                    summary.steps?.count
-                        ? `Steps today: ${summary.steps.count}`
-                        : 'Steps: Not available',
-                    summary.heartRate?.average
-                        ? `Avg HR: ${summary.heartRate.average} bpm`
-                        : 'Heart rate: Not available',
-                    summary.sleep?.totalHours
-                        ? `Sleep last night: ${summary.sleep.totalHours}h`
-                        : 'Sleep: Not available',
-                    summary.workouts.length > 0
-                        ? `Workouts: ${summary.workouts.length} logged today`
-                        : 'Workouts: None today',
-                    summary.weight
-                        ? `Weight: ${summary.weight} kg`
-                        : 'Weight: Not available',
-                ].join('\n'),
-                [
-                    { text: 'OK' },
-                    {
-                        text: 'Check Permissions',
-                        onPress: () => openHealthConnectForPermissions(),
-                    },
-                ]
-            );      
-        } catch (err) {
-            console.error('Sync error:', err);
-
-            Alert.alert('Sync Failed', 'Could not read health data. Please try again.');
-        } finally {
-            setIsSyncing(false);
         }
     };
 
@@ -452,8 +372,7 @@ export default function Profile() {
 
                         <TouchableOpacity
                             style={styles.settingRow}
-                            onPress={handleSyncDevices}
-                            disabled={isSyncing}
+                            onPress={() => setSyncModalVisible(true)}
                         >
                             <View style={styles.settingLeft}>
                                 <View style={styles.settingIconContainer}>
@@ -462,19 +381,16 @@ export default function Profile() {
                                 <View>
                                     <Text style={styles.settingLabel}>Sync Devices</Text>
                                     <Text style={styles.settingSubtitle}>
-                                        {healthConnected ? 'Connected · Tap to sync' : 'Apple Health, Fitbit, Garmin'}
+                                        {healthConnected
+                                        ? `Last synced: ${lastSyncedText}`
+                                        : 'Apple Health, Fitbit, Garmin'}
                                     </Text>
                                 </View>
                             </View>
-
-                            {isSyncing ? (
-                            <ActivityIndicator size="small" color={theme.colors.primary} />
-                            ) : (
                             <View style={styles.settingRight}>
+                                {healthConnected && <View style={styles.connectedDot} />}
                                 <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
                             </View>
-                            )}
-
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -646,114 +562,33 @@ export default function Profile() {
                 </View>
             </ScrollView>
             
-            <Modal
+            <WellnessGoalsModal
                 visible={goalsModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setGoalsModalVisible(false)}
-                statusBarTranslucent
-            >
-                <Pressable
-                    style={styles.backdrop}
-                    onPress={() => setGoalsModalVisible(false)}
-                />
-                <View style={styles.sheet}>
-                    <View style={styles.sheetHandle} />
-
-                    <Text style={styles.sheetTitle}>Wellness Goals</Text>
-                    <Text style={styles.sheetSubtitle}>
-                        Set your weekly activity target. This helps track your progress on the Activity screen.
-                    </Text>
-
-                    <Text style={styles.inputLabel}>Weekly activity target</Text>
-                    <View style={styles.stepperRow}>
-                        <TouchableOpacity
-                            style={[styles.stepperButton, tempGoal <= 1 && styles.stepperButtonDisabled]}
-                            onPress={() => setTempGoal(prev => Math.max(1, prev - 1))}
-                            disabled={tempGoal <= 1}
-                        >
-                            <Text style={styles.stepperButtonText}>−</Text>
-                        </TouchableOpacity>
-                        <View style={styles.stepperValue}>
-                            <Text style={styles.stepperValueText}>{tempGoal}</Text>
-                            <Text style={styles.stepperUnit}>activities / week</Text>
-                        </View>
-                        <TouchableOpacity
-                            style={[styles.stepperButton, tempGoal >= 14 && styles.stepperButtonDisabled]}
-                            onPress={() => setTempGoal(prev => Math.min(14, prev + 1))}
-                            disabled={tempGoal >= 14}
-                        >
-                            <Text style={styles.stepperButtonText}>+</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.primaryButton}
-                        onPress={handleSaveWeeklyGoal}
-                    >
-                        <Text style={styles.primaryButtonText}>Save Goal</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => setGoalsModalVisible(false)}
-                    >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                </View>
-            </Modal>
+                tempGoal={tempGoal}
+                onClose={() => setGoalsModalVisible(false)}
+                onSave={handleSaveWeeklyGoal}
+                onIncrement={() => setTempGoal(prev => Math.min(14, prev + 1))}
+                onDecrement={() => setTempGoal(prev => Math.max(1, prev - 1))}
+            />
             
-            <Modal
+            <DeleteAccountModal
                 visible={deleteModalVisible}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setDeleteModalVisible(false)}
-                statusBarTranslucent
-            >
-                <Pressable
-                    style={styles.backdrop}
-                    onPress={() => setDeleteModalVisible(false)}
-                />
-                <View style={styles.sheet}>
-                    <View style={styles.sheetHandle} />
-
-                    <Text style={styles.deleteModalTitle}>Delete Account</Text>
-                    <Text style={styles.deleteModalText}>
-                        This will permanently delete your account and all your health data. This cannot be undone.
-                    </Text>
-                    <Text style={styles.deleteModalText}>
-                        Type <Text style={styles.deleteModalBold}>DELETE</Text> to confirm:
-                    </Text>
-                    <TextInput
-                        style={styles.deleteInput}
-                        value={deleteConfirmText}
-                        onChangeText={setDeleteConfirmText}
-                        placeholder="Type DELETE here"
-                        placeholderTextColor={theme.colors.textLight}
-                        autoCapitalize="characters"
-                    />
-                    <TouchableOpacity
-                        style={[
-                            styles.deleteConfirmButton,
-                            deleteConfirmText !== 'DELETE' && styles.deleteConfirmButtonDisabled,
-                        ]}
-                        onPress={handleDeleteAccount}
-                        disabled={deleteConfirmText !== 'DELETE' || isDeleting}
-                    >
-                        {isDeleting ? (
-                        <ActivityIndicator color={theme.colors.white} />
-                        ) : (
-                        <Text style={styles.deleteConfirmButtonText}>Delete My Account</Text>
-                        )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => setDeleteModalVisible(false)}
-                    >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
-                </View>
-            </Modal>
+                deleteConfirmText={deleteConfirmText}
+                isDeleting={isDeleting}
+                onClose={() => setDeleteModalVisible(false)}
+                onConfirmTextChange={setDeleteConfirmText}
+                onDelete={handleDeleteAccount}
+            />
+            
+            <SyncSettingsModal
+                visible={syncModalVisible}
+                onClose={() => setSyncModalVisible(false)}
+                onSyncComplete={async () => {
+                    const lastSynced = await getLastSyncedFormatted();
+                    setLastSyncedText(lastSynced);
+                    setHealthConnected(true);
+                }}
+            />
         </View>
     );
 }
@@ -1028,120 +863,6 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         alignSelf: 'center',
         marginBottom: theme.spacing.lg,
-    },
-    sheetTitle: {
-        ...theme.typography.sectionHeading,
-        color: theme.colors.textDark,
-        marginBottom: theme.spacing.sm,
-    },
-    sheetSubtitle: {
-        ...theme.typography.label,
-        color: theme.colors.textSubtle,
-        lineHeight: 20,
-        marginBottom: theme.spacing.lg,
-    },
-    inputLabel: {
-        ...theme.typography.label,
-        color: theme.colors.textBody,
-        marginBottom: theme.spacing.md,
-    },
-    stepperRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: theme.spacing.xl,
-        marginBottom: theme.spacing.xl,
-    },
-    stepperButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-        backgroundColor: theme.colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    stepperButtonDisabled: {
-        backgroundColor: theme.colors.border,
-    },
-    stepperButtonText: {
-        fontSize: 24,
-        color: theme.colors.white,
-        fontWeight: '300',
-    },
-    stepperValue: {
-        alignItems: 'center',
-        minWidth: 100,
-    },
-    stepperValueText: {
-        fontSize: 40,
-        fontWeight: '700',
-        color: theme.colors.textDark,
-    },
-    stepperUnit: {
-        ...theme.typography.caption,
-        color: theme.colors.textSubtle,
-    },
-    primaryButton: {
-        backgroundColor: theme.colors.primary,
-        borderRadius: theme.radius.md,
-        paddingVertical: 16,
-        alignItems: 'center',
-        marginBottom: theme.spacing.sm,
-        ...theme.shadow.small,
-    },
-    primaryButtonText: {
-        color: theme.colors.white,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    cancelButton: {
-        paddingVertical: theme.spacing.md,
-        alignItems: 'center',
-    },
-    cancelButtonText: {
-        ...theme.typography.body,
-        color: theme.colors.textSubtle,
-    },
-    deleteModalTitle: {
-        ...theme.typography.sectionHeading,
-        color: theme.colors.danger,
-        marginBottom: theme.spacing.sm,
-    },
-    deleteModalText: {
-        ...theme.typography.body,
-        color: theme.colors.textBody,
-        lineHeight: 22,
-        marginBottom: theme.spacing.sm,
-    },
-    deleteModalBold: {
-        fontWeight: '700',
-        color: theme.colors.textDark,
-    },
-    deleteInput: {
-        backgroundColor: theme.colors.background,
-        borderRadius: theme.radius.md,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: 14,
-        fontSize: 16,
-        color: theme.colors.textDark,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        marginBottom: theme.spacing.lg,
-    },
-    deleteConfirmButton: {
-        backgroundColor: theme.colors.danger,
-        borderRadius: theme.radius.md,
-        paddingVertical: 16,
-        alignItems: 'center',
-        marginBottom: theme.spacing.sm,
-    },
-    deleteConfirmButtonDisabled: {
-        opacity: 0.4,
-    },
-    deleteConfirmButtonText: {
-        color: theme.colors.white,
-        fontSize: 16,
-        fontWeight: '600',
     },
     avatarImage: {
         width: 80,
