@@ -22,8 +22,8 @@ import {
     cancelBackgroundSync,
     performHealthSync,
     getLastSyncedFormatted,
-} from '../lib/syncManager';
-import { theme } from '../lib/theme';
+} from '../../lib/syncManager';
+import { theme } from '../../lib/theme';
 
 interface SyncSettingsModalProps {
     visible: boolean;
