@@ -388,7 +388,6 @@ export default function Profile() {
                                 </View>
                             </View>
                             <View style={styles.settingRight}>
-                                {healthConnected && <View style={styles.connectedDot} />}
                                 <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
                             </View>
                         </TouchableOpacity>
