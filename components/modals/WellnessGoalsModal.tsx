@@ -5,8 +5,10 @@ import {
     Modal,
     Pressable,
     TouchableOpacity,
+    Animated,
 } from 'react-native';
 import { theme } from '../../lib/theme';
+import { useEffect, useRef, useState } from 'react';
   
 interface WellnessGoalsModalProps {
     visible: boolean;
@@ -28,18 +30,67 @@ export default function WellnessGoalsModal({
     onDecrement,
 }: WellnessGoalsModalProps) {
 
+    // animation values
+    const backdropOpacity = useRef(new Animated.Value(0)).current;
+    const sheetTranslateY = useRef(new Animated.Value(500)).current;
+
+    useEffect(() => {
+        if (visible) {
+
+            // fade in backdrop and slide up sheet simultaneously
+            Animated.parallel([
+                Animated.timing(backdropOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(sheetTranslateY, {
+                    toValue: 0,
+                    tension: 65,
+                    friction: 11,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
+
+        // fade out backdrop and slide down sheet
+            Animated.parallel([
+                Animated.timing(backdropOpacity, {
+                    toValue: 0,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(sheetTranslateY, {
+                    toValue: 500,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        }
+    }, [visible]);
+
     // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
         <Modal
             visible={visible}
             transparent
-            animationType="fade"
+            animationType="none"
             onRequestClose={onClose}
             statusBarTranslucent
         >
-            <Pressable style={styles.backdrop} onPress={onClose} />
-            <View style={styles.sheet}>
+            <Animated.View
+                style={[styles.backdrop, { opacity: backdropOpacity }]}
+            >
+                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+            </Animated.View>
+
+            <Animated.View
+                style={[
+                    styles.sheetContainer,
+                    { transform: [{ translateY: sheetTranslateY }] },
+                ]}
+            >
                 <View style={styles.sheetHandle} />
         
                 <Text style={styles.sheetTitle}>Wellness Goals</Text>
@@ -77,7 +128,7 @@ export default function WellnessGoalsModal({
                 <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-            </View>
+            </Animated.View>
         </Modal>
     );
 }
@@ -88,6 +139,17 @@ const styles = StyleSheet.create({
     backdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    sheetContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: theme.colors.card,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: theme.spacing.lg,
+        paddingBottom: 40,
     },
     sheet: {
         position: 'absolute',
