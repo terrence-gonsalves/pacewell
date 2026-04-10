@@ -495,7 +495,9 @@ const getHealthConnectWeight = async (): Promise<number | null> => {
             return null;
         }
 
-        if (records.length === 0) return null;
+        if (records.length === 0) {
+            return null;
+        }
 
         const latest = records[records.length - 1];
 

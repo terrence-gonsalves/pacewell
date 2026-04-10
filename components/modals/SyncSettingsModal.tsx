@@ -9,7 +9,6 @@ import {
     Switch,
     Animated,
     ActivityIndicator,
-    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -34,115 +33,119 @@ interface SyncSettingsModalProps {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SyncSettingsModal({
-  visible,
-  onClose,
-  onSyncComplete,
+    visible,
+    onClose,
+    onSyncComplete,
 }: SyncSettingsModalProps) {
-  const [settings, setSettings] = useState<SyncSettings>({
+    const [settings, setSettings] = useState<SyncSettings>({
     enabled: false,
     intervalHours: 4,
     startTime: '08:00',
     lastSynced: null,
-  });
-  const [lastSyncedText, setLastSyncedText] = useState('Never');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+});
+    const [lastSyncedText, setLastSyncedText] = useState('Never');
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
-  // Animation values
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  const sheetTranslateY = useRef(new Animated.Value(500)).current;
+    // animation values
+    const backdropOpacity = useRef(new Animated.Value(0)).current;
+    const sheetTranslateY = useRef(new Animated.Value(500)).current;
 
-  useEffect(() => {
-    if (visible) {
-      loadSettings();
-      // Fade in backdrop and slide up sheet simultaneously
-      Animated.parallel([
-        Animated.timing(backdropOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.spring(sheetTranslateY, {
-          toValue: 0,
-          tension: 65,
-          friction: 11,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // Fade out backdrop and slide down sheet
-      Animated.parallel([
-        Animated.timing(backdropOpacity, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sheetTranslateY, {
-          toValue: 500,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [visible]);
+    useEffect(() => {
+        if (visible) {
+            loadSettings();
 
-  const loadSettings = async () => {
-    const saved = await getSyncSettings();
-    setSettings(saved);
-    const lastSynced = await getLastSyncedFormatted();
-    setLastSyncedText(lastSynced);
-  };
+            // fade in backdrop and slide up sheet simultaneously
+            Animated.parallel([
+                Animated.timing(backdropOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(sheetTranslateY, {
+                    toValue: 0,
+                    tension: 65,
+                    friction: 11,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else {
 
-  const handleToggleEnabled = (value: boolean) => {
-    setSettings(prev => ({ ...prev, enabled: value }));
-  };
+        // fade out backdrop and slide down sheet
+            Animated.parallel([
+                Animated.timing(backdropOpacity, {
+                    toValue: 0,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(sheetTranslateY, {
+                    toValue: 500,
+                    duration: 250,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        }
+    }, [visible]);
 
-  const handleIntervalSelect = (hours: number) => {
-    setSettings(prev => ({ ...prev, intervalHours: hours }));
-  };
+    const loadSettings = async () => {
+        const saved = await getSyncSettings();
+        setSettings(saved);
+        const lastSynced = await getLastSyncedFormatted();
+        setLastSyncedText(lastSynced);
+    };
 
-  const handleTimeSave = (time: string) => {
-    setSettings(prev => ({ ...prev, startTime: time }));
-  };
+    const handleToggleEnabled = (value: boolean) => {
+        setSettings(prev => ({ ...prev, enabled: value }));
+    };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await saveSyncSettings(settings);
+    const handleIntervalSelect = (hours: number) => {
+        setSettings(prev => ({ ...prev, intervalHours: hours }));
+    };
 
-      if (settings.enabled) {
-        await scheduleBackgroundSync(settings.intervalHours);
-      } else {
-        await cancelBackgroundSync();
-      }
+    const handleTimeSave = (time: string) => {
+        setSettings(prev => ({ ...prev, startTime: time }));
+    };
 
-      onClose();
-    } catch (err) {
-      console.error('Error saving sync settings:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    const handleSave = async () => {
+        setIsSaving(true);
 
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    setSyncMessage(null);
+        try {
+            await saveSyncSettings(settings);
 
-    const result = await performHealthSync();
+            if (settings.enabled) {
+                await scheduleBackgroundSync(settings.intervalHours);
+            } else {
+                await cancelBackgroundSync();
+            }
 
-    if (result.success) {
-      const lastSynced = await getLastSyncedFormatted();
-      setLastSyncedText(lastSynced);
-      setSyncMessage('Sync complete ✅');
-      onSyncComplete();
-    } else {
-      setSyncMessage(`Sync failed: ${result.message}`);
-    }
+            onClose();
+        } catch (err) {
+            console.error('Error saving sync settings:', err);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
-    setIsSyncing(false);
-  };
+    const handleManualSync = async () => {
+        setIsSyncing(true);
+        setSyncMessage(null);
+
+        const result = await performHealthSync();
+
+        if (result.success) {
+            const lastSynced = await getLastSyncedFormatted();
+
+            setLastSyncedText(lastSynced);
+            setSyncMessage('Sync complete ✅');
+            onSyncComplete();
+        } else {
+            setSyncMessage(`Sync failed: ${result.message}`);
+        }
+
+        setIsSyncing(false);
+    };
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -337,7 +340,6 @@ export default function SyncSettingsModal({
                     ) : (
                     <View style={styles.saveButtonInner}>
                         <Text style={styles.saveButtonText}>Save Settings</Text>
-                        <Ionicons name="checkmark" size={18} color={theme.colors.white} />
                     </View>
                     )}
 

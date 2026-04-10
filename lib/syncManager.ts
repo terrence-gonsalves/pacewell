@@ -97,6 +97,8 @@ export const performHealthSync = async (): Promise<{
             step_count: summary.steps?.count ?? null,
             weight_kg: summary.weight ?? null,
             source: 'wearable',
+        }, {
+            onConflict: 'user_id, date',
         });
 
         const now = new Date().toISOString();
