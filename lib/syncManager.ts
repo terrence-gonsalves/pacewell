@@ -5,6 +5,7 @@ import { getHealthSummary } from './health';
 import { hasHealthPermissions } from './healthPermissions';
 import { getLocalDate } from './locale';
 import { supabase } from './supabase';
+import { generateInsights, hasGeneratedInsightsToday } from './insights';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,15 @@ export const performHealthSync = async (): Promise<{
 
         const now = new Date().toISOString();
         await AsyncStorage.setItem(LAST_SYNCED_KEY, now);
+
+        // generate insights after first sync of the day — silently in background
+        const alreadyGenerated = await hasGeneratedInsightsToday();
+
+        if (!alreadyGenerated) {
+            generateInsights().catch(err =>
+                console.log('Background insight generation after sync:', err)
+            );
+        }
 
         return {
             success: true,
