@@ -11,16 +11,20 @@ import {
     setupAndroidChannel,
     requestNotificationPermissions,
     scheduleDailyCheckInNotification,
+    scheduleBedtimeInsightNotification,
 } from '../lib/notifications';
 import {
     getSyncSettings,
     scheduleBackgroundSync,
-    cancelBackgroundSync,
 } from '../lib/syncManager';
+import {
+    getBedtime,
+    generateInsights,
+} from '../lib/insights';
 
 SplashScreen.preventAutoHideAsync();
 
-// ─── Profile Data ───────────────────────────────────────────────────────────────
+// ─── Ensure Profile Exists ────────────────────────────────────────────────────
 
 const ensureProfile = async (session: Session) => {
     const { data: existingProfile } = await supabase
@@ -31,10 +35,11 @@ const ensureProfile = async (session: Session) => {
 
     if (!existingProfile) {
         const meta = session.user.user_metadata;
+
         await supabase.from('profiles').insert({
             id: session.user.id,
             full_name: meta.full_name ?? 'Pacewell User',
-            age: meta.age ?? 50,
+            age: meta.age ?? 40,
             primary_activity: meta.primary_activity ?? 'walking',
             activity_level: meta.activity_level ?? 'moderate',
             health_goals: meta.health_goals ?? [],
@@ -42,7 +47,7 @@ const ensureProfile = async (session: Session) => {
     }
 };
 
-// ─── Background Sync ──────────────────────────────────────────────────────────
+// ─── Initialize Background Services ──────────────────────────────────────────
 
 const initializeBackgroundSync = async () => {
     try {
@@ -56,7 +61,17 @@ const initializeBackgroundSync = async () => {
     }
 };
 
-// ─── Main Cmponent ──────────────────────────────────────────────────────────
+const initializeBedtimeNotification = async () => {
+    try {
+        const bedtime = await getBedtime();
+
+        await scheduleBedtimeInsightNotification(bedtime);
+    } catch (err) {
+        console.error('Bedtime notification init error:', err);
+    }
+};
+
+// ─── Root Layout ──────────────────────────────────────────────────────────────
 
 export default function RootLayout() {
     const [session, setSession] = useState<Session | null>(null);
@@ -68,22 +83,34 @@ export default function RootLayout() {
 
     useEffect(() => {
         setupAndroidChannel();
-
-        // initialize background sync on app launch
         initializeBackgroundSync();
+        initializeBedtimeNotification();
 
+        // handle notifications received while app is open
         notificationListener.current = Notifications.addNotificationReceivedListener(
             notification => {
                 console.log('Notification received:', notification);
             }
         );
 
+        // handle notification taps
         responseListener.current = Notifications.addNotificationResponseReceivedListener(
-            response => {
-                const screen = response.notification.request.content.data?.screen;
+            async response => {
+                const data = response.notification.request.content.data;
+                const screen = data?.screen;
+                const action = data?.action;
 
                 if (screen === 'checkin') {
                     router.push('/(tabs)/checkin');
+                } else if (screen === 'insights') {
+
+                    // navigate to insights tab
+                    router.push('/(tabs)/insights');
+
+                    // if tapped from bedtime notification trigger insight generation
+                    if (action === 'generate') {
+                        await generateInsights();
+                    }
                 }
             }
         );
@@ -104,12 +131,15 @@ export default function RootLayout() {
             async (_event, session) => {
                 if (session) {
                     await ensureProfile(session);
+
                     const granted = await requestNotificationPermissions();
 
                     if (granted) {
                         await scheduleDailyCheckInNotification();
+                        await initializeBedtimeNotification();
                     }
                 }
+
                 setSession(session);
             }
         );
@@ -134,11 +164,9 @@ export default function RootLayout() {
         }
     };
 
-    // ─── Render ───────────────────────────────────────────────────────────────
-
     return (
         <>
-            <StatusBar style="light" hidden={showCustomSplash} />
+            <StatusBar style="dark" hidden={showCustomSplash} />
             <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(tabs)" />
