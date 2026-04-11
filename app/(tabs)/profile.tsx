@@ -24,6 +24,12 @@ import {
     checkHealthConnectPermissions,
 } from '../../lib/healthPermissions';
 import { getLastSyncedFormatted } from '../../lib/syncManager';
+import {
+    getBedtime,
+    saveBedtime,
+    DEFAULT_BEDTIME,
+} from '../../lib/insights';
+import { scheduleBedtimeInsightNotification } from '../../lib/notifications';
 import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
 import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
 import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
@@ -68,6 +74,8 @@ export default function Profile() {
     const [healthConnected, setHealthConnected] = useState(false);
     const [syncModalVisible, setSyncModalVisible] = useState(false);
     const [lastSyncedText, setLastSyncedText] = useState('Never');
+    const [bedtime, setBedtime] = useState(DEFAULT_BEDTIME);
+    const [showBedtimePicker, setShowBedtimePicker] = useState(false);
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -96,7 +104,7 @@ export default function Profile() {
             const healthStatus = await checkHealthConnectPermissions();
             setHealthConnected(healthStatus);
 
-            const [profileResult, checkInsResult, storedUnits, storedNotifTime, storedGoal] =
+            const [profileResult, checkInsResult, storedUnits, storedNotifTime, storedGoal, storedBedtime] =
                 await Promise.all([
                     supabase.from('profiles').select('*').eq('id', user.id).single(),
                     supabase
@@ -108,6 +116,7 @@ export default function Profile() {
                     AsyncStorage.getItem(UNITS_KEY),
                     AsyncStorage.getItem(NOTIF_TIME_KEY),
                     AsyncStorage.getItem(WEEKLY_GOAL_KEY),
+                    getBedtime(),
                 ]);
 
             if (profileResult.data) setProfile(profileResult.data);
@@ -117,6 +126,10 @@ export default function Profile() {
             if (storedGoal) {
                 setWeeklyGoal(Number(storedGoal));
                 setTempGoal(Number(storedGoal));
+            }
+
+            if (storedBedtime) {
+                setBedtime(storedBedtime);
             }
 
             // calculate streak
@@ -199,6 +212,13 @@ export default function Profile() {
         await AsyncStorage.setItem(WEEKLY_GOAL_KEY, String(tempGoal));
 
         setGoalsModalVisible(false);
+    };
+
+    const handleBedtimeSave = async (time: string) => {
+        setBedtime(time);
+
+        await saveBedtime(time);
+        await scheduleBedtimeInsightNotification(time);
     };
 
     // ─── Change Password ───────────────────────────────────────────────────────────────
@@ -451,6 +471,54 @@ export default function Profile() {
                                 const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
 
                                 handleNotifTimeSave(`${hours}:${minutes}`);
+                            }}
+                        />
+                        )}
+
+                        <View style={styles.divider} />
+                        
+                        <View style={styles.settingRow}>
+                            <View style={styles.settingLeft}>
+                                <View style={styles.settingIconContainer}>
+                                    <Ionicons name="moon-outline" size={18} color={theme.colors.primary} />
+                                </View>
+                                <View>
+                                    <Text style={styles.settingLabel}>Bedtime</Text>
+                                    <Text style={styles.settingSubtitle}>
+                                        Insights generated at {bedtime}
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.timeButton}
+                                onPress={() => setShowBedtimePicker(true)}
+                            >
+                                <Text style={styles.timeButtonText}>Change</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {showBedtimePicker && (
+                        <DateTimePicker
+                            value={(() => {
+                                const [hours, minutes] = bedtime.split(':').map(Number);
+                                const date = new Date();
+
+                                date.setHours(hours, minutes, 0, 0);
+
+                                return date;
+                            })()}
+                            mode="time"
+                            is24Hour={false}
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                                setShowBedtimePicker(false);
+
+                                if (event.type === 'dismissed' || !selectedDate) return;
+
+                                const hours = String(selectedDate.getHours()).padStart(2, '0');
+                                const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+                                
+                                handleBedtimeSave(`${hours}:${minutes}`);
                             }}
                         />
                         )}
