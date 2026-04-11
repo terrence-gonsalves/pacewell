@@ -5,10 +5,10 @@ import { Platform } from 'react-native';
 const NOTIF_TIME_KEY = 'pacewell_notif_time';
 const NOTIF_ID_KEY = 'pacewell_notif_id';
 const NOTIF_PERMISSION_KEY = 'pacewell_notif_permission_asked';
+const BEDTIME_NOTIF_ID_KEY = 'pacewell_bedtime_notif_id';
 
 // ─── Configure Notification Handler ──────────────────────────────────────────
 
-// determine how notifications behave when the app is in the foreground
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
         shouldShowAlert: true,
@@ -19,13 +19,20 @@ Notifications.setNotificationHandler({
     }),
 });
 
-// ─── Create Android Channel ───────────────────────────────────────────────────
+// ─── Create Android Channels ──────────────────────────────────────────────────
 
 export const setupAndroidChannel = async (): Promise<void> => {
     if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('checkin-reminders', {
             name: 'Check-in Reminders',
             importance: Notifications.AndroidImportance.DEFAULT,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#2d6a4f',
+        });
+
+        await Notifications.setNotificationChannelAsync('insight-generation', {
+            name: 'Insight Generation',
+            importance: Notifications.AndroidImportance.LOW,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#2d6a4f',
         });
@@ -36,26 +43,20 @@ export const setupAndroidChannel = async (): Promise<void> => {
 
 export const requestNotificationPermissions = async (): Promise<boolean> => {
     try {
-
-        // check if we've already asked before
         const alreadyAsked = await AsyncStorage.getItem(NOTIF_PERMISSION_KEY);
-
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
 
-        // if already granted just return true
         if (existingStatus === 'granted') return true;
-
-        // if already denied and we've asked before don't ask again
         if (existingStatus === 'denied' && alreadyAsked) return false;
 
-        // request permissions
         const { status } = await Notifications.requestPermissionsAsync();
+
         await AsyncStorage.setItem(NOTIF_PERMISSION_KEY, 'true');
 
         return status === 'granted';
-
     } catch (err) {
         console.error('Error requesting notification permissions:', err);
+
         return false;
     }
 };
@@ -70,14 +71,11 @@ export const scheduleDailyCheckInNotification = async (
 
         if (status !== 'granted') return;
 
-        // get stored time or use default
         const storedTime = time ?? await AsyncStorage.getItem(NOTIF_TIME_KEY) ?? '08:00';
         const [hours, minutes] = storedTime.split(':').map(Number);
 
-        // cancel any existing scheduled notification
         await cancelCheckInNotification();
 
-        // schedule new daily notification
         const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
                 title: 'Time for your daily check-in 💚',
@@ -91,10 +89,9 @@ export const scheduleDailyCheckInNotification = async (
             },
         });
 
-        // store the notification ID so we can cancel it later
         await AsyncStorage.setItem(NOTIF_ID_KEY, notificationId);
     } catch (err) {
-        console.error('Error scheduling notification:', err);
+        console.error('Error scheduling check-in notification:', err);
     }
 };
 
@@ -103,13 +100,63 @@ export const scheduleDailyCheckInNotification = async (
 export const cancelCheckInNotification = async (): Promise<void> => {
     try {
         const notificationId = await AsyncStorage.getItem(NOTIF_ID_KEY);
-
+        
         if (notificationId) {
             await Notifications.cancelScheduledNotificationAsync(notificationId);
             await AsyncStorage.removeItem(NOTIF_ID_KEY);
         }
     } catch (err) {
-        console.error('Error cancelling notification:', err);
+        console.error('Error cancelling check-in notification:', err);
+    }
+};
+
+// ─── Schedule Bedtime Insight Notification ────────────────────────────────────
+
+export const scheduleBedtimeInsightNotification = async (
+    time?: string
+): Promise<void> => {
+    try {
+        const { status } = await Notifications.getPermissionsAsync();
+
+        if (status !== 'granted') return;
+
+        const bedtime = time ?? '22:00';
+        const [hours, minutes] = bedtime.split(':').map(Number);
+
+        await cancelBedtimeInsightNotification();
+
+        const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+                title: 'Your evening insights are ready ✨',
+                body: 'Pacewell has analysed your day. Tap to see your personalised insights.',
+                data: { screen: 'insights', action: 'generate' },
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: hours,
+                minute: minutes,
+                channelId: Platform.OS === 'android' ? 'insight-generation' : undefined,
+            },
+        });
+
+        await AsyncStorage.setItem(BEDTIME_NOTIF_ID_KEY, notificationId);
+    } catch (err) {
+        console.error('Error scheduling bedtime insight notification:', err);
+    }
+};
+
+// ─── Cancel Bedtime Insight Notification ─────────────────────────────────────
+
+export const cancelBedtimeInsightNotification = async (): Promise<void> => {
+    try {
+        const notificationId = await AsyncStorage.getItem(BEDTIME_NOTIF_ID_KEY);
+
+        if (notificationId) {
+            await Notifications.cancelScheduledNotificationAsync(notificationId);
+            await AsyncStorage.removeItem(BEDTIME_NOTIF_ID_KEY);
+        }
+    } catch (err) {
+        console.error('Error cancelling bedtime insight notification:', err);
     }
 };
 
