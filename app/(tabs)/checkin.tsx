@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { getLocalDate } from '../../lib/locale';
-import { generateInsights } from '../../lib/anthropic';
+import { generateInsights } from '../../lib/insights';
 import { theme } from '../../lib/theme';
 import { getSleepData } from '../../lib/health';
 import { hasHealthPermissions } from '../../lib/healthPermissions';
@@ -287,6 +287,12 @@ export default function CheckIn() {
                 return;
             }
 
+            // generate insights after successful check-in
+            // run silently in background — don't block UI or show errors to user
+            generateInsights().catch(err => 
+                console.log('Background insight generation:', err)
+            );
+            
             setSubmitted(true);
 
             generateInsights().catch(err =>
