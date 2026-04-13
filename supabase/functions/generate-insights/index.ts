@@ -224,20 +224,40 @@ serve(async (req) => {
 
         // ─── Call Claude ──────────────────────────────────────────────────────────
 
-        const message = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 1024,
-            messages: [
-                {
-                role: 'user',
-                content: prompt,
-                },
-            ],
-        });
+        const callClaudeWithRetry = async (prompt: string, maxRetries = 3): Promise<string> => {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const message = await anthropic.messages.create({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 1024,
+                        messages: [{ role: 'user', content: prompt }],
+                    });
 
-        const responseText = message.content[0].type === 'text'
-            ? message.content[0].text
-            : '';
+                    return message.content[0].type === 'text' ? message.content[0].text : '';
+                } catch (err: any) {
+                    const isOverloaded = err?.status === 529 || err?.type === 'overloaded_error';
+                    const isLastAttempt = attempt === maxRetries;
+                
+                    if (isOverloaded && !isLastAttempt) {
+
+                        // wait before retrying — exponential backoff
+                        const waitMs = attempt * 2000;
+
+                        console.log(`Claude overloaded, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries})`);
+
+                        await new Promise(resolve => setTimeout(resolve, waitMs));
+
+                        continue;
+                    }
+
+                    throw err;
+                }
+            }
+
+            return '';
+        };
+
+        const responseText = await callClaudeWithRetry(prompt);
 
         // ─── Parse Response ───────────────────────────────────────────────────────
 

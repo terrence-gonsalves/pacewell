@@ -69,7 +69,6 @@ export const generateInsights = async (): Promise<{
         await AsyncStorage.setItem(LAST_INSIGHTS_DATE_KEY, today);
 
         return { success: true, message: 'Insights generated successfully' };
-
     } catch (err) {
         console.error('Generate insights error:', err);
 

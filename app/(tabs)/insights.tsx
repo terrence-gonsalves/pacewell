@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
-import { generateInsights } from '../../lib/anthropic';
 import { AIInsight } from '../../types/health';
+import { supabase } from '../../lib/supabase';
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
+import { generateInsights } from '../../lib/insights';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -23,13 +23,13 @@ const INSIGHT_CONFIG: Record<string, {
     bg: string;
     borderColor: string;
     label: string;
-}> = {
+  }> = {
     trend: {
-        icon: 'trending-up',
-        colour: theme.colors.primary,
-        bg: theme.colors.primaryLight,
-        borderColor: theme.colors.primary,
-        label: 'Trend',
+      icon: 'trending-up',
+      colour: theme.colors.primary,
+      bg: theme.colors.primaryLight,
+      borderColor: theme.colors.primary,
+      label: 'Trend',
     },
     correlation: {
         icon: 'git-compare',
@@ -52,6 +52,69 @@ const INSIGHT_CONFIG: Record<string, {
         borderColor: theme.colors.purple,
         label: 'Prediction',
     },
+    recovery: {
+        icon: 'fitness',
+        colour: theme.colors.primary,
+        bg: theme.colors.primaryLight,
+        borderColor: theme.colors.primary,
+        label: 'Recovery',
+    },
+    sleep: {
+        icon: 'moon',
+        colour: theme.colors.purple,
+        bg: theme.colors.purpleLight,
+        borderColor: theme.colors.purple,
+        label: 'Sleep',
+    },
+    activity: {
+        icon: 'walk',
+        colour: theme.colors.info,
+        bg: theme.colors.infoLight,
+        borderColor: theme.colors.info,
+        label: 'Activity',
+    },
+    nutrition: {
+        icon: 'nutrition',
+        colour: theme.colors.warning,
+        bg: theme.colors.warningLight,
+        borderColor: theme.colors.warning,
+        label: 'Nutrition',
+    },
+    stress: {
+        icon: 'pulse',
+        colour: theme.colors.danger,
+        bg: theme.colors.dangerLight,
+        borderColor: theme.colors.danger,
+        label: 'Stress',
+    },
+    heart_rate: {
+        icon: 'heart',
+        colour: theme.colors.danger,
+        bg: theme.colors.dangerLight,
+        borderColor: theme.colors.danger,
+        label: 'Heart Rate',
+    },
+    steps: {
+        icon: 'footsteps',
+        colour: theme.colors.info,
+        bg: theme.colors.infoLight,
+        borderColor: theme.colors.info,
+        label: 'Steps',
+    },
+    weight: {
+        icon: 'barbell',
+        colour: theme.colors.purple,
+        bg: theme.colors.purpleLight,
+        borderColor: theme.colors.purple,
+        label: 'Weight',
+    },
+    pattern: {
+        icon: 'analytics',
+        colour: theme.colors.primary,
+        bg: theme.colors.primaryLight,
+        borderColor: theme.colors.primary,
+        label: 'Pattern',
+    },
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -59,6 +122,7 @@ const INSIGHT_CONFIG: Record<string, {
 export default function Insights() {
     const [insights, setInsights] = useState<AIInsight[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -66,11 +130,27 @@ export default function Insights() {
     useFocusEffect(
         useCallback(() => {
             loadInsights();
+        
+            // silently poll for background generated insights
+            let attempts = 0;
+
+            const maxAttempts = 6;
+            const interval = setInterval(async () => {
+                attempts++;
+
+                await loadInsights(true);
+
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                }
+            }, 5000);
+        
+            return () => clearInterval(interval);
         }, [])
     );
 
-    const loadInsights = async () => {
-        setIsLoading(true);
+    const loadInsights = async (silent = false) => {
+        if (!silent) setIsLoading(true);
 
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -91,27 +171,23 @@ export default function Insights() {
         } catch (err) {
             console.error('Error loading insights:', err);
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
     };
 
     const handleGenerateInsights = async () => {
         setIsGenerating(true);
         setMessage(null);
-
+      
         const result = await generateInsights();
-
+      
         if (result.success) {
-            if (result.message) {
-                setMessage(result.message);
-            } else {
-                await loadInsights();
-                setMessage(null);
-            }
+            await loadInsights(false);
+            setMessage(null);
         } else {
             setMessage(result.message ?? 'Something went wrong. Please try again.');
         }
-
+      
         setIsGenerating(false);
     };
 

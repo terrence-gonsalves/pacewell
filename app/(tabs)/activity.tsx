@@ -7,13 +7,13 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../../lib/supabase';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
