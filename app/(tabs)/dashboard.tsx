@@ -10,10 +10,10 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
 import { AIInsight, ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
+import { supabase } from '../../lib/supabase';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
