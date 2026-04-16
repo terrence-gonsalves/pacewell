@@ -2,10 +2,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { getLocalDate } from './locale';
 
+let isGenerating = false;
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LAST_INSIGHTS_DATE_KEY = 'pacewell_last_insights_date';
 const BEDTIME_KEY = 'pacewell_bedtime';
+const GENERATING_KEY = 'pacewell_insights_generating';
 
 export const DEFAULT_BEDTIME = '22:00';
 export const MIN_CHECKINS_FOR_INSIGHTS = 3;
@@ -28,6 +31,14 @@ export const generateInsights = async (): Promise<{
     success: boolean;
     message: string;
 }> => {
+
+    // prevent duplicate simultaneous calls
+    if (isGenerating) {
+        return { success: false, message: 'Already generating' };
+    }
+
+    isGenerating = true;
+
     try {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -76,6 +87,8 @@ export const generateInsights = async (): Promise<{
             success: false,
             message: err instanceof Error ? err.message : 'Unknown error',
         };
+    } finally {
+        isGenerating = false;
     }
 };
 

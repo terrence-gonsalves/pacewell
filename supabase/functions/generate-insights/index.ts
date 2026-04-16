@@ -287,16 +287,29 @@ serve(async (req) => {
             data_range_end: todayStr,
             created_at: new Date().toISOString(),
         }));
-
-        await supabase
+        
+        console.log('Inserting insights:', JSON.stringify(insightsToInsert, null, 2));
+        
+        const { data: insertedData, error: insertError } = await supabase
             .from('ai_insights')
-            .insert(insightsToInsert);
-
+            .insert(insightsToInsert)
+            .select();
+        
+        if (insertError) {
+            console.error('Failed to insert insights:', insertError);
+            
+            return new Response(
+                JSON.stringify({ error: 'Failed to save insights', details: insertError.message }),
+                { status: 500, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+        
+        console.log('Insights saved successfully:', insertedData?.length, 'records');
+        
         return new Response(
             JSON.stringify({ insights: parsedInsights.insights }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
-
     } catch (err) {
         console.error('Edge Function error:', err);
 
