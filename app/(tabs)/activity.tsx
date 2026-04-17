@@ -14,6 +14,9 @@ import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../t
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
+import { getRecentWorkouts } from '../../lib/health';
+import { hasHealthPermissions } from '../../lib/healthPermissions';
+import { WorkoutData } from '../../types/health';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -150,6 +153,8 @@ export default function Activity() {
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState(DEFAULT_FORM);
     const [weeklyTarget, setWeeklyTarget] = useState(5);
+    const [wearableWorkouts, setWearableWorkouts] = useState<WorkoutData[]>([]);
+    const [isImporting, setIsImporting] = useState<string | null>(null);
 
     const updateForm = <K extends keyof typeof DEFAULT_FORM>(
         key: K,
@@ -196,6 +201,67 @@ export default function Activity() {
         setActivities((todayResult.data ?? []) as ActivityLog[]);
         setWeeklyCount(weekResult.data?.length ?? 0);
         setIsLoading(false);
+        await loadWearableWorkouts();
+    };
+
+    // ─── Load Wearable Workouts ───────────────────────────────────────────────────────────────
+
+    const loadWearableWorkouts = async () => {
+        const hasPermission = await hasHealthPermissions();
+
+        if (!hasPermission) return;
+
+        const workouts = await getRecentWorkouts();
+
+        // filter out workouts already logged today
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        const today = getLocalDate();
+        const { data: existing } = await supabase
+            .from('activity_logs')
+            .select('source, created_at')
+            .eq('user_id', user.id)
+            .eq('date', today)
+            .eq('source', 'wearable');
+
+        // only show workouts not already imported
+        const alreadyImported = existing?.length ?? 0;
+
+        if (workouts.length > alreadyImported) {
+            setWearableWorkouts(workouts.slice(alreadyImported));
+        } else {
+            setWearableWorkouts([]);
+        }
+    };
+
+    // ─── Handle Workout Import ─────────────────────────────────────────────────────
+
+    const handleImportWorkout = async (workout: WorkoutData) => {
+        setIsImporting(workout.id);
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) return;
+
+            await supabase.from('activity_logs').insert({
+                user_id: user.id,
+                date: getLocalDate(),
+                activity_type: workout.activityType,
+                duration_minutes: workout.durationMinutes,
+                perceived_exertion: 3,
+                notes: `Imported from wearable`,
+                source: 'wearable',
+            });
+
+            await loadActivities();
+        } catch (err) {
+            console.error('Import error:', err);
+        } finally {
+            setIsImporting(null);
+        }
     };
 
     // ─── Submit ───────────────────────────────────────────────────────────────
@@ -283,6 +349,57 @@ export default function Activity() {
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
             >
+
+                {wearableWorkouts.length > 0 && (
+                <View>
+                    <View style={styles.importHeaderRow}>
+                        <Ionicons name="watch-outline" size={16} color={theme.colors.primary} />
+                        <Text style={styles.importHeaderText}>
+                            {wearableWorkouts.length} workout{wearableWorkouts.length > 1 ? 's' : ''} detected from your wearable
+                        </Text>
+                    </View>
+                    <View style={styles.activitiesCard}>
+                    
+                        {wearableWorkouts.map((workout, index) => {
+                            const meta = getActivityMeta(workout.activityType);
+
+                            return (
+                                <View key={workout.id}>
+
+                                    {index > 0 && <View style={styles.divider} />}
+
+                                    <View style={styles.activityRow}>
+                                        <View style={styles.activityIconContainer}>
+                                            <Text style={styles.activityEmoji}>{meta.emoji}</Text>
+                                        </View>
+                                        <View style={styles.activityInfo}>
+                                            <Text style={styles.activityType}>{meta.label}</Text>
+                                            <Text style={styles.activityMeta}>
+                                                {workout.durationMinutes} min · {new Date(workout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            style={[styles.importButton, isImporting === workout.id && styles.buttonDisabled]}
+                                            onPress={() => handleImportWorkout(workout)}
+                                            disabled={isImporting === workout.id}
+                                        >
+
+                                            {isImporting === workout.id ? (
+                                            <ActivityIndicator size="small" color={theme.colors.white} />
+                                            ) : (
+                                            <Text style={styles.importButtonText}>Import</Text>
+                                            )}
+                                            
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            );
+                        })}
+
+                    </View>
+                </View>
+                )}
+
                 <Text style={styles.dateLabel}>{getDateLabel(getLocalDate())}</Text>
 
                 {activities.length === 0 ? (
@@ -712,6 +829,34 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         color: theme.colors.white,
         fontSize: 16,
+        fontWeight: '600',
+    },
+    section: {
+        paddingHorizontal: theme.spacing.lg,
+        marginBottom: theme.spacing.md,
+    },
+    importHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.xs,
+        marginBottom: theme.spacing.sm,
+    },
+    importHeaderText: {
+        ...theme.typography.caption,
+        color: theme.colors.primary,
+        fontWeight: '600',
+    },
+    importButton: {
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.sm,
+        minWidth: 72,
+        alignItems: 'center',
+    },
+    importButtonText: {
+        ...theme.typography.caption,
+        color: theme.colors.white,
         fontWeight: '600',
     },
 });
