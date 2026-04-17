@@ -155,6 +155,7 @@ export default function Activity() {
     const [weeklyTarget, setWeeklyTarget] = useState(5);
     const [wearableWorkouts, setWearableWorkouts] = useState<WorkoutData[]>([]);
     const [isImporting, setIsImporting] = useState<string | null>(null);
+    const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
 
     const updateForm = <K extends keyof typeof DEFAULT_FORM>(
         key: K,
@@ -224,7 +225,7 @@ export default function Activity() {
             .select('source, created_at')
             .eq('user_id', user.id)
             .eq('date', today)
-            .eq('source', 'wearable');
+            .in('source', ['wearable', 'healthkit', 'health_connect']);
 
         // only show workouts not already imported
         const alreadyImported = existing?.length ?? 0;
@@ -240,22 +241,29 @@ export default function Activity() {
 
     const handleImportWorkout = async (workout: WorkoutData) => {
         setIsImporting(workout.id);
-
+      
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
-            if (!user) return;
-
-            await supabase.from('activity_logs').insert({
+            if (!user)  return;
+      
+            const { error } = await supabase.from('activity_logs').insert({
                 user_id: user.id,
                 date: getLocalDate(),
                 activity_type: workout.activityType,
                 duration_minutes: workout.durationMinutes,
                 perceived_exertion: 3,
-                notes: `Imported from wearable`,
-                source: 'wearable',
+                notes: `Imported`,
+                source: workout.source || 'wearable',
             });
 
+            if (error) {
+                console.error('Import error:', error.message);
+                return;
+            }
+        
+            // mark as imported immediately so it disappears from the list
+            setImportedIds(prev => new Set([...prev, workout.id]));
             await loadActivities();
         } catch (err) {
             console.error('Import error:', err);
