@@ -61,6 +61,8 @@ const initializeBackgroundSync = async () => {
     }
 };
 
+// ─── Initialize Bedtime Notifications ──────────────────────────────────────────
+
 const initializeBedtimeNotification = async () => {
     try {
         const bedtime = await getBedtime();
@@ -78,6 +80,13 @@ export default function RootLayout() {
     const [loading, setLoading] = useState(true);
     const [showCustomSplash, setShowCustomSplash] = useState(true);
     const [authReady, setAuthReady] = useState(false);
+
+    // use a ref so handleSplashComplete always has the latest session value
+    const sessionRef = useRef<Session | null>(null);
+
+    // track whether splash has completed so post-splash auth changes can navigate
+    const splashCompleteRef = useRef(false);
+
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
@@ -86,14 +95,12 @@ export default function RootLayout() {
         initializeBackgroundSync();
         initializeBedtimeNotification();
 
-        // handle notifications received while app is open
         notificationListener.current = Notifications.addNotificationReceivedListener(
             notification => {
                 console.log('Notification received:', notification);
             }
         );
 
-        // handle notification taps
         responseListener.current = Notifications.addNotificationResponseReceivedListener(
             async response => {
                 const data = response.notification.request.content.data;
@@ -103,11 +110,8 @@ export default function RootLayout() {
                 if (screen === 'checkin') {
                     router.push('/(tabs)/checkin');
                 } else if (screen === 'insights') {
-
-                    // navigate to insights tab
                     router.push('/(tabs)/insights');
 
-                    // if tapped from bedtime notification trigger insight generation
                     if (action === 'generate') {
                         await generateInsights();
                     }
@@ -123,12 +127,18 @@ export default function RootLayout() {
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
+            sessionRef.current = session;
+
             setSession(session);
             setLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (_event, session) => {
+                sessionRef.current = session;
+
+                setSession(session);
+
                 if (session) {
                     await ensureProfile(session);
 
@@ -140,7 +150,15 @@ export default function RootLayout() {
                     }
                 }
 
-                setSession(session);
+                // if splash already completed (e.g. magic link arrives after splash)
+                // navigate immediately without waiting for splash
+                if (splashCompleteRef.current) {
+                    if (session) {
+                        router.replace('/(tabs)/dashboard');
+                    } else {
+                        router.replace('/(auth)/login');
+                    }
+                }
             }
         );
 
@@ -155,14 +173,18 @@ export default function RootLayout() {
     }, [loading]);
 
     const handleSplashComplete = () => {
+        splashCompleteRef.current = true;
         setShowCustomSplash(false);
 
-        if (session) {
+        // use the ref to get the latest session value — not the closure value
+        if (sessionRef.current) {
             router.replace('/(tabs)/dashboard');
         } else {
             router.replace('/(auth)/login');
         }
     };
+
+    // ─── Render ──────────────────────────────────────────────────────────────
 
     return (
         <>
