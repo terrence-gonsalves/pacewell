@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { View } from 'react-native';
 import { Stack, router } from 'expo-router';
-import { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import CustomSplash from './splash';
 import {
     setupAndroidChannel,
     requestNotificationPermissions,
@@ -21,6 +21,8 @@ import {
     getBedtime,
     generateInsights,
 } from '../lib/insights';
+import { handleDeepLink } from '../lib/supabase';
+import CustomSplash from './splash';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -95,6 +97,17 @@ export default function RootLayout() {
         initializeBackgroundSync();
         initializeBedtimeNotification();
 
+        // handle deep links when app is already open
+        const linkingSub = Linking.addEventListener('url', ({ url }) => {
+            handleDeepLink(url);
+        });
+
+        // handle deep link that launched the app
+        Linking.getInitialURL().then(url => {
+            console.log('=== INITIAL URL ===', url);
+            if (url) handleDeepLink(url);
+        });
+
         notificationListener.current = Notifications.addNotificationReceivedListener(
             notification => {
                 console.log('Notification received:', notification);
@@ -120,6 +133,7 @@ export default function RootLayout() {
         );
 
         return () => {
+            linkingSub.remove();
             notificationListener.current?.remove();
             responseListener.current?.remove();
         };
