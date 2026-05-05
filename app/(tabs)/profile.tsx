@@ -36,7 +36,7 @@ import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const APP_VERSION = Constants.expoConfig?.version ?? '0.7.1';
+const APP_VERSION = Constants.expoConfig?.version ?? '0.10.1';
 const UNITS_KEY = 'pacewell_units';
 const NOTIF_TIME_KEY = 'pacewell_notif_time';
 const WEEKLY_GOAL_KEY = 'pacewell_weekly_goal';
@@ -252,16 +252,40 @@ export default function Profile() {
 
             return;
         }
-
+     
         setIsDeleting(true);
-
+     
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { session } } = await supabase.auth.getSession();
+     
+            if (!session) {
+                Alert.alert('Error', 'No active session found. Please sign in again.');
 
-            if (!user) return;
+                return;
+            }
+     
+            const response = await fetch(
+                `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`,
+                    },
+                }
+            );
+     
+            const result = await response.json();
+     
+            if (!response.ok) {
+                Alert.alert('Error', result.error ?? 'Could not delete account. Please try again.');
 
-            await supabase.from('profiles').delete().eq('id', user.id);
+                return;
+            }
+     
+            // auth user is gone — sign out clears the local session
             await supabase.auth.signOut();
+     
         } catch {
             Alert.alert('Error', 'Could not delete account. Please try again.');
         } finally {
