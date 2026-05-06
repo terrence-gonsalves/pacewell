@@ -1,6 +1,6 @@
 # Pacewell
 
-> AI-powered recovery and vitality tracking for active adults 50+
+> AI-powered recovery and vitality tracking for active adults 40+
 
 ---
 
