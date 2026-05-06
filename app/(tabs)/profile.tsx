@@ -36,7 +36,7 @@ import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const APP_VERSION = Constants.expoConfig?.version ?? '0.10.1';
+const APP_VERSION = Constants.expoConfig?.version ?? '0.10.4';
 const UNITS_KEY = 'pacewell_units';
 const NOTIF_TIME_KEY = 'pacewell_notif_time';
 const WEEKLY_GOAL_KEY = 'pacewell_weekly_goal';

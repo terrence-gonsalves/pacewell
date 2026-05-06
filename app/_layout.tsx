@@ -104,7 +104,6 @@ export default function RootLayout() {
 
         // handle deep link that launched the app
         Linking.getInitialURL().then(url => {
-            console.log('=== INITIAL URL ===', url);
             if (url) handleDeepLink(url);
         });
 
