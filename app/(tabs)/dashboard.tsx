@@ -201,6 +201,20 @@ export default function Dashboard() {
     useFocusEffect(
         useCallback(() => {
             loadDashboard();
+     
+            let attempts = 0;
+            const maxAttempts = 6;
+     
+            const interval = setInterval(async () => {
+                attempts++;
+                await refreshLatestInsight();
+     
+                if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                }
+            }, 5000);
+     
+            return () => clearInterval(interval);
         }, [])
     );
 
@@ -286,6 +300,28 @@ export default function Dashboard() {
             console.error('Dashboard load error:', err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const refreshLatestInsight = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+     
+            if (!user) return;
+     
+            const { data } = await supabase
+                .from('ai_insights')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+     
+            if (data) {
+                setData(prev => prev ? { ...prev, latestInsight: data } : prev);
+            }
+        } catch {
+            // silent — polling failure should never surface to the user
         }
     };
 
