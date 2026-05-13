@@ -130,22 +130,24 @@ export default function Insights() {
     useFocusEffect(
         useCallback(() => {
             loadInsights();
-        
+     
             // silently poll for background generated insights
             let attempts = 0;
-
             const maxAttempts = 6;
+     
             const interval = setInterval(async () => {
                 attempts++;
-
                 await loadInsights(true);
-
+     
                 if (attempts >= maxAttempts) {
                     clearInterval(interval);
                 }
             }, 5000);
-        
-            return () => clearInterval(interval);
+     
+            return () => {
+                clearInterval(interval);
+                setMessage(null);
+            };
         }, [])
     );
 

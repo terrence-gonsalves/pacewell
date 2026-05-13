@@ -61,7 +61,7 @@ export const generateInsights = async (): Promise<{
         if (!checkIns || checkIns.length < MIN_CHECKINS_FOR_INSIGHTS) {
             return {
                 success: false,
-                message: `Need at least ${MIN_CHECKINS_FOR_INSIGHTS} check-ins to generate insights`,
+                message: `Complete at least ${MIN_CHECKINS_FOR_INSIGHTS} check-ins in the last 14 days to generate insights`,
             };
         }
 
