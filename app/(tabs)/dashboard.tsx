@@ -314,11 +314,12 @@ export default function Dashboard() {
                 .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
+                .limit(1);
      
-            if (data) {
-                setData(prev => prev ? { ...prev, latestInsight: data } : prev);
+            const latest = data?.[0] ?? null;
+     
+            if (latest) {
+                setData(prev => prev ? { ...prev, latestInsight: latest } : prev);
             }
         } catch {
             // silent — polling failure should never surface to the user
