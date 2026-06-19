@@ -15,10 +15,10 @@ export const MIN_CHECKINS_FOR_INSIGHTS = 3;
 
 // ─── Bedtime Settings ─────────────────────────────────────────────────────────
 
-export const getBedtime = async (): Promise<string> => {
+export const getBedtime = async (): Promise<string | null> => {
     const stored = await AsyncStorage.getItem(BEDTIME_KEY);
-
-    return stored ?? DEFAULT_BEDTIME;
+    
+    return stored ?? null;
 };
 
 export const saveBedtime = async (time: string): Promise<void> => {
