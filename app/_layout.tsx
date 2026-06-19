@@ -68,8 +68,11 @@ const initializeBackgroundSync = async () => {
 const initializeBedtimeNotification = async () => {
     try {
         const bedtime = await getBedtime();
-
-        await scheduleBedtimeInsightNotification(bedtime);
+ 
+        // only schedule if the user has explicitly set a bedtime
+        if (bedtime) {
+            await scheduleBedtimeInsightNotification(bedtime);
+        }
     } catch (err) {
         console.error('Bedtime notification init error:', err);
     }
@@ -149,28 +152,27 @@ export default function RootLayout() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (_event, session) => {
                 sessionRef.current = session;
-
                 setSession(session);
-
-                if (session) {
-                    await ensureProfile(session);
-
-                    const granted = await requestNotificationPermissions();
-
-                    if (granted) {
-                        await scheduleDailyCheckInNotification();
-                        await initializeBedtimeNotification();
-                    }
-                }
-
-                // if splash already completed (e.g. magic link arrives after splash)
-                // navigate immediately without waiting for splash
+         
+                // navigate immediately — do not await setup first
+                // previously, awaiting ensureProfile + permission dialogs blocked this
                 if (splashCompleteRef.current) {
                     if (session) {
                         router.replace('/(tabs)/dashboard');
                     } else {
                         router.replace('/(auth)/login');
                     }
+                }
+         
+                // run setup in the background after navigation
+                if (session) {
+                    ensureProfile(session).catch(err =>
+                        console.error('ensureProfile error:', err)
+                    );
+         
+                    requestNotificationPermissions().catch(err =>
+                        console.error('Notification permission error:', err)
+                    );
                 }
             }
         );
