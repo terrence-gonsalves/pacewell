@@ -70,26 +70,6 @@
   - Water intake: **8 glasses**
   - Notes: *"First test check-in"*
 - [✔] Submit and confirm return to dashboard
-(got the following error:
- Edge Function error: [FunctionsHttpError: Edge Function returned a non-2xx status code]
-
-Call Stack
-  construct (<native>)
-  apply (<native>)
-  _construct (node_modules\@babel\runtime\helpers\construct.js)
-  Wrapper (node_modules\@babel\runtime\helpers\wrapNativeSuper.js)
-  construct (<native>)
-  _callSuper (node_modules\@babel\runtime\helpers\callSuper.js)
-  FunctionsError#constructor (node_modules\@supabase\functions-js\dist\main\types.js)
-  construct (<native>)
-  _callSuper (node_modules\@babel\runtime\helpers\callSuper.js)
-  FunctionsHttpError#constructor (node_modules\@supabase\functions-js\dist\main\types.js)
-  tslib_1.__awaiter$argument_3 (node_modules\@supabase\functions-js\dist\main\FunctionsClient.js)
-  next (<native>)
-  fulfilled (node_modules\tslib\tslib.js)
-  tryCallOne (address at (InternalBytecode.js:1:1180)
-  anonymous (address at (InternalBytecode.js:1:1874))
-
 - [✔] Confirm dashboard streak has updated
 - [✔] Confirm check-in card on dashboard shows completed state
 
@@ -124,132 +104,121 @@ Call Stack
 ### 4.1 Manual Insight Generation
 - [✔] Navigate to **Insights** tab
 - [✔] Tap **Generate Insights**
-(received the following error:
+- [✔] Confirm generation triggers (no "need 3 check-ins" error — seed data covers 6 of 7 days)
+- [✔] Confirm insights appear on screen after generation completes
+- [✔] Confirm the insight types returned are valid (trend, correlation, anomaly, or prediction)
 
- Edge Function error: [FunctionsHttpError: Edge Function returned a non-2xx status code]
-
-Call Stack
-  construct (<native>)
-  apply (<native>)
-  _construct (node_modules\@babel\runtime\helpers\construct.js)
-  Wrapper (node_modules\@babel\runtime\helpers\wrapNativeSuper.js)
-  construct (<native>)
-  _callSuper (node_modules\@babel\runtime\helpers\callSuper.js)
-  FunctionsError#constructor (node_modules\@supabase\functions-js\dist\main\types.js)
-  construct (<native>)
-  _callSuper (node_modules\@babel\runtime\helpers\callSuper.js)
-  FunctionsHttpError#constructor (node_modules\@supabase\functions-js\dist\main\types.js)
-  tslib_1.__awaiter$argument_3 (node_modules\@supabase\functions-js\dist\main\FunctionsClient.js)
-  next (<native>)
-  fulfilled (node_modules\tslib\tslib.js)
-  tryCallOne (address at (InternalBytecode.js:1:1180)
-  anonymous (address at (InternalBytecode.js:1:1874))
-
-- [x] Confirm generation triggers (no "need 3 check-ins" error — seed data covers 6 of 7 days)
-- [x] Confirm insights appear on screen after generation completes
-- [x] Confirm the insight types returned are valid (trend, correlation, anomaly, or prediction)
+**Insights seems to generate mutiples of the same thing, ie Sleep, Recovery, Pattern etc. It should unique. I notice when updated a check-in insights regenerate, it should not do this only on initial check-in**
 
 ### 4.2 Dashboard Insight Card Refresh
 - [✔] Complete today's check-in if not already done (Section 2.1)
 - [✔] Navigate to Dashboard
-- [x] Confirm the AI insight card updates within ~30 seconds without manually refreshing
-- [ ] If no update: wait the full 30 seconds (6 polling attempts × 5 seconds)
+- [✔] Confirm the AI insight card updates within ~30 seconds without manually refreshing
+- [✔] If no update: wait the full 30 seconds (6 polling attempts × 5 seconds)
 
 ### 4.3 Insight Messaging — Missing Days Edge Case
-- [ ] Delete all seed data check-ins temporarily (optional — or create a fresh test account)
-- [ ] Attempt to generate insights with 0 check-ins
-- [ ] Confirm message reads: *"Complete at least 3 check-ins in the last 14 days to generate insights."*
-- [ ] Navigate away from Insights tab
-- [ ] Return to Insights tab
-- [ ] Confirm the error message is gone (cleared on navigation)
+- [✔] Delete all seed data check-ins temporarily (optional — or create a fresh test account)
+- [✔] Attempt to generate insights with 0 check-ins
+- [✔] Confirm message reads: *"Complete at least 3 check-ins in the last 14 days to generate insights."*
+- [✔] Navigate away from Insights tab
+- [✔] Return to Insights tab
+- [✔] Confirm the error message is gone (cleared on navigation)
+
+**once insights have been generated, I am still able to generate more insights and instead of checking to see if there have been insights already generated for the day it creates a new sets of insights and new insights a lists both. I can keep going and get more insights of the same sections with different information. Insights were generated automatically as well. Once generate we should not be able to generate another for the same day**
 
 ---
 
 ## Section 5 — Settings & Preferences
 
 ### 5.1 Units — Imperial to Metric
-- [ ] Navigate to Profile → Preferences
-- [ ] Confirm weight is currently displayed in **lbs** (imperial)
-- [ ] Switch units to **Metric**
-- [ ] Navigate to dashboard or any screen showing weight
-- [ ] Confirm weight now displays in **kg** (82.5 kg for Marcus)
-- [ ] Switch back to Imperial
-- [ ] Confirm it reverts correctly
+- [✔] Navigate to Profile → Preferences
+- [✔] Confirm weight is currently displayed in **lbs** (imperial)
+- [✔] Switch units to **Metric**
+- [x] Navigate to dashboard or any screen showing weight (we don't show the users weight or steps or heart rate anywhere in the app, we need to add this 
+                                                          somewhere)
+- [x] Confirm weight now displays in **kg** (82.5 kg for Marcus)
+- [✔] Switch back to Imperial
+- [x] Confirm it reverts correctly
 
 ### 5.2 Bedtime Notification
-- [ ] Navigate to Profile → Preferences → Bedtime
-- [ ] Set bedtime to **10:00 PM**
-- [ ] Confirm the setting saves
-- [ ] Confirm bedtime notification is scheduled (check device notification settings)
-- [ ] Optionally: set bedtime to 2 minutes from now to test actual notification fires
+- [✔] Navigate to Profile → Preferences → Bedtime
+- [x] Set bedtime to **10:00 PM** (it was already set to 10, this has been set by default but should not be set at all until the user does it)
+- [✔] Confirm the setting saves
+- [✔] Confirm bedtime notification is scheduled (check device notification settings)
+- [x] Optionally: set bedtime to 2 minutes from now to test actual notification fires (bedtime is not listed as a notification type in the notifications 
+                                                                                       section for the type. The others are)
 
 ### 5.3 Check-In Reminder Notification
-- [ ] Confirm a daily check-in reminder notification is scheduled
-- [ ] Check device notification settings → Pacewell → confirm notifications are enabled
-- [ ] Optionally: set reminder time to 2 minutes from now to verify it fires
+- [✔] Confirm a daily check-in reminder notification is scheduled (this has been set by default, 8AM. It should not be set until the user does so)
+- [✔] Check device notification settings → Pacewell → confirm notifications are enabled
+- [✔] Optionally: set reminder time to 2 minutes from now to verify it fires
+
+**a notification for for when insights have been generated are available in the notification centre and actually get triggered and work but it does not have a setting in the app to enable or disable or to set a time for, I think this is ok**
 
 ---
 
 ## Section 6 — Profile Management
 
 ### 6.1 Edit Profile
-- [ ] Navigate to Profile → Edit Profile
-- [ ] Change name to `Marc Reid`
-- [ ] Save and confirm name updates across the app (dashboard greeting, profile screen)
-- [ ] Change name back to `Marcus Reid`
+- [✔] Navigate to Profile → Edit Profile
+- [✔] Change name to `Marc Reid`
+- [✔] Save and confirm name updates across the app (dashboard greeting, profile screen)
+- [✔] Change name back to `Marcus Reid`
 
 ### 6.2 Avatar Upload
-- [ ] Tap the avatar on Profile screen
-- [ ] Select a photo from the device gallery
-- [ ] Confirm upload completes and avatar displays
-- [ ] Confirm avatar persists after navigating away and returning
+- [✔] Tap the avatar on Profile screen 
+- [✔] Select a photo from the device gallery
+- [✔] Confirm upload completes and avatar displays
+- [✔] Confirm avatar persists after navigating away and returning
 
 ### 6.3 Wellness Goals
-- [ ] Open Wellness Goals modal
-- [ ] Adjust weekly activity goal
-- [ ] Save and confirm the value persists
+- [✔] Open Wellness Goals modal
+- [✔] Adjust weekly activity goal
+- [✔] Save and confirm the value persists
 
 ---
 
 ## Section 7 — Account Management
 
 ### 7.1 Sign Out & Sign Back In
-- [ ] Sign out from Profile screen
-- [ ] Sign back in with `marcus.reid.test@example.com` / `TestPass123!`
-- [ ] Confirm all data is intact after sign-in
+- [✔] Sign out from Profile screen
+- [✔] Sign back in with `marcus.reid.test@example.com` / `TestPass123!`
+- [✔] Confirm all data is intact after sign-in
 
 ### 7.2 Password Reset (Dev Build Note)
-- [ ] Request a password reset email
-- [ ] Confirm email arrives
-- [ ] Note: redirect URL will not deep-link correctly in a dev build — this is expected
-- [ ] Full test deferred to production build
+- [✔] Request a password reset email
+- [✔] Confirm email arrives
+- [✔] Note: redirect URL will not deep-link correctly in a dev build — this is expected
+- [✔] Full test deferred to production build
 
 ### 7.3 Delete Account
-- [ ] Create a **separate throwaway account** for this test (do not delete Marcus)
-- [ ] Navigate to Profile → Delete Account
-- [ ] Type `DELETE` to confirm
-- [ ] Confirm user is signed out
-- [ ] Check Supabase Dashboard → Authentication → Users to confirm auth user is gone
-- [ ] Check all DB tables to confirm cascade delete wiped all rows for that user
-- [ ] Confirm the throwaway user cannot sign back in
+- [✔] Create a **separate throwaway account** for this test (do not delete Marcus)
+- [✔] Navigate to Profile → Delete Account
+- [✔] Type `DELETE` to confirm
+- [✔] Confirm user is signed out
+- [✔] Check Supabase Dashboard → Authentication → Users to confirm auth user is gone
+- [✔] Check all DB tables to confirm cascade delete wiped all rows for that user
+- [✔] Confirm the throwaway user cannot sign back in
 
 ---
 
 ## Section 8 — Edge Cases
 
 ### 8.1 Missing Day in Seed Data (June 10)
-- [ ] Navigate to any historical view or check streak count
-- [ ] Confirm the app handles the gap gracefully — no crash, no incorrect streak count
+- [x] Navigate to any historical view or check streak count (there isn't a historical view or streak count view. I had to check the DB)
+- [x] Confirm the app handles the gap gracefully — no crash, no incorrect streak count (we need to build this so we can see previous days check-ins and be able 
+                                                                                        to edit and/or delete it)
 
 ### 8.2 App Backgrounding
-- [ ] Start a check-in, background the app, return
-- [ ] Confirm state is preserved or reset gracefully
+- [✔] Start a check-in, background the app, return
+- [✔] Confirm state is preserved or reset gracefully (if the app is background state is preserved, if the app is swiped away it reloads with user still logged 
+                                                       in)
 
 ### 8.3 No Network
-- [ ] Enable airplane mode
-- [ ] Attempt to generate insights
-- [ ] Confirm a graceful error is shown, no crash
-- [ ] Re-enable network and confirm app recovers
+- [✔] Enable airplane mode
+- [✔] Attempt to generate insights
+- [✔] Confirm a graceful error is shown, no crash (the message is 'No active session', the message should say they are offline)
+- [x] Re-enable network and confirm app recovers (received a network request failed when I enabled the network again)
 
 ---
 
