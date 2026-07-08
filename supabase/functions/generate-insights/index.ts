@@ -8,19 +8,63 @@ const anthropic = new Anthropic({
 
 serve(async (req) => {
     try {
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL')!,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        );
 
-        const { user_id } = await req.json();
+        // ─── 1. Verify the requesting user via their JWT ───────────────────────────
 
-        if (!user_id) {
+        const authHeader = req.headers.get('Authorization');
+
+        if (!authHeader) {
             return new Response(
-                JSON.stringify({ error: 'user_id is required' }),
-                { status: 400, headers: { 'Content-Type': 'application/json' } }
+                JSON.stringify({ error: 'Missing authorization header' }),
+                {
+                    status: 401,
+                    headers: { 'Content-Type': 'application/json' },
+                }
             );
         }
+
+        const userClient = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_ANON_KEY')!,
+            {
+                global: {
+                    headers: {
+                        Authorization: authHeader,
+                    },
+                },
+            }
+        );
+
+        const {
+            data: { user },
+            error: userError,
+        } = await userClient.auth.getUser();
+
+        if (userError || !user) {
+            return new Response(
+                JSON.stringify({ error: 'Unauthorized' }),
+                {
+                    status: 401,
+                    headers: { 'Content-Type': 'application/json' },
+                }
+            );
+        }
+
+        // never trust user_id from the client
+        const user_id = user.id;
+
+        // ─── 2. Admin client — used only after identity has been verified ──────────
+
+        const supabase = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false,
+                },
+            }
+        );
 
         // ─── Date Range ───────────────────────────────────────────────────────────
 
