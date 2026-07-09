@@ -29,16 +29,20 @@ SplashScreen.preventAutoHideAsync();
 // ─── Ensure Profile Exists ────────────────────────────────────────────────────
 
 const ensureProfile = async (session: Session) => {
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
+
+    if (profileError) {
+        throw profileError;
+    }
 
     if (!existingProfile) {
         const meta = session.user.user_metadata;
 
-        await supabase.from('profiles').insert({
+        const { error: insertError } = await supabase.from('profiles').insert({
             id: session.user.id,
             full_name: meta.full_name ?? 'Pacewell User',
             age: meta.age ?? 40,
@@ -46,6 +50,10 @@ const ensureProfile = async (session: Session) => {
             activity_level: meta.activity_level ?? 'moderate',
             health_goals: meta.health_goals ?? [],
         });
+
+        if (insertError) {
+            throw insertError;
+        }
     }
 };
 
@@ -154,25 +162,24 @@ export default function RootLayout() {
                 sessionRef.current = session;
                 setSession(session);
          
-                // navigate immediately — do not await setup first
-                // previously, awaiting ensureProfile + permission dialogs blocked this
+                if (session) {
+                    try {
+                        await ensureProfile(session);
+                    } catch (err) {
+                        console.error('ensureProfile error:', err);
+                    }
+                
+                    requestNotificationPermissions().catch(err =>
+                        console.error('Notification permission error:', err)
+                    );
+                }
+
                 if (splashCompleteRef.current) {
                     if (session) {
                         router.replace('/(tabs)/dashboard');
                     } else {
                         router.replace('/(auth)/login');
                     }
-                }
-         
-                // run setup in the background after navigation
-                if (session) {
-                    ensureProfile(session).catch(err =>
-                        console.error('ensureProfile error:', err)
-                    );
-         
-                    requestNotificationPermissions().catch(err =>
-                        console.error('Notification permission error:', err)
-                    );
                 }
             }
         );
