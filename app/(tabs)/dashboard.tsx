@@ -218,6 +218,33 @@ export default function Dashboard() {
         }, [])
     );
 
+    const wait = (ms: number) =>
+        new Promise(resolve => setTimeout(resolve, ms));
+    
+    const fetchProfileWithRetry = async (userId: string) => {
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('id', userId)
+                .maybeSingle();
+    
+            if (error) {
+                console.error('Profile load error:', error);
+
+                return null;
+            }
+    
+            if (data) {
+                return data;
+            }
+    
+            await wait(300);
+        }
+    
+        return null;
+    };
+
     const loadDashboard = async () => {
         setIsLoading(true);
 
@@ -232,23 +259,19 @@ export default function Dashboard() {
             );
 
             const [
-                profileResult,
+                profile,
                 todayCheckInResult,
                 weekCheckInsResult,
                 recentActivitiesResult,
                 latestInsightResult,
             ] = await Promise.all([
-                supabase
-                    .from('profiles')
-                    .select('full_name, avatar_url')
-                    .eq('id', user.id)
-                    .single(),
+                fetchProfileWithRetry(user.id),
                 supabase
                     .from('daily_checkins')
                     .select('id')
                     .eq('user_id', user.id)
                     .eq('date', today)
-                    .single(),
+                    .maybeSingle(),
                 supabase
                     .from('daily_checkins')
                     .select('date, mood, energy, sleep_hours')
@@ -267,7 +290,7 @@ export default function Dashboard() {
                     .eq('user_id', user.id)
                     .order('created_at', { ascending: false })
                     .limit(1)
-                    .single(),
+                    .maybeSingle(),
             ]);
 
             const checkIns = weekCheckInsResult.data ?? [];
@@ -282,12 +305,13 @@ export default function Dashboard() {
                 : null;
 
             const streak = calculateStreak(checkIns.map(c => c.date), today);
-            const fullName = profileResult.data?.full_name ?? '';
+            const fallbackName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Pacewell User';
+            const fullName = profile?.full_name ?? fallbackName;
             const firstName = fullName.split(' ')[0];
 
             setData({
                 firstName,
-                avatarUrl: profileResult.data?.avatar_url ?? null,
+                avatarUrl: profile?.avatar_url ?? null,
                 hasCheckedInToday: !!todayCheckInResult.data,
                 streak,
                 avgMood,
