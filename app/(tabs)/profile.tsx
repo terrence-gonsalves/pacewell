@@ -33,6 +33,7 @@ import {
     getUserSetting,
     setUserSetting,
 } from '../../lib/localSettings';
+import { formatDisplayTime } from '../../lib/timeFormater';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -476,7 +477,7 @@ export default function Profile() {
                                 </View>
                                 <View>
                                     <Text style={styles.settingLabel}>Daily Check-in Reminder</Text>
-                                    <Text style={styles.settingSubtitle}>Daily at {notifTime}</Text>
+                                    <Text style={styles.settingSubtitle}>Daily at {formatDisplayTime(notifTime)}</Text>
                                 </View>
                             </View>
                             <TouchableOpacity
@@ -523,7 +524,7 @@ export default function Profile() {
                                 <View>
                                     <Text style={styles.settingLabel}>Insight Reminder</Text>
                                     <Text style={styles.settingSubtitle}>
-                                        Reminder at {bedtime}
+                                        Reminder at {formatDisplayTime(bedtime)}
                                     </Text>
                                 </View>
                             </View>
