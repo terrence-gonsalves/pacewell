@@ -11,7 +11,6 @@ import {
     Image,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,18 +22,21 @@ import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { checkHealthConnectPermissions } from '../../lib/healthPermissions';
 import { getLastSyncedFormatted } from '../../lib/syncManager';
-import { getBedtime, saveBedtime, DEFAULT_BEDTIME, } from '../../lib/insights';
 import { scheduleBedtimeInsightNotification } from '../../lib/notifications';
 import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
 import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
 import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
+import {
+    DEFAULT_CHECKIN_REMINDER_TIME,
+    DEFAULT_INSIGHT_REMINDER_TIME,
+    DEFAULT_WEEKLY_GOAL,
+    getUserSetting,
+    setUserSetting,
+} from '../../lib/localSettings';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const APP_VERSION = Constants.expoConfig?.version ?? '0.10.4';
-const UNITS_KEY = 'pacewell_units';
-const NOTIF_TIME_KEY = 'pacewell_notif_time';
-const WEEKLY_GOAL_KEY = 'pacewell_weekly_goal';
 
 const ACTIVITY_LEVEL_LABELS: Record<string, string> = {
     light: 'Light',
@@ -55,8 +57,6 @@ const ACTIVITY_LEVEL_ICONS: Record<string, string> = {
 export default function Profile() {
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [units, setUnits] = useState<'metric' | 'imperial'>('metric');
-    const [notifTime, setNotifTime] = useState('08:00');
-    const [weeklyGoal, setWeeklyGoal] = useState(5);
     const [streak, setStreak] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -65,12 +65,14 @@ export default function Profile() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSavingMarketing, setIsSavingMarketing] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
-    const [tempGoal, setTempGoal] = useState(5);
     const [healthConnected, setHealthConnected] = useState(false);
     const [syncModalVisible, setSyncModalVisible] = useState(false);
     const [lastSyncedText, setLastSyncedText] = useState('Never');
-    const [bedtime, setBedtime] = useState(DEFAULT_BEDTIME);
     const [showBedtimePicker, setShowBedtimePicker] = useState(false);
+    const [notifTime, setNotifTime] = useState(DEFAULT_CHECKIN_REMINDER_TIME);
+    const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_WEEKLY_GOAL);
+    const [tempGoal, setTempGoal] = useState(DEFAULT_WEEKLY_GOAL);
+    const [bedtime, setBedtime] = useState(DEFAULT_INSIGHT_REMINDER_TIME);
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -108,24 +110,22 @@ export default function Profile() {
                         .eq('user_id', user.id)
                         .gte('date', sevenDaysAgo)
                         .order('date', { ascending: false }),
-                    AsyncStorage.getItem(UNITS_KEY),
-                    AsyncStorage.getItem(NOTIF_TIME_KEY),
-                    AsyncStorage.getItem(WEEKLY_GOAL_KEY),
-                    getBedtime(),
+                    getUserSetting(user.id, 'units'),
+                    getUserSetting(user.id, 'checkin_reminder_time'),
+                    getUserSetting(user.id, 'weekly_goal'),
+                    getUserSetting(user.id, 'insight_reminder_time'),
                 ]);
 
             if (profileResult.data) setProfile(profileResult.data);
-            if (storedUnits) setUnits(storedUnits as 'metric' | 'imperial');
-            if (storedNotifTime) setNotifTime(storedNotifTime);
+            
+            setUnits((storedUnits as 'metric' | 'imperial') ?? 'metric');
+            setNotifTime(storedNotifTime ?? DEFAULT_CHECKIN_REMINDER_TIME);
 
-            if (storedGoal) {
-                setWeeklyGoal(Number(storedGoal));
-                setTempGoal(Number(storedGoal));
-            }
+            const goal = storedGoal ? Number(storedGoal) : DEFAULT_WEEKLY_GOAL;
 
-            if (storedBedtime) {
-                setBedtime(storedBedtime);
-            }
+            setWeeklyGoal(goal);
+            setTempGoal(goal);
+            setBedtime(storedBedtime ?? DEFAULT_INSIGHT_REMINDER_TIME);
 
             // calculate streak
             const dates = (checkInsResult.data ?? []).map(c => c.date);
@@ -170,7 +170,11 @@ export default function Profile() {
 
         setUnits(newUnits);
 
-        await AsyncStorage.setItem(UNITS_KEY, newUnits);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        await setUserSetting(user.id, 'units', newUnits);
     };
 
     const handleMarketingToggle = async (value: boolean) => {
@@ -197,14 +201,22 @@ export default function Profile() {
     const handleNotifTimeSave = async (time: string) => {
         setNotifTime(time);
 
-        await AsyncStorage.setItem(NOTIF_TIME_KEY, time);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        await setUserSetting(user.id, 'checkin_reminder_time', time);
         await scheduleDailyCheckInNotification(time);
     };
 
     const handleSaveWeeklyGoal = async () => {
         setWeeklyGoal(tempGoal);
         
-        await AsyncStorage.setItem(WEEKLY_GOAL_KEY, String(tempGoal));
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        await setUserSetting(user.id, 'weekly_goal', String(tempGoal));
 
         setGoalsModalVisible(false);
     };
@@ -212,7 +224,11 @@ export default function Profile() {
     const handleBedtimeSave = async (time: string) => {
         setBedtime(time);
 
-        await saveBedtime(time);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        await setUserSetting(user.id, 'insight_reminder_time', time);
         await scheduleBedtimeInsightNotification(time);
     };
 
@@ -459,7 +475,7 @@ export default function Profile() {
                                     <Ionicons name="notifications-outline" size={18} color={theme.colors.primary} />
                                 </View>
                                 <View>
-                                    <Text style={styles.settingLabel}>Daily Reminders</Text>
+                                    <Text style={styles.settingLabel}>Daily Check-in Reminder</Text>
                                     <Text style={styles.settingSubtitle}>Daily at {notifTime}</Text>
                                 </View>
                             </View>
@@ -505,9 +521,9 @@ export default function Profile() {
                                     <Ionicons name="moon-outline" size={18} color={theme.colors.primary} />
                                 </View>
                                 <View>
-                                    <Text style={styles.settingLabel}>Bedtime</Text>
+                                    <Text style={styles.settingLabel}>Insight Reminder</Text>
                                     <Text style={styles.settingSubtitle}>
-                                        Insights generated at {bedtime}
+                                        Reminder at {bedtime}
                                     </Text>
                                 </View>
                             </View>
