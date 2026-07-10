@@ -653,7 +653,7 @@ export default function Profile() {
                 </View>
                 
                 <View style={styles.footer}>
-                    <Text style={styles.footerAppName}>Pacewell Wellness Companion</Text>
+                    <Text style={styles.footerAppName}>Pacewell</Text>
                     <Text style={styles.footerVersion}>Version {APP_VERSION}</Text>
                     <View style={styles.footerLinks}>
                         <TouchableOpacity>
