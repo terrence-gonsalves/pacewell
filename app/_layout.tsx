@@ -29,31 +29,27 @@ SplashScreen.preventAutoHideAsync();
 // ─── Ensure Profile Exists ────────────────────────────────────────────────────
 
 const ensureProfile = async (session: Session) => {
-    const { data: existingProfile, error: profileError } = await supabase
+    const meta = session.user.user_metadata;
+
+    const { error } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', session.user.id)
-        .maybeSingle();
+        .upsert(
+            {
+                id: session.user.id,
+                full_name: meta.full_name ?? 'Pacewell User',
+                age: meta.age ?? 40,
+                primary_activity: meta.primary_activity ?? 'walking',
+                activity_level: meta.activity_level ?? 'moderate',
+                health_goals: meta.health_goals ?? [],
+            },
+            {
+                onConflict: 'id',
+                ignoreDuplicates: true,
+            }
+        );
 
-    if (profileError) {
-        throw profileError;
-    }
-
-    if (!existingProfile) {
-        const meta = session.user.user_metadata;
-
-        const { error: insertError } = await supabase.from('profiles').insert({
-            id: session.user.id,
-            full_name: meta.full_name ?? 'Pacewell User',
-            age: meta.age ?? 40,
-            primary_activity: meta.primary_activity ?? 'walking',
-            activity_level: meta.activity_level ?? 'moderate',
-            health_goals: meta.health_goals ?? [],
-        });
-
-        if (insertError) {
-            throw insertError;
-        }
+    if (error) {
+        throw error;
     }
 };
 
@@ -161,9 +157,8 @@ export default function RootLayout() {
             async (_event, session) => {
                 sessionRef.current = session;
                 setSession(session);
-         
-                // navigate immediately — do not await setup first
-                // previously, awaiting ensureProfile + permission dialogs blocked this
+        
+                // navigate immediately. Do not block auth routing on profile setup.
                 if (splashCompleteRef.current) {
                     if (session) {
                         router.replace('/(tabs)/dashboard');
@@ -171,13 +166,13 @@ export default function RootLayout() {
                         router.replace('/(auth)/login');
                     }
                 }
-         
-                // run setup in the background after navigation
+        
+                // run setup in the background after navigation.
                 if (session) {
                     ensureProfile(session).catch(err =>
                         console.error('ensureProfile error:', err)
                     );
-         
+        
                     requestNotificationPermissions().catch(err =>
                         console.error('Notification permission error:', err)
                     );
