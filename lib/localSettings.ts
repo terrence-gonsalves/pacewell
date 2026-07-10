@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const DEFAULT_WEEKLY_GOAL = 5;
-export const DEFAULT_CHECKIN_REMINDER_TIME = '08:00';
-export const DEFAULT_INSIGHT_REMINDER_TIME = '22:00';
+export const DEFAULT_CHECKIN_REMINDER_TIME = '17:00';
+export const DEFAULT_INSIGHT_REMINDER_TIME = '20:00';
 
 export const localSettingsKey = (userId: string, key: string) =>  `pacwell:${userId}:${key}`;
 

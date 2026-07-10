@@ -1,19 +1,26 @@
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getHealthSummary } from './health';
 import { hasHealthPermissions } from './healthPermissions';
 import { getLocalDate } from './locale';
 import { supabase } from './supabase';
 import { generateInsights, hasGeneratedInsightsToday } from './insights';
+import {
+    getUserSetting,
+    setUserSetting,
+} from './localSettings';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const BACKGROUND_SYNC_TASK = 'pacewell-health-sync';
-const SYNC_ENABLED_KEY = 'pacewell_sync_enabled';
-const SYNC_INTERVAL_KEY = 'pacewell_sync_interval';
-const SYNC_START_TIME_KEY = 'pacewell_sync_start_time';
-const LAST_SYNCED_KEY = 'pacewell_last_synced';
+
+const DEFAULT_SYNC_INTERVAL_HOURS = 4;
+const DEFAULT_SYNC_START_TIME = '08:00';
+const getCurrentUserId = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    return user?.id ?? null;
+};
 
 export const SYNC_INTERVALS = [
     { label: '1 hour', value: 1 },
@@ -35,32 +42,49 @@ export interface SyncSettings {
 }
 
 export const getSyncSettings = async (): Promise<SyncSettings> => {
+    const userId = await getCurrentUserId();
+
+    if (!userId) {
+        return {
+            enabled: false,
+            intervalHours: DEFAULT_SYNC_INTERVAL_HOURS,
+            startTime: DEFAULT_SYNC_START_TIME,
+            lastSynced: null,
+        };
+    }
+
     const [enabled, interval, startTime, lastSynced] = await Promise.all([
-        AsyncStorage.getItem(SYNC_ENABLED_KEY),
-        AsyncStorage.getItem(SYNC_INTERVAL_KEY),
-        AsyncStorage.getItem(SYNC_START_TIME_KEY),
-        AsyncStorage.getItem(LAST_SYNCED_KEY),
+        getUserSetting(userId, 'sync_enabled'),
+        getUserSetting(userId, 'sync_interval'),
+        getUserSetting(userId, 'sync_start_time'),
+        getUserSetting(userId, 'last_synced'),
     ]);
 
     return {
         enabled: enabled === 'true',
-        intervalHours: interval ? Number(interval) : 4,
-        startTime: startTime ?? '08:00',
+        intervalHours: interval ? Number(interval) : DEFAULT_SYNC_INTERVAL_HOURS,
+        startTime: startTime ?? DEFAULT_SYNC_START_TIME,
         lastSynced: lastSynced ?? null,
     };
 };
 
+// ─── Save Sync Function ───────────────────────────────────────────────────────
+
 export const saveSyncSettings = async (settings: Partial<SyncSettings>): Promise<void> => {
+    const userId = await getCurrentUserId();
+
+    if (!userId) return;
+
     if (settings.enabled !== undefined) {
-        await AsyncStorage.setItem(SYNC_ENABLED_KEY, String(settings.enabled));
+        await setUserSetting(userId, 'sync_enabled', String(settings.enabled));
     }
 
     if (settings.intervalHours !== undefined) {
-        await AsyncStorage.setItem(SYNC_INTERVAL_KEY, String(settings.intervalHours));
+        await setUserSetting(userId, 'sync_interval', String(settings.intervalHours));
     }
 
     if (settings.startTime !== undefined) {
-        await AsyncStorage.setItem(SYNC_START_TIME_KEY, settings.startTime);
+        await setUserSetting(userId, 'sync_start_time', settings.startTime);
     }
 };
 
@@ -103,7 +127,8 @@ export const performHealthSync = async (): Promise<{
         });
 
         const now = new Date().toISOString();
-        await AsyncStorage.setItem(LAST_SYNCED_KEY, now);
+
+        await setUserSetting(user.id, 'last_synced', now);
 
         // generate insights after first sync of the day — silently in background
         const alreadyGenerated = await hasGeneratedInsightsToday();
@@ -186,7 +211,11 @@ export const cancelBackgroundSync = async (): Promise<void> => {
 };
 
 export const getLastSyncedFormatted = async (): Promise<string> => {
-    const lastSynced = await AsyncStorage.getItem(LAST_SYNCED_KEY);
+    const userId = await getCurrentUserId();
+
+    if (!userId) return 'Never';
+
+    const lastSynced = await getUserSetting(userId, 'last_synced');
 
     if (!lastSynced) return 'Never';
 
@@ -199,6 +228,6 @@ export const getLastSyncedFormatted = async (): Promise<string> => {
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    
+
     return date.toLocaleDateString();
 };

@@ -456,7 +456,7 @@ export default function Profile() {
                                     <Text style={styles.settingSubtitle}>
                                         {healthConnected
                                         ? `Last synced: ${lastSyncedText}`
-                                        : 'Apple Health, Fitbit, Garmin'}
+                                        : 'Apple Health, Health Connect'}
                                     </Text>
                                 </View>
                             </View>
