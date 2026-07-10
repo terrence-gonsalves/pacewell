@@ -18,17 +18,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { UserProfile } from '../../types/health';
 import { scheduleDailyCheckInNotification } from '../../lib/notifications';
+import { clearLocalAccountData } from '../../lib/accountCleanup';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
-import {
-    checkHealthConnectPermissions,
-} from '../../lib/healthPermissions';
+import { checkHealthConnectPermissions } from '../../lib/healthPermissions';
 import { getLastSyncedFormatted } from '../../lib/syncManager';
-import {
-    getBedtime,
-    saveBedtime,
-    DEFAULT_BEDTIME,
-} from '../../lib/insights';
+import { getBedtime, saveBedtime, DEFAULT_BEDTIME, } from '../../lib/insights';
 import { scheduleBedtimeInsightNotification } from '../../lib/notifications';
 import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
 import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
@@ -282,8 +277,11 @@ export default function Profile() {
 
                 return;
             }
+
+            // clear device-local settings from the deleted account.
+            await clearLocalAccountData();
      
-            // auth user is gone — sign out clears the local session
+            // auth user is gone — sign out
             await supabase.auth.signOut();
      
         } catch {
