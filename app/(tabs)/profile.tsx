@@ -33,6 +33,7 @@ import {
     getUserSetting,
     setUserSetting,
 } from '../../lib/localSettings';
+import { formatDisplayTime } from '../../lib/timeFormater';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -455,7 +456,7 @@ export default function Profile() {
                                     <Text style={styles.settingSubtitle}>
                                         {healthConnected
                                         ? `Last synced: ${lastSyncedText}`
-                                        : 'Apple Health, Fitbit, Garmin'}
+                                        : 'Apple Health, Health Connect'}
                                     </Text>
                                 </View>
                             </View>
@@ -475,8 +476,8 @@ export default function Profile() {
                                     <Ionicons name="notifications-outline" size={18} color={theme.colors.primary} />
                                 </View>
                                 <View>
-                                    <Text style={styles.settingLabel}>Daily Check-in Reminder</Text>
-                                    <Text style={styles.settingSubtitle}>Daily at {notifTime}</Text>
+                                    <Text style={styles.settingLabel}>Check-in Reminder</Text>
+                                    <Text style={styles.settingSubtitle}>Daily at {formatDisplayTime(notifTime)}</Text>
                                 </View>
                             </View>
                             <TouchableOpacity
@@ -523,7 +524,7 @@ export default function Profile() {
                                 <View>
                                     <Text style={styles.settingLabel}>Insight Reminder</Text>
                                     <Text style={styles.settingSubtitle}>
-                                        Reminder at {bedtime}
+                                        Daily at {formatDisplayTime(bedtime)}
                                     </Text>
                                 </View>
                             </View>
