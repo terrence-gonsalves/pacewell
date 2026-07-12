@@ -189,8 +189,6 @@ export const scheduleBackgroundSync = async (
             stopOnTerminate: false,
             startOnBoot: true,
         });
-
-        console.log(`Background sync scheduled every ${intervalHours} hours`);
     } catch (err) {
         console.error('Error scheduling background sync:', err);
     }

@@ -30,6 +30,7 @@ export const saveBedtime = async (time: string): Promise<void> => {
 export const generateInsights = async (): Promise<{
     success: boolean;
     message: string;
+    already_generated?: boolean;
 }> => {
 
     // prevent duplicate simultaneous calls
@@ -79,7 +80,11 @@ export const generateInsights = async (): Promise<{
         // mark insights as generated today
         await AsyncStorage.setItem(LAST_INSIGHTS_DATE_KEY, today);
 
-        return { success: true, message: 'Insights generated successfully' };
+        return {
+            success: true,
+            message: data?.message ?? 'Insights generated successfully',
+            already_generated: data?.already_generated ?? false,
+        };
     } catch (err) {
         console.error('Generate insights error:', err);
 

@@ -178,24 +178,37 @@ export default function Insights() {
     };
 
     const handleGenerateInsights = async () => {
+        if (insights.length > 0) {
+            setMessage('Insights have already been generated today.');
+    
+            return;
+        }
+    
         setIsGenerating(true);
         setMessage(null);
-      
+    
         const result = await generateInsights();
-      
+    
         if (result.success) {
             await loadInsights(false);
-            setMessage(null);
+    
+            if ('already_generated' in result) {
+                setMessage('Insights have already been generated today.');
+            } else {
+                setMessage(null);
+            }
         } else {
             setMessage(result.message ?? 'Something went wrong. Please try again.');
         }
-      
+    
         setIsGenerating(false);
     };
 
     const toggleExpand = (id: string) => {
         setExpandedId(prev => prev === id ? null : id);
     };
+
+    const hasGeneratedToday = insights.length > 0;
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -209,8 +222,11 @@ export default function Insights() {
                     <Text style={styles.headerTitle}>Health Insights</Text>
                     <TouchableOpacity
                         onPress={handleGenerateInsights}
-                        disabled={isGenerating}
-                        style={styles.refreshButton}
+                        disabled={isGenerating || hasGeneratedToday}
+                        style={[
+                            styles.refreshButton,
+                            hasGeneratedToday && styles.refreshButtonDisabled,
+                        ]}
                     >
 
                         {isGenerating ? (
@@ -236,9 +252,12 @@ export default function Insights() {
                         We've analysed your health data. See what we found.
                     </Text>
                     <TouchableOpacity
-                        style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
+                        style={[
+                            styles.generateButton,
+                            (isGenerating || hasGeneratedToday) && styles.generateButtonDisabled,
+                        ]}
                         onPress={handleGenerateInsights}
-                        disabled={isGenerating}
+                        disabled={isGenerating || hasGeneratedToday}
                     >
 
                         {isGenerating ? (
@@ -248,7 +267,9 @@ export default function Insights() {
                         </View>
                         ) : (
                         <View style={styles.generateButtonInner}>
-                            <Text style={styles.generateButtonText}>Generate New Insights</Text>
+                            <Text style={styles.generateButtonText}>
+                                {hasGeneratedToday ? 'Insights Generated Today' : 'Generate New Insights'}
+                            </Text>
                         </View>
                         )}
 
@@ -393,6 +414,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: theme.colors.border,
+    },
+    refreshButtonDisabled: {
+        opacity: 0.4,
     },
     headerDivider: {
         height: 1,
