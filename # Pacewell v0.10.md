@@ -36,17 +36,13 @@
 - [✔] Enter name: `Marcus Reid`, email: `marcus.reid.test@example.com`, password: `TestPass123!`
 - [✔] Submit and confirm the email confirmation screen appears
 - [✔] Check email and tap confirmation link
-- [x] Confirm app opens and proceeds past confirmation (app  opens on the login screen and then goes to the green loading screen and stays locked on that 
+- [✔] Confirm app opens and proceeds past confirmation (app  opens on the login screen and then goes to the green loading screen and stays locked on that 
                                                         screen, when I reload the app it auto logs the user in without requiring them to log in.)
-
-**Some notes on initial app load. Daily Reminders is already set at daily at 8AM, this should not be set. Bedtime is autoset to generate insights at 22:00. This should not be set and should not be in military time.**
 
 ### 1.2 Profile Setup (this is done on sign up, it is the 2nd screen in the signup process)
 - [✔] Complete step 1: age `45`, primary activity `Running` (there is no primary activity but there is an activity level, which has been set to 'Active')
 - [✔] Complete step 2: activity level `Active`, health goals — select **Injury Prevention**, **Sleep**, **Recovery**
-- [x] Confirm you land on the dashboard after registration (goes to  blank green screen)
-
-**Still on app first load it gets stuck on the green loading screen, an app refresh is needed to get the app the load properly**
+- [✔] Confirm you land on the dashboard after registration
 
 ### 1.3 Run the seed SQL
 - [✔] Copy your user ID from Supabase Dashboard → Authentication → Users
@@ -108,7 +104,7 @@
 - [✔] Confirm insights appear on screen after generation completes
 - [✔] Confirm the insight types returned are valid (trend, correlation, anomaly, or prediction)
 
-**Insights seems to generate mutiples of the same thing, ie Sleep, Recovery, Pattern etc. It should unique. I notice when updated a check-in insights regenerate, it should not do this only on initial check-in**
+**Insights seems to generate mutiples of the same thing, ie Sleep, Recovery, Pattern etc. It should be unique. I notice when updated a check-in insights regenerate, it should not do this only on initial check-in**
 
 ### 4.2 Dashboard Insight Card Refresh
 - [✔] Complete today's check-in if not already done (Section 2.1)
@@ -124,7 +120,7 @@
 - [✔] Return to Insights tab
 - [✔] Confirm the error message is gone (cleared on navigation)
 
-**once insights have been generated, I am still able to generate more insights and instead of checking to see if there have been insights already generated for the day it creates a new sets of insights and new insights a lists both. I can keep going and get more insights of the same sections with different information. Insights were generated automatically as well. Once generate we should not be able to generate another for the same day**
+**once insights have been generated, I am still able to generate more insights and instead of checking to see if there have been insights already generated for the day it creates a new sets of insights and lists both. I can keep going and get more insights of the same sections with different information. Insights were generated automatically as well. Once generated, we should not be able to generate another for the same day**
 
 ---
 
@@ -142,18 +138,14 @@
 
 ### 5.2 Bedtime Notification
 - [✔] Navigate to Profile → Preferences → Bedtime
-- [x] Set bedtime to **10:00 PM** (it was already set to 10, this has been set by default but should not be set at all until the user does it)
-- [✔] Confirm the setting saves
+- [✔] Set bedtime to **10:00 PM**
 - [✔] Confirm bedtime notification is scheduled (check device notification settings)
-- [x] Optionally: set bedtime to 2 minutes from now to test actual notification fires (bedtime is not listed as a notification type in the notifications 
-                                                                                       section for the type. The others are)
+- [✔] Optionally: set bedtime to 2 minutes from now to test actual notification fires
 
 ### 5.3 Check-In Reminder Notification
 - [✔] Confirm a daily check-in reminder notification is scheduled (this has been set by default, 8AM. It should not be set until the user does so)
 - [✔] Check device notification settings → Pacewell → confirm notifications are enabled
 - [✔] Optionally: set reminder time to 2 minutes from now to verify it fires
-
-**a notification for for when insights have been generated are available in the notification centre and actually get triggered and work but it does not have a setting in the app to enable or disable or to set a time for, I think this is ok**
 
 ---
 
