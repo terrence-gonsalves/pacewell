@@ -23,6 +23,7 @@ import {
     getLastSyncedFormatted,
 } from '../../lib/syncManager';
 import { theme } from '../../lib/theme';
+import { formatDisplayTime } from '../../lib/timeFormater';
 
 interface SyncSettingsModalProps {
     visible: boolean;
@@ -259,7 +260,7 @@ export default function SyncSettingsModal({
                             <View>
                                 <Text style={styles.settingLabel}>Start Time</Text>
                                 <Text style={styles.settingSubtitle}>
-                                    First sync at {settings.startTime}
+                                    First sync at {formatDisplayTime(settings.startTime)}
                                 </Text>
                             </View>
                         </View>
