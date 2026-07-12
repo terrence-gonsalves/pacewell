@@ -75,6 +75,38 @@ serve(async (req) => {
         fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
         const fromDate = fourteenDaysAgo.toISOString().split('T')[0];
 
+        // ─── Prevent Duplicate Insight Generation For Today ───────────────────────
+
+        const { data: existingInsights, error: existingInsightsError } = await supabase
+            .from('ai_insights')
+            .select('id, insight_type, title, content, data_range_start, data_range_end, created_at')
+            .eq('user_id', user_id)
+            .eq('data_range_end', todayStr)
+            .order('created_at', { ascending: false });
+
+        if (existingInsightsError) {
+            console.error('Failed to check existing insights:', existingInsightsError);
+
+            return new Response(
+                JSON.stringify({
+                    error: 'Could not check existing insights',
+                    details: existingInsightsError.message,
+                }),
+                { status: 500, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        if (existingInsights && existingInsights.length > 0) {
+            return new Response(
+                JSON.stringify({
+                    already_generated: true,
+                    message: 'Insights have already been generated today.',
+                    insights: existingInsights,
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
         // ─── Fetch All Data In Parallel ───────────────────────────────────────────
 
         const [
