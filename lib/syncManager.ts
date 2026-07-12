@@ -200,8 +200,6 @@ export const cancelBackgroundSync = async (): Promise<void> => {
 
         if (isRegistered) {
             await BackgroundFetch.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
-
-            console.log('Background sync cancelled');
         }
     } catch (err) {
         console.error('Error cancelling background sync:', err);
