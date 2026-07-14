@@ -1,11 +1,19 @@
-import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-const NOTIF_TIME_KEY = 'pacewell_notif_time';
-const NOTIF_ID_KEY = 'pacewell_notif_id';
-const NOTIF_PERMISSION_KEY = 'pacewell_notif_permission_asked';
-const BEDTIME_NOTIF_ID_KEY = 'pacewell_bedtime_notif_id';
+const CHECKIN_NOTIFICATION_ID_KEY =
+    'pacewell_checkin_notification_id';
+
+const INSIGHT_NOTIFICATION_ID_KEY =
+    'pacewell_insight_notification_id';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type NotificationPermissionState =
+    | 'granted'
+    | 'denied'
+    | 'undetermined';
 
 // ─── Configure Notification Handler ──────────────────────────────────────────
 
@@ -14,163 +22,289 @@ Notifications.setNotificationHandler({
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
-        shouldShowBanner: false,
-        shouldShowList: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
     }),
 });
 
-// ─── Create Android Channels ──────────────────────────────────────────────────
+// ─── Android Channels ────────────────────────────────────────────────────────
 
 export const setupAndroidChannel = async (): Promise<void> => {
-    if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('checkin-reminders', {
+    if (Platform.OS !== 'android') return;
+
+    await Notifications.setNotificationChannelAsync(
+        'checkin-reminders',
+        {
             name: 'Check-in Reminders',
             importance: Notifications.AndroidImportance.DEFAULT,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#2d6a4f',
-        });
+        }
+    );
 
-        await Notifications.setNotificationChannelAsync('insight-generation', {
+    await Notifications.setNotificationChannelAsync(
+        'insight-reminders',
+        {
+            name: 'Insight Reminders',
+            importance: Notifications.AndroidImportance.DEFAULT,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#2d6a4f',
+        }
+    );
+
+    await Notifications.setNotificationChannelAsync(
+        'insight-generation',
+        {
             name: 'Insight Generation',
             importance: Notifications.AndroidImportance.LOW,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#2d6a4f',
-        });
-    }
+        }
+    );
 };
 
-// ─── Request Permissions ──────────────────────────────────────────────────────
+// ─── Permission Management ───────────────────────────────────────────────────
 
-export const requestNotificationPermissions = async (): Promise<boolean> => {
+export const getNotificationPermissionStatus =
+    async (): Promise<NotificationPermissionState> => {
+        try {
+            const permissions =
+                await Notifications.getPermissionsAsync();
+
+            if (permissions.status === 'granted') {
+                return 'granted';
+            }
+
+            if (permissions.status === 'denied') {
+                return 'denied';
+            }
+
+            return 'undetermined';
+        } catch (error) {
+            console.error(
+                'Error checking notification permissions:',
+                error
+            );
+
+            return 'undetermined';
+        }
+    };
+
+export const requestNotificationPermissions =
+    async (): Promise<boolean> => {
+        try {
+            const currentStatus = await getNotificationPermissionStatus();
+
+            if (currentStatus === 'granted') {
+                return true;
+            }
+
+            const permissions = await Notifications.requestPermissionsAsync();
+
+            return permissions.status === 'granted';
+        } catch (error) {
+            console.error(
+                'Error requesting notification permissions:',
+                error
+            );
+
+            return false;
+        }
+    };
+
+// ─── Time Validation ─────────────────────────────────────────────────────────
+
+const parseReminderTime = (
+    time: string
+): { hour: number; minute: number } | null => {
+    const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
+
+    if (!match) {
+        console.error(
+            `Invalid reminder time: "${time}". Expected HH:mm.`
+        );
+
+        return null;
+    }
+
+    return {
+        hour: Number(match[1]),
+        minute: Number(match[2]),
+    };
+};
+
+// ─── Daily Check-in Reminder ─────────────────────────────────────────────────
+
+export const scheduleDailyCheckInNotification = async (
+    time: string
+): Promise<boolean> => {
     try {
-        const alreadyAsked = await AsyncStorage.getItem(NOTIF_PERMISSION_KEY);
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        const permissionStatus = await getNotificationPermissionStatus();
 
-        if (existingStatus === 'granted') return true;
-        if (existingStatus === 'denied' && alreadyAsked) return false;
+        if (permissionStatus !== 'granted') {
+            return false;
+        }
 
-        const { status } = await Notifications.requestPermissionsAsync();
+        const parsedTime = parseReminderTime(time);
 
-        await AsyncStorage.setItem(NOTIF_PERMISSION_KEY, 'true');
+        if (!parsedTime) {
+            return false;
+        }
 
-        return status === 'granted';
-    } catch (err) {
-        console.error('Error requesting notification permissions:', err);
+        await cancelCheckInNotification();
+
+        const notificationId =
+            await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: 'Time for your daily check-in 💚',
+                    body: 'Take 60 seconds to log how you are feeling today.',
+                    data: {
+                        screen: 'checkin',
+                        notificationType: 'checkin-reminder',
+                    },
+                    sound: true,
+                },
+                trigger: {
+                    type: Notifications
+                        .SchedulableTriggerInputTypes.DAILY,
+                    hour: parsedTime.hour,
+                    minute: parsedTime.minute,
+                    channelId:
+                        Platform.OS === 'android'
+                            ? 'checkin-reminders'
+                            : undefined,
+                },
+            });
+
+        await AsyncStorage.setItem(
+            CHECKIN_NOTIFICATION_ID_KEY,
+            notificationId
+        );
+
+        return true;
+    } catch (error) {
+        console.error(
+            'Error scheduling check-in notification:',
+            error
+        );
 
         return false;
     }
 };
 
-// ─── Schedule Daily Check-in Notification ────────────────────────────────────
+export const cancelCheckInNotification =
+    async (): Promise<void> => {
+        try {
+            const notificationId = await AsyncStorage.getItem(
+                CHECKIN_NOTIFICATION_ID_KEY
+            );
 
-export const scheduleDailyCheckInNotification = async (
-    time?: string
-): Promise<void> => {
-    try {
-        const { status } = await Notifications.getPermissionsAsync();
+            if (!notificationId) return;
 
-        if (status !== 'granted') return;
+            await Notifications.cancelScheduledNotificationAsync(
+                notificationId
+            );
 
-        const storedTime = time ?? await AsyncStorage.getItem(NOTIF_TIME_KEY) ?? '08:00';
-        const [hours, minutes] = storedTime.split(':').map(Number);
-
-        await cancelCheckInNotification();
-
-        const notificationId = await Notifications.scheduleNotificationAsync({
-            content: {
-                title: 'Time for your daily check-in 💚',
-                body: 'Take 60 seconds to log how you\'re feeling today.',
-                data: { screen: 'checkin' },
-            },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.DAILY,
-                hour: hours,
-                minute: minutes,
-            },
-        });
-
-        await AsyncStorage.setItem(NOTIF_ID_KEY, notificationId);
-    } catch (err) {
-        console.error('Error scheduling check-in notification:', err);
-    }
-};
-
-// ─── Cancel Check-in Notification ────────────────────────────────────────────
-
-export const cancelCheckInNotification = async (): Promise<void> => {
-    try {
-        const notificationId = await AsyncStorage.getItem(NOTIF_ID_KEY);
-        
-        if (notificationId) {
-            await Notifications.cancelScheduledNotificationAsync(notificationId);
-            await AsyncStorage.removeItem(NOTIF_ID_KEY);
+            await AsyncStorage.removeItem(
+                CHECKIN_NOTIFICATION_ID_KEY
+            );
+        } catch (error) {
+            console.error(
+                'Error cancelling check-in notification:',
+                error
+            );
         }
-    } catch (err) {
-        console.error('Error cancelling check-in notification:', err);
-    }
-};
+    };
 
-// ─── Schedule Bedtime Insight Notification ────────────────────────────────────
+// ─── Insight Reminder ────────────────────────────────────────────────────────
 
 export const scheduleBedtimeInsightNotification = async (
-    time?: string
-): Promise<void> => {
+    time: string
+): Promise<boolean> => {
     try {
-        const { status } = await Notifications.getPermissionsAsync();
+        const permissionStatus = await getNotificationPermissionStatus();
 
-        if (status !== 'granted') return;
+        if (permissionStatus !== 'granted') {
+            return false;
+        }
 
-        const bedtime = time ?? '22:00';
-        const [hours, minutes] = bedtime.split(':').map(Number);
+        const parsedTime = parseReminderTime(time);
+
+        if (!parsedTime) {
+            return false;
+        }
 
         await cancelBedtimeInsightNotification();
 
-        const notificationId = await Notifications.scheduleNotificationAsync({
-            content: {
-                title: 'Your evening insights are ready ✨',
-                body: 'Pacewell has analysed your day. Tap to see your personalised insights.',
-                data: { screen: 'insights', action: 'generate' },
-            },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.DAILY,
-                hour: hours,
-                minute: minutes,
-                channelId: Platform.OS === 'android' ? 'insight-generation' : undefined,
-            },
-        });
+        const notificationId =
+            await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: 'Your insights are ready ✨',
+                    body: 'Open Pacewell to review your personalised insights.',
+                    data: {
+                        screen: 'insights',
+                        notificationType: 'insight-reminder',
+                    },
+                    sound: true,
+                },
+                trigger: {
+                    type: Notifications
+                        .SchedulableTriggerInputTypes.DAILY,
+                    hour: parsedTime.hour,
+                    minute: parsedTime.minute,
+                    channelId:
+                        Platform.OS === 'android'
+                            ? 'insight-reminders'
+                            : undefined,
+                },
+            });
 
-        await AsyncStorage.setItem(BEDTIME_NOTIF_ID_KEY, notificationId);
-    } catch (err) {
-        console.error('Error scheduling bedtime insight notification:', err);
+        await AsyncStorage.setItem(
+            INSIGHT_NOTIFICATION_ID_KEY,
+            notificationId
+        );
+
+        return true;
+    } catch (error) {
+        console.error(
+            'Error scheduling insight reminder:',
+            error
+        );
+
+        return false;
     }
 };
 
-// ─── Cancel Bedtime Insight Notification ─────────────────────────────────────
+export const cancelBedtimeInsightNotification =
+    async (): Promise<void> => {
+        try {
+            const notificationId = await AsyncStorage.getItem(
+                INSIGHT_NOTIFICATION_ID_KEY
+            );
 
-export const cancelBedtimeInsightNotification = async (): Promise<void> => {
-    try {
-        const notificationId = await AsyncStorage.getItem(BEDTIME_NOTIF_ID_KEY);
+            if (!notificationId) return;
 
-        if (notificationId) {
-            await Notifications.cancelScheduledNotificationAsync(notificationId);
-            await AsyncStorage.removeItem(BEDTIME_NOTIF_ID_KEY);
+            await Notifications.cancelScheduledNotificationAsync(
+                notificationId
+            );
+
+            await AsyncStorage.removeItem(
+                INSIGHT_NOTIFICATION_ID_KEY
+            );
+        } catch (error) {
+            console.error(
+                'Error cancelling insight reminder:',
+                error
+            );
         }
-    } catch (err) {
-        console.error('Error cancelling bedtime insight notification:', err);
-    }
-};
-
-// ─── Get Notification Status ──────────────────────────────────────────────────
-
-export const getNotificationStatus = async (): Promise<{
-    permitted: boolean;
-    scheduledTime: string | null;
-}> => {
-    const { status } = await Notifications.getPermissionsAsync();
-    const scheduledTime = await AsyncStorage.getItem(NOTIF_TIME_KEY);
-    
-    return {
-        permitted: status === 'granted',
-        scheduledTime,
     };
-};
+
+// ─── Global Cancellation ─────────────────────────────────────────────────────
+
+export const cancelAllReminderNotifications =
+    async (): Promise<void> => {
+        await Promise.all([
+            cancelCheckInNotification(),
+            cancelBedtimeInsightNotification(),
+        ]);
+    };
