@@ -9,16 +9,12 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import {
     setupAndroidChannel,
-    requestNotificationPermissions,
-    scheduleDailyCheckInNotification,
-    scheduleBedtimeInsightNotification,
 } from '../lib/notifications';
 import {
     getSyncSettings,
     scheduleBackgroundSync,
 } from '../lib/syncManager';
 import {
-    getBedtime,
     generateInsights,
 } from '../lib/insights';
 import { handleDeepLink } from '../lib/supabase';
@@ -67,21 +63,6 @@ const initializeBackgroundSync = async () => {
     }
 };
 
-// ─── Initialize Bedtime Notifications ──────────────────────────────────────────
-
-const initializeBedtimeNotification = async () => {
-    try {
-        const bedtime = await getBedtime();
- 
-        // only schedule if the user has explicitly set a bedtime
-        if (bedtime) {
-            await scheduleBedtimeInsightNotification(bedtime);
-        }
-    } catch (err) {
-        console.error('Bedtime notification init error:', err);
-    }
-};
-
 // ─── Root Layout ──────────────────────────────────────────────────────────────
 
 export default function RootLayout() {
@@ -102,7 +83,6 @@ export default function RootLayout() {
     useEffect(() => {
         setupAndroidChannel();
         initializeBackgroundSync();
-        initializeBedtimeNotification();
 
         // handle deep links when app is already open
         const linkingSub = Linking.addEventListener('url', ({ url }) => {
@@ -171,10 +151,6 @@ export default function RootLayout() {
                 if (session) {
                     ensureProfile(session).catch(err =>
                         console.error('ensureProfile error:', err)
-                    );
-        
-                    requestNotificationPermissions().catch(err =>
-                        console.error('Notification permission error:', err)
                     );
                 }
             }

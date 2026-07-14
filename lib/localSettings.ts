@@ -9,7 +9,7 @@ export const DEFAULT_CHECKIN_REMINDER_ENABLED = false;
 export const DEFAULT_INSIGHT_REMINDER_ENABLED = false;
 
 export const localSettingsKey = (userId: string, key: string) =>
-    `pacwell:${userId}:${key}`;
+    `pacewell:${userId}:${key}`;
 
 export const getUserSetting = async (
     userId: string,
