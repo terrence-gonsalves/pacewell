@@ -9,6 +9,7 @@ import {
     Alert,
     ActivityIndicator,
     Image,
+    Linking,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
@@ -16,13 +17,11 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { UserProfile } from '../../types/health';
-import { scheduleDailyCheckInNotification } from '../../lib/notifications';
 import { clearLocalAccountData } from '../../lib/accountCleanup';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { checkHealthConnectPermissions } from '../../lib/healthPermissions';
 import { getLastSyncedFormatted } from '../../lib/syncManager';
-import { scheduleBedtimeInsightNotification } from '../../lib/notifications';
 import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
 import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
 import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
@@ -34,6 +33,16 @@ import {
     setUserSetting,
 } from '../../lib/localSettings';
 import { formatDisplayTime } from '../../lib/timeFormater';
+import {
+    cancelAllReminderNotifications,
+    cancelBedtimeInsightNotification,
+    cancelCheckInNotification,
+    getNotificationPermissionStatus,
+    NotificationPermissionState,
+    requestNotificationPermissions,
+    scheduleBedtimeInsightNotification,
+    scheduleDailyCheckInNotification,
+} from '../../lib/notifications';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -74,6 +83,11 @@ export default function Profile() {
     const [weeklyGoal, setWeeklyGoal] = useState(DEFAULT_WEEKLY_GOAL);
     const [tempGoal, setTempGoal] = useState(DEFAULT_WEEKLY_GOAL);
     const [bedtime, setBedtime] = useState(DEFAULT_INSIGHT_REMINDER_TIME);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [checkinReminderEnabled, setCheckinReminderEnabled] = useState(false);
+    const [insightReminderEnabled, setInsightReminderEnabled] = useState(false);
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>('undetermined');
+    const [isUpdatingNotifications, setIsUpdatingNotifications] = useState(false);
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -102,7 +116,17 @@ export default function Profile() {
             const healthStatus = await checkHealthConnectPermissions();
             setHealthConnected(healthStatus);
 
-            const [profileResult, checkInsResult, storedUnits, storedNotifTime, storedGoal, storedBedtime] =
+            const [
+                profileResult,
+                checkInsResult,
+                storedUnits,
+                storedNotifTime,
+                storedGoal,
+                storedBedtime,
+                storedNotificationsEnabled,
+                storedCheckinReminderEnabled,
+                storedInsightReminderEnabled,
+            ] =
                 await Promise.all([
                     supabase.from('profiles').select('*').eq('id', user.id).single(),
                     supabase
@@ -111,10 +135,14 @@ export default function Profile() {
                         .eq('user_id', user.id)
                         .gte('date', sevenDaysAgo)
                         .order('date', { ascending: false }),
+
                     getUserSetting(user.id, 'units'),
                     getUserSetting(user.id, 'checkin_reminder_time'),
                     getUserSetting(user.id, 'weekly_goal'),
                     getUserSetting(user.id, 'insight_reminder_time'),
+                    getUserSetting(user.id, 'notifications_enabled'),
+                    getUserSetting(user.id, 'checkin_reminder_enabled'),
+                    getUserSetting(user.id, 'insight_reminder_enabled'),
                 ]);
 
             if (profileResult.data) setProfile(profileResult.data);
@@ -127,6 +155,24 @@ export default function Profile() {
             setWeeklyGoal(goal);
             setTempGoal(goal);
             setBedtime(storedBedtime ?? DEFAULT_INSIGHT_REMINDER_TIME);
+
+            const permissionStatus = await getNotificationPermissionStatus();
+
+            setNotificationPermission(permissionStatus);
+
+            const globalEnabled = storedNotificationsEnabled === 'true' && permissionStatus === 'granted';
+
+            setNotificationsEnabled(globalEnabled);
+
+            setCheckinReminderEnabled(
+                globalEnabled &&
+                storedCheckinReminderEnabled === 'true'
+            );
+
+            setInsightReminderEnabled(
+                globalEnabled &&
+                storedInsightReminderEnabled === 'true'
+            );
 
             // calculate streak
             const dates = (checkInsResult.data ?? []).map(c => c.date);
@@ -199,15 +245,36 @@ export default function Profile() {
         }
     };
 
-    const handleNotifTimeSave = async (time: string) => {
+    const handleNotifTimeSave = async (
+        time: string
+    ): Promise<void> => {
         setNotifTime(time);
-
-        const { data: { user } } = await supabase.auth.getUser();
-
+    
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+    
         if (!user) return;
-
-        await setUserSetting(user.id, 'checkin_reminder_time', time);
-        await scheduleDailyCheckInNotification(time);
+    
+        await setUserSetting(
+            user.id,
+            'checkin_reminder_time',
+            time
+        );
+    
+        if (notificationsEnabled && checkinReminderEnabled) {
+            const scheduled = await scheduleDailyCheckInNotification(time);
+    
+            if (!scheduled) {
+                await setUserSetting(
+                    user.id,
+                    'checkin_reminder_enabled',
+                    'false'
+                );
+    
+                setCheckinReminderEnabled(false);
+            }
+        }
     };
 
     const handleSaveWeeklyGoal = async () => {
@@ -222,15 +289,253 @@ export default function Profile() {
         setGoalsModalVisible(false);
     };
 
-    const handleBedtimeSave = async (time: string) => {
+    const handleNotificationsToggle = async (
+        value: boolean
+    ): Promise<void> => {
+        if (isUpdatingNotifications) return;
+    
+        setIsUpdatingNotifications(true);
+    
+        try {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+    
+            if (!user) return;
+    
+            if (!value) {
+                await cancelAllReminderNotifications();
+    
+                await Promise.all([
+                    setUserSetting(
+                        user.id,
+                        'notifications_enabled',
+                        'false'
+                    ),
+                    setUserSetting(
+                        user.id,
+                        'checkin_reminder_enabled',
+                        'false'
+                    ),
+                    setUserSetting(
+                        user.id,
+                        'insight_reminder_enabled',
+                        'false'
+                    ),
+                ]);
+    
+                setNotificationsEnabled(false);
+                setCheckinReminderEnabled(false);
+                setInsightReminderEnabled(false);
+    
+                return;
+            }
+    
+            const permissionGranted = await requestNotificationPermissions();    
+            const permissionStatus = await getNotificationPermissionStatus();
+    
+            setNotificationPermission(permissionStatus);
+    
+            if (!permissionGranted) {
+                await setUserSetting(
+                    user.id,
+                    'notifications_enabled',
+                    'false'
+                );
+    
+                setNotificationsEnabled(false);
+    
+                Alert.alert(
+                    'Notifications are disabled',
+                    'Allow notifications in your device settings to use Pacewell reminders.',
+                    [
+                        {
+                            text: 'Not now',
+                            style: 'cancel',
+                        },
+                        {
+                            text: 'Open Settings',
+                            onPress: () => {
+                                Linking.openSettings();
+                            },
+                        },
+                    ]
+                );
+    
+                return;
+            }
+    
+            await setUserSetting(
+                user.id,
+                'notifications_enabled',
+                'true'
+            );
+    
+            setNotificationsEnabled(true);
+            setNotificationPermission('granted');
+        } catch (error) {
+            console.error(
+                'Error updating notification preference:',
+                error
+            );
+    
+            Alert.alert(
+                'Unable to update notifications',
+                'Please try again.'
+            );
+        } finally {
+            setIsUpdatingNotifications(false);
+        }
+    };
+
+    const handleCheckinReminderToggle = async (
+        value: boolean
+    ): Promise<void> => {
+        if (!notificationsEnabled) return;
+    
+        try {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+    
+            if (!user) return;
+    
+            if (!value) {
+                await cancelCheckInNotification();
+    
+                await setUserSetting(
+                    user.id,
+                    'checkin_reminder_enabled',
+                    'false'
+                );
+    
+                setCheckinReminderEnabled(false);
+    
+                return;
+            }
+    
+            const scheduled = await scheduleDailyCheckInNotification(notifTime);
+    
+            if (!scheduled) {
+                setCheckinReminderEnabled(false);
+    
+                Alert.alert(
+                    'Reminder not scheduled',
+                    'Pacewell could not schedule the check-in reminder. Confirm that notifications are allowed in your device settings.'
+                );
+    
+                return;
+            }
+    
+            await setUserSetting(
+                user.id,
+                'checkin_reminder_enabled',
+                'true'
+            );
+    
+            setCheckinReminderEnabled(true);
+        } catch (error) {
+            console.error(
+                'Error updating check-in reminder:',
+                error
+            );
+    
+            Alert.alert(
+                'Unable to update reminder',
+                'Please try again.'
+            );
+        }
+    };
+
+    const handleInsightReminderToggle = async (
+        value: boolean
+    ): Promise<void> => {
+        if (!notificationsEnabled) return;
+    
+        try {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+    
+            if (!user) return;
+    
+            if (!value) {
+                await cancelBedtimeInsightNotification();
+    
+                await setUserSetting(
+                    user.id,
+                    'insight_reminder_enabled',
+                    'false'
+                );
+    
+                setInsightReminderEnabled(false);
+    
+                return;
+            }
+    
+            const scheduled = await scheduleBedtimeInsightNotification(bedtime);
+    
+            if (!scheduled) {
+                setInsightReminderEnabled(false);
+    
+                Alert.alert(
+                    'Reminder not scheduled',
+                    'Pacewell could not schedule the insight reminder. Confirm that notifications are allowed in your device settings.'
+                );
+    
+                return;
+            }
+    
+            await setUserSetting(
+                user.id,
+                'insight_reminder_enabled',
+                'true'
+            );
+    
+            setInsightReminderEnabled(true);
+        } catch (error) {
+            console.error(
+                'Error updating insight reminder:',
+                error
+            );
+    
+            Alert.alert(
+                'Unable to update reminder',
+                'Please try again.'
+            );
+        }
+    };
+
+    const handleBedtimeSave = async (
+        time: string
+    ): Promise<void> => {
         setBedtime(time);
-
-        const { data: { user } } = await supabase.auth.getUser();
-
+    
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+    
         if (!user) return;
-
-        await setUserSetting(user.id, 'insight_reminder_time', time);
-        await scheduleBedtimeInsightNotification(time);
+    
+        await setUserSetting(
+            user.id,
+            'insight_reminder_time',
+            time
+        );
+    
+        if (notificationsEnabled && insightReminderEnabled) {
+            const scheduled = await scheduleBedtimeInsightNotification(time);
+    
+            if (!scheduled) {
+                await setUserSetting(
+                    user.id,
+                    'insight_reminder_enabled',
+                    'false'
+                );
+    
+                setInsightReminderEnabled(false);
+            }
+        }
     };
 
     // ─── Change Password ───────────────────────────────────────────────────────────────
