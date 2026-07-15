@@ -815,6 +815,17 @@ export default function Profile() {
                             )}
                         </View>
 
+                        {notificationPermission === 'denied' && (
+                        <TouchableOpacity
+                            style={styles.notificationSettingsButton}
+                            onPress={() => Linking.openSettings()}
+                        >
+                            <Text style={styles.notificationSettingsButtonText}>
+                                Open device notification settings
+                            </Text>
+                        </TouchableOpacity>
+                        )}
+
                         <View style={styles.divider} />
 
                         <View
