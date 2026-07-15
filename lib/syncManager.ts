@@ -15,7 +15,6 @@ import {
 export const BACKGROUND_SYNC_TASK = 'pacewell-health-sync';
 
 const DEFAULT_SYNC_INTERVAL_HOURS = 4;
-const DEFAULT_SYNC_START_TIME = '08:00';
 const getCurrentUserId = async (): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -32,12 +31,29 @@ export const SYNC_INTERVALS = [
     { label: '12 hours', value: 12 },
 ];
 
+const getValidSyncInterval = (
+    storedValue: string | null
+): number => {
+    if (!storedValue) {
+        return DEFAULT_SYNC_INTERVAL_HOURS;
+    }
+
+    const parsedValue = Number(storedValue);
+
+    const isValid = SYNC_INTERVALS.some(
+        interval => interval.value === parsedValue
+    );
+
+    return isValid
+        ? parsedValue
+        : DEFAULT_SYNC_INTERVAL_HOURS;
+};
+
 // ─── Sync Settings ────────────────────────────────────────────────────────────
 
 export interface SyncSettings {
     enabled: boolean;
     intervalHours: number;
-    startTime: string;
     lastSynced: string | null;
 }
 
@@ -48,22 +64,20 @@ export const getSyncSettings = async (): Promise<SyncSettings> => {
         return {
             enabled: false,
             intervalHours: DEFAULT_SYNC_INTERVAL_HOURS,
-            startTime: DEFAULT_SYNC_START_TIME,
             lastSynced: null,
         };
     }
 
-    const [enabled, interval, startTime, lastSynced] = await Promise.all([
+    const [enabled, interval, lastSynced] =
+    await Promise.all([
         getUserSetting(userId, 'sync_enabled'),
         getUserSetting(userId, 'sync_interval'),
-        getUserSetting(userId, 'sync_start_time'),
         getUserSetting(userId, 'last_synced'),
     ]);
 
     return {
         enabled: enabled === 'true',
-        intervalHours: interval ? Number(interval) : DEFAULT_SYNC_INTERVAL_HOURS,
-        startTime: startTime ?? DEFAULT_SYNC_START_TIME,
+        intervalHours: getValidSyncInterval(interval),
         lastSynced: lastSynced ?? null,
     };
 };
@@ -81,10 +95,6 @@ export const saveSyncSettings = async (settings: Partial<SyncSettings>): Promise
 
     if (settings.intervalHours !== undefined) {
         await setUserSetting(userId, 'sync_interval', String(settings.intervalHours));
-    }
-
-    if (settings.startTime !== undefined) {
-        await setUserSetting(userId, 'sync_start_time', settings.startTime);
     }
 };
 
@@ -182,7 +192,11 @@ export const scheduleBackgroundSync = async (
     intervalHours: number
 ): Promise<void> => {
     try {
-        const intervalSeconds = intervalHours * 60 * 60;
+        const validInterval = SYNC_INTERVALS.some(interval => interval.value === intervalHours)
+            ? intervalHours
+            : DEFAULT_SYNC_INTERVAL_HOURS;
+
+        const intervalSeconds = validInterval * 60 * 60;
 
         await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
             minimumInterval: intervalSeconds,
