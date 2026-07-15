@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Stack, router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
@@ -69,7 +69,6 @@ export default function RootLayout() {
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
     const [showCustomSplash, setShowCustomSplash] = useState(true);
-    const [authReady, setAuthReady] = useState(false);
 
     // use a ref so handleSplashComplete always has the latest session value
     const sessionRef = useRef<Session | null>(null);
@@ -159,12 +158,11 @@ export default function RootLayout() {
         return () => subscription.unsubscribe();
     }, []);
 
-    useEffect(() => {
+    const handleCustomSplashLayout = async () => {
         if (!loading) {
-            SplashScreen.hideAsync();
-            setAuthReady(true);
+            await SplashScreen.hideAsync();
         }
-    }, [loading]);
+    };
 
     const handleSplashComplete = () => {
         splashCompleteRef.current = true;
@@ -190,18 +188,26 @@ export default function RootLayout() {
                 <Stack.Screen name="log-activity" />
             </Stack>
 
-            {showCustomSplash && authReady && (
-                <CustomSplash onComplete={handleSplashComplete} />
-            )}
-
-            {showCustomSplash && !authReady && (
-                <View style={{
-                    position: 'absolute',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: '#2E7D52',
-                    zIndex: 998,
-                }} />
+            {showCustomSplash && (
+            <View
+                style={styles.splashLayer}
+                onLayout={handleCustomSplashLayout}
+            >
+                {!loading && (
+                <CustomSplash
+                    onComplete={handleSplashComplete}
+                />
+                )}
+            </View>
             )}
         </>
     );
 }
+
+const styles = StyleSheet.create({
+    splashLayer: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#265946',
+        zIndex: 999,
+    },
+});
