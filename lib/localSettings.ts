@@ -41,7 +41,6 @@ export const removeUserLocalSettings = async (
 
         localSettingsKey(userId, 'sync_enabled'),
         localSettingsKey(userId, 'sync_interval'),
-        localSettingsKey(userId, 'sync_start_time'),
         localSettingsKey(userId, 'last_synced'),
         localSettingsKey(userId, 'last_insights_date'),
     ]);
