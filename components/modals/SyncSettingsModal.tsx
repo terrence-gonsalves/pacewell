@@ -11,7 +11,6 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import {
     SyncSettings,
     SYNC_INTERVALS,
@@ -23,7 +22,6 @@ import {
     getLastSyncedFormatted,
 } from '../../lib/syncManager';
 import { theme } from '../../lib/theme';
-import { formatDisplayTime } from '../../lib/timeFormater';
 
 interface SyncSettingsModalProps {
     visible: boolean;
@@ -39,15 +37,14 @@ export default function SyncSettingsModal({
     onSyncComplete,
 }: SyncSettingsModalProps) {
     const [settings, setSettings] = useState<SyncSettings>({
-    enabled: false,
-    intervalHours: 4,
-    startTime: '08:00',
-    lastSynced: null,
-});
+        enabled: false,
+        intervalHours: 4,
+        lastSynced: null,
+    });
+
     const [lastSyncedText, setLastSyncedText] = useState('Never');
     const [isSyncing, setIsSyncing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [showTimePicker, setShowTimePicker] = useState(false);
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
 
@@ -107,10 +104,6 @@ export default function SyncSettingsModal({
 
     const handleIntervalSelect = (hours: number) => {
         setSettings(prev => ({ ...prev, intervalHours: hours }));
-    };
-
-    const handleTimeSave = (time: string) => {
-        setSettings(prev => ({ ...prev, startTime: time }));
     };
 
     const handleSave = async () => {
@@ -247,57 +240,6 @@ export default function SyncSettingsModal({
                 </View>
                 
                 {settings.enabled && (
-                <>
-                    <View style={styles.settingRow}>
-                        <View style={styles.settingLeft}>
-                            <View style={styles.settingIcon}>
-                                <Ionicons
-                                    name="alarm-outline"
-                                    size={20}
-                                    color={theme.colors.primary}
-                                />
-                            </View>
-                            <View>
-                                <Text style={styles.settingLabel}>Start Time</Text>
-                                <Text style={styles.settingSubtitle}>
-                                    First sync at {formatDisplayTime(settings.startTime)}
-                                </Text>
-                            </View>
-                        </View>
-                        <TouchableOpacity
-                            style={styles.changeButton}
-                            onPress={() => setShowTimePicker(true)}
-                        >
-                            <Text style={styles.changeButtonText}>Change</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {showTimePicker && (
-                    <DateTimePicker
-                        value={(() => {
-                            const [hours, minutes] = settings.startTime.split(':').map(Number);
-                            const date = new Date();
-
-                            date.setHours(hours, minutes, 0, 0);
-
-                            return date;
-                        })()}
-                        mode="time"
-                        is24Hour={false}
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                            setShowTimePicker(false);
-
-                            if (event.type === 'dismissed' || !selectedDate) return;
-
-                            const hours = String(selectedDate.getHours()).padStart(2, '0');
-                            const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
-
-                            handleTimeSave(`${hours}:${minutes}`);
-                        }}
-                    />
-                    )}
-                    
                     <View style={styles.intervalSection}>
                         <View style={styles.settingLeft}>
                             <View style={styles.settingIcon}>
@@ -307,31 +249,48 @@ export default function SyncSettingsModal({
                                     color={theme.colors.primary}
                                 />
                             </View>
-                            <Text style={styles.settingLabel}>Sync Every</Text>
-                        </View>
-                        <View style={styles.intervalGrid}>
 
-                            {SYNC_INTERVALS.map(interval => (
-                            <TouchableOpacity
-                                key={interval.value}
-                                style={[
-                                    styles.intervalChip,
-                                    settings.intervalHours === interval.value && styles.intervalChipActive,
-                                ]}
-                                onPress={() => handleIntervalSelect(interval.value)}
-                            >
-                                <Text style={[
-                                    styles.intervalChipText,
-                                    settings.intervalHours === interval.value && styles.intervalChipTextActive,
-                                ]}>
-                                    {interval.label}
+                            <View>
+                                <Text style={styles.settingLabel}>
+                                    Sync Frequency
                                 </Text>
-                            </TouchableOpacity>
-                            ))}
 
+                                <Text style={styles.settingSubtitle}>
+                                    Background syncing is scheduled by your device
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.intervalGrid}>
+                            {SYNC_INTERVALS.map(interval => (
+                                <TouchableOpacity
+                                    key={interval.value}
+                                    style={[
+                                        styles.intervalChip,
+                                        settings.intervalHours ===
+                                            interval.value &&
+                                            styles.intervalChipActive,
+                                    ]}
+                                    onPress={() =>
+                                        handleIntervalSelect(
+                                            interval.value
+                                        )
+                                    }
+                                >
+                                    <Text
+                                        style={[
+                                            styles.intervalChipText,
+                                            settings.intervalHours ===
+                                                interval.value &&
+                                                styles.intervalChipTextActive,
+                                        ]}
+                                    >
+                                        {interval.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     </View>
-                </>
                 )}
                 
                 <TouchableOpacity
