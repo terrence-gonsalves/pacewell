@@ -63,6 +63,7 @@ export const requestHealthConnectPermissions = async (): Promise<boolean> => {
             { accessType: 'read', recordType: 'SleepSession' },
             { accessType: 'read', recordType: 'Steps' },
             { accessType: 'read', recordType: 'HeartRate' },
+            { accessType: 'read', recordType: 'RestingHeartRate' },
             { accessType: 'read', recordType: 'ExerciseSession' },
             { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
             { accessType: 'read', recordType: 'Weight' },
