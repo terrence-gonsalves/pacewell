@@ -600,6 +600,92 @@ export default function Dashboard() {
                     )}
 
                 </View>
+
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>
+                        Health Signals
+                    </Text>
+
+                    <View style={styles.healthSignalsGrid}>
+                        <View style={styles.healthSignalCard}>
+                            <View style={styles.healthSignalIcon}>
+                                <Ionicons
+                                    name="footsteps-outline"
+                                    size={22}
+                                    color={theme.colors.primary}
+                                />
+                            </View>
+
+                            <Text style={styles.healthSignalValue}>
+                                {formatSteps(data?.steps ?? null)}
+                            </Text>
+
+                            <Text style={styles.healthSignalLabel}>STEPS</Text>
+                            <Text style={styles.healthSignalMeta}>Today</Text>
+                        </View>
+
+                        <View style={styles.healthSignalCard}>
+                            <View style={styles.healthSignalIcon}>
+                                <Ionicons
+                                    name="heart-outline"
+                                    size={22}
+                                    color={theme.colors.primary}
+                                />
+                            </View>
+
+                            <Text style={styles.healthSignalValue}>
+                                {formatHeartRate(
+                                    data?.restingHeartRate ??
+                                    data?.averageHeartRate ??
+                                    null
+                                )}
+                            </Text>
+
+                            <Text style={styles.healthSignalLabel}>HEART RATE</Text>
+
+                            <Text style={styles.healthSignalMeta}>
+                                {data?.restingHeartRate !== null &&
+                                data?.restingHeartRate !== undefined
+                                    ? 'Resting'
+                                    : data?.averageHeartRate !== null &&
+                                        data?.averageHeartRate !== undefined
+                                        ? 'Average today'
+                                        : 'No data'}
+                            </Text>
+                        </View>
+
+                        <View style={styles.healthSignalCard}>
+                            <View style={styles.healthSignalIcon}>
+                                <Ionicons
+                                    name="scale-outline"
+                                    size={22}
+                                    color={theme.colors.primary}
+                                />
+                            </View>
+
+                            <Text style={styles.healthSignalValue}>
+                                {formatWeight(
+                                    data?.weightKg ?? null,
+                                    data?.units ?? 'metric'
+                                )}
+                            </Text>
+
+                            <Text style={styles.healthSignalLabel}>WEIGHT</Text>
+
+                            <Text style={styles.healthSignalMeta}>
+                                {data?.weightDate
+                                    ? formatDate(
+                                        parseLocalDate(data.weightDate),
+                                        {
+                                            day: 'numeric',
+                                            month: 'short',
+                                        }
+                                    )
+                                    : 'No data'}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
                 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Weekly Averages</Text>
@@ -1296,5 +1382,51 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
+    },
+    healthSignalsGrid: {
+        flexDirection: 'row',
+        gap: theme.spacing.sm,
+    },    
+    healthSignalCard: {
+        flex: 1,
+        minHeight: 140,
+        backgroundColor: theme.colors.card,
+        borderRadius: theme.radius.lg,
+        paddingHorizontal: theme.spacing.sm,
+        paddingVertical: theme.spacing.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        ...theme.shadow.small,
+    },    
+    healthSignalIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: theme.colors.primaryLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: theme.spacing.sm,
+    },    
+    healthSignalValue: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: theme.colors.textDark,
+        textAlign: 'center',
+        marginBottom: 4,
+    },    
+    healthSignalLabel: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+        textAlign: 'center',
+    },    
+    healthSignalMeta: {
+        fontSize: 11,
+        color: theme.colors.textLight,
+        textAlign: 'center',
+        marginTop: 4,
     },
 });
