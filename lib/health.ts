@@ -381,7 +381,14 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
 
 const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
     try {
-        const { getSdkStatus, initialize, readRecords } = require('react-native-health-connect');
+        const {
+            getSdkStatus,
+            initialize,
+            readRecords,
+        } = require(
+            'react-native-health-connect'
+        );
+
         const status = await getSdkStatus();
 
         if (status !== 3) return null;
@@ -389,43 +396,129 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
         await initialize();
 
         const endTime = new Date().toISOString();
-        const startTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+        const startTime = new Date(
+            Date.now() - 24 * 60 * 60 * 1000
+        ).toISOString();
+
         const timeRange = {
-            timeRangeFilter: { operator: 'between', startTime, endTime },
+            timeRangeFilter: {
+                operator: 'between',
+                startTime,
+                endTime,
+            },
         };
 
-        let hrRecords: any[] = [];
+        let heartRateRecords: any[] = [];
+        let restingHeartRateRecords: any[] = [];
 
         try {
-            const result = await readRecords('HeartRate', timeRange);
+            const result = await readRecords(
+                'HeartRate',
+                timeRange
+            );
 
-            hrRecords = result?.records ?? [];
+            heartRateRecords =
+                result?.records ?? [];
         } catch (err) {
+            console.log(
+                'Health Connect heart rate not available'
+            );
+        }
+
+        try {
+            const result = await readRecords(
+                'RestingHeartRate',
+                timeRange
+            );
+
+            restingHeartRateRecords =
+                result?.records ?? [];
+        } catch (err) {
+            console.log(
+                'Health Connect resting heart rate not available'
+            );
+        }
+
+        const heartRateValues = heartRateRecords.flatMap(
+            (record: any) =>
+                record.samples?.map(
+                    (sample: any) =>
+                        sample.beatsPerMinute
+                ) ?? []
+        );
+
+        const validHeartRateValues = heartRateValues.filter(
+            (value: unknown): value is number =>
+                typeof value === 'number' && Number.isFinite(value) && value > 0
+        );
+
+        const latestRestingRecord = restingHeartRateRecords.length > 0
+                ? [...restingHeartRateRecords].sort(
+                    (a: any, b: any) =>
+                        new Date(
+                            b.time ?? b.startTime
+                        ).getTime() -
+                        new Date(
+                            a.time ?? a.startTime
+                        ).getTime()
+                )[0]
+                : null;
+
+        const restingValue = latestRestingRecord?.beatsPerMinute;
+
+        const resting = typeof restingValue === 'number' && Number.isFinite(restingValue) && restingValue > 0
+            ? Math.round(restingValue)
+            : null;
+
+        if (validHeartRateValues.length === 0 && resting === null) {
             return null;
         }
 
-        if (hrRecords.length === 0) return null;
-
-        const allValues = hrRecords.flatMap((r: any) =>
-            r.samples?.map((s: any) => s.beatsPerMinute) ?? []
-        );
-
-        if (allValues.length === 0) return null;
-
-        const average = Math.round(
-            allValues.reduce((a: number, b: number) => a + b, 0) / allValues.length
-        );
+        const average = validHeartRateValues.length > 0
+            ? Math.round(
+                validHeartRateValues.reduce(
+                    (
+                        total: number,
+                        value: number
+                    ) => total + value,
+                    0
+                ) /
+                    validHeartRateValues.length
+            )
+            : 0;
 
         return {
             average,
-            min: Math.round(Math.min(...allValues)),
-            max: Math.round(Math.max(...allValues)),
-            resting: null,
+
+            min:
+                validHeartRateValues.length > 0
+                    ? Math.round(
+                        Math.min(
+                            ...validHeartRateValues
+                        )
+                    )
+                    : 0,
+
+            max:
+                validHeartRateValues.length > 0
+                    ? Math.round(
+                        Math.max(
+                            ...validHeartRateValues
+                        )
+                    )
+                    : 0,
+
+            resting,
             hrv: null,
-            recordedAt: new Date().toISOString(),
+            recordedAt:
+                new Date().toISOString(),
         };
     } catch (err) {
-        console.error('Health Connect heart rate error:', err);
+        console.error(
+            'Health Connect heart rate error:',
+            err
+        );
 
         return null;
     }
