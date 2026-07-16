@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gonsalves.pacewell",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "infoPlist": {
         "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights.",
         "NSHealthUpdateUsageDescription": "Pacewell saves your activity data to help track your recovery."
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "package": "com.gonsalves.pacewell",
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
