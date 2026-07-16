@@ -14,6 +14,7 @@ import { AIInsight, ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } fr
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
+import { getUserSetting } from '../../lib/localSettings';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -100,6 +101,37 @@ const getEmojiForAverage = (avg: number, labels: EmojiScaleLabels): string => {
     return labels[rounded].emoji;
 };
 
+const KG_TO_LBS = 2.2046226218;
+
+const formatSteps = (
+    steps: number | null
+): string => {
+    if (steps === null) return '—';
+
+    return Math.round(steps).toLocaleString();
+};
+
+const formatHeartRate = (
+    heartRate: number | null
+): string => {
+    if (heartRate === null) return '—';
+
+    return `${Math.round(heartRate)} bpm`;
+};
+
+const formatWeight = (
+    weightKg: number | null,
+    units: 'metric' | 'imperial'
+): string => {
+    if (weightKg === null) return '—';
+
+    if (units === 'imperial') {
+        return `${(weightKg * KG_TO_LBS).toFixed(1)} lb`;
+    }
+
+    return `${weightKg.toFixed(1)} kg`;
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface DashboardData {
@@ -112,6 +144,12 @@ interface DashboardData {
     avgSleepHours: number | null;
     recentActivities: ActivityLog[];
     latestInsight: AIInsight | null;
+    steps: number | null;
+    averageHeartRate: number | null;
+    restingHeartRate: number | null;
+    weightKg: number | null;
+    weightDate: string | null;
+    units: 'metric' | 'imperial';
 }
 
 // ─── Sub Components ───────────────────────────────────────────────────────────
@@ -264,34 +302,61 @@ export default function Dashboard() {
                 weekCheckInsResult,
                 recentActivitiesResult,
                 latestInsightResult,
+                todayHealthResult,
+                latestWeightResult,
+                storedUnits,
             ] = await Promise.all([
-                fetchProfileWithRetry(user.id),
-                supabase
-                    .from('daily_checkins')
-                    .select('id')
-                    .eq('user_id', user.id)
-                    .eq('date', today)
-                    .maybeSingle(),
-                supabase
-                    .from('daily_checkins')
-                    .select('date, mood, energy, sleep_hours')
-                    .eq('user_id', user.id)
-                    .gte('date', sevenDaysAgo)
-                    .order('date', { ascending: false }),
-                supabase
-                    .from('activity_logs')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(5),
-                supabase
-                    .from('ai_insights')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle(),
-            ]);
+                    fetchProfileWithRetry(user.id),
+
+                    supabase
+                        .from('daily_checkins')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .eq('date', today)
+                        .maybeSingle(),
+
+                    supabase
+                        .from('daily_checkins')
+                        .select('date, mood, energy, sleep_hours')
+                        .eq('user_id', user.id)
+                        .gte('date', sevenDaysAgo)
+                        .order('date', { ascending: false }),
+
+                    supabase
+                        .from('activity_logs')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(5),
+
+                    supabase
+                        .from('ai_insights')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle(),
+
+                    supabase
+                        .from('health_metrics')
+                        .select(
+                            'step_count, avg_heart_rate, resting_heart_rate'
+                        )
+                        .eq('user_id', user.id)
+                        .eq('date', today)
+                        .maybeSingle(),
+                    
+                    supabase
+                        .from('health_metrics')
+                        .select('weight_kg, date')
+                        .eq('user_id', user.id)
+                        .not('weight_kg', 'is', null)
+                        .order('date', { ascending: false })
+                        .limit(1)
+                        .maybeSingle(),
+                    
+                    getUserSetting(user.id, 'units'),
+                ]);
 
             const checkIns = weekCheckInsResult.data ?? [];
             const avgMood = checkIns.length
@@ -319,6 +384,15 @@ export default function Dashboard() {
                 avgSleepHours,
                 recentActivities: (recentActivitiesResult.data ?? []) as ActivityLog[],
                 latestInsight: latestInsightResult.data ?? null,
+                steps: todayHealthResult.data?.step_count ?? null,
+                averageHeartRate: todayHealthResult.data?.avg_heart_rate ?? null,
+                restingHeartRate: todayHealthResult.data?.resting_heart_rate ?? null,
+                weightKg: latestWeightResult.data?.weight_kg ?? null,
+                weightDate: latestWeightResult.data?.date ?? null,
+                units:
+                    storedUnits === 'imperial'
+                        ? 'imperial'
+                        : 'metric',
             });
         } catch (err) {
             console.error('Dashboard load error:', err);
