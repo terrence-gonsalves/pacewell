@@ -125,35 +125,63 @@ export default function RootLayout() {
     }, []);
 
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+            if (error) {
+                const isInvalidRefreshToken = error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token');
+    
+                if (isInvalidRefreshToken) {
+                    console.warn('Stored auth session is no longer valid. Clearing local session.');
+    
+                    await supabase.auth.signOut({
+                        scope: 'local',
+                    });
+    
+                    sessionRef.current = null;
+
+                    setSession(null);
+                    setLoading(false);
+    
+                    return;
+                }
+    
+                console.error(
+                    'Initial session error:',
+                    error
+                );
+            }
+    
             sessionRef.current = session;
 
             setSession(session);
             setLoading(false);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (_event, session) => {
-                sessionRef.current = session;
-                setSession(session);
-        
-                // navigate immediately. Do not block auth routing on profile setup.
-                if (splashCompleteRef.current) {
-                    if (session) {
-                        router.replace('/(tabs)/dashboard');
-                    } else {
-                        router.replace('/(auth)/login');
-                    }
-                }
-        
-                // run setup in the background after navigation.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            sessionRef.current = session;
+            setSession(session);
+
+            if (splashCompleteRef.current) {
                 if (session) {
-                    ensureProfile(session).catch(err =>
-                        console.error('ensureProfile error:', err)
+                    router.replace(
+                        '/(tabs)/dashboard'
+                    );
+                } else {
+                    router.replace(
+                        '/(auth)/login'
                     );
                 }
             }
-        );
+
+            if (session) {
+                ensureProfile(session).catch(
+                    err =>
+                        console.error(
+                            'ensureProfile error:',
+                            err
+                        )
+                );
+            }
+        });
 
         return () => subscription.unsubscribe();
     }, []);
