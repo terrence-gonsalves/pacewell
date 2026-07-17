@@ -10,14 +10,16 @@ import {
     ActivityIndicator,
     ScrollView,
     Alert,
+    Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { ActivityLevel, UserProfile } from '../types/health';
 import { theme } from '../lib/theme';
-import * as ImagePicker from 'expo-image-picker';
-import { Image } from 'react-native';
+import { getUserSetting } from '../lib/localSettings';
+import { getLocalDate } from '../lib/locale';
+import { ActivityLevel, UserProfile } from '../types/health';
 
 // ─── Constants ───────────────────────────────────────────────────────────
 
@@ -41,6 +43,7 @@ const HEALTH_GOALS = [
     'Stay active longer',
     'Monitor recovery',
 ];
+const KG_TO_LBS = 2.2046226218;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -56,6 +59,9 @@ export default function EditProfile() {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+    const [weight, setWeight] = useState('');
+    const [units, setUnits] = useState<'metric' | 'imperial'>('metric');
+    const [originalWeightKg, setOriginalWeightKg] = useState<number | null>(null);
 
     // ─── Load Profile ──────────────────────────────────────────────────────────────
 
@@ -68,18 +74,58 @@ export default function EditProfile() {
 
         if (!user) return;
 
-        const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-        if (data) {
-            setFullName(data.full_name);
-            setAge(String(data.age));
-            setActivityLevel(data.activity_level);
-            setSelectedGoals(data.health_goals ?? []);
-            setAvatarUrl(data.avatar_url ?? null);
+        const [
+            profileResult,
+            latestWeightResult,
+            storedUnits,
+        ] = await Promise.all([
+            supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single(),
+        
+            supabase
+                .from('health_metrics')
+                .select('weight_kg')
+                .eq('user_id', user.id)
+                .not('weight_kg', 'is', null)
+                .order('date', { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+        
+            getUserSetting(user.id, 'units'),
+        ]);
+        
+        const profile = profileResult.data;
+        
+        if (profile) {
+            setFullName(profile.full_name);
+            setAge(String(profile.age));
+            setActivityLevel(profile.activity_level);
+            setSelectedGoals(profile.health_goals ?? []);
+            setAvatarUrl(profile.avatar_url ?? null);
+        }
+        
+        const selectedUnits =
+            storedUnits === 'imperial'
+                ? 'imperial'
+                : 'metric';
+        
+        setUnits(selectedUnits);
+        
+        const latestWeightKg =
+            latestWeightResult.data?.weight_kg ?? null;
+        
+        setOriginalWeightKg(latestWeightKg);
+        
+        if (latestWeightKg !== null) {
+            const displayWeight =
+                selectedUnits === 'imperial'
+                    ? latestWeightKg * KG_TO_LBS
+                    : latestWeightKg;
+        
+            setWeight(displayWeight.toFixed(1));
         }
 
         setIsLoading(false);
@@ -214,6 +260,44 @@ export default function EditProfile() {
             return;
         }
 
+        let enteredWeightKg: number | null = null;
+
+        if (weight.trim()) {
+            const parsedWeight = Number(weight);
+
+            if (
+                !Number.isFinite(parsedWeight) ||
+                parsedWeight <= 0
+            ) {
+                setError('Please enter a valid weight.');
+
+                return;
+            }
+
+            enteredWeightKg =
+                units === 'imperial'
+                    ? parsedWeight / KG_TO_LBS
+                    : parsedWeight;
+
+            if (
+                enteredWeightKg < 25 ||
+                enteredWeightKg > 400
+            ) {
+                setError(
+                    `Please enter a weight between ${
+                        units === 'imperial'
+                            ? '55 and 882 lb'
+                            : '25 and 400 kg'
+                    }.`
+                );
+
+                return;
+            }
+
+            enteredWeightKg =
+                Math.round(enteredWeightKg * 10) / 10;
+        }
+
         if (!activityLevel) { setError('Please select your activity level.'); return; }
         if (selectedGoals.length === 0) {
             setError('Please select at least one health goal.');
@@ -257,6 +341,51 @@ export default function EditProfile() {
                 setError(error.message);
 
                 return;
+            }
+
+            const weightChanged = enteredWeightKg !== null && (originalWeightKg === null || Math.abs(enteredWeightKg - originalWeightKg ) >= 0.05);
+
+            if (weightChanged) {
+                const today = getLocalDate();
+
+                const { data: existingMetrics } =
+                    await supabase
+                        .from('health_metrics')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .eq('date', today)
+                        .maybeSingle();
+
+                let weightError;
+
+                if (existingMetrics) {
+                    const result = await supabase
+                        .from('health_metrics')
+                        .update({
+                            weight_kg: enteredWeightKg,
+                            source: 'manual',
+                        })
+                        .eq('id', existingMetrics.id);
+
+                    weightError = result.error;
+                } else {
+                    const result = await supabase
+                        .from('health_metrics')
+                        .insert({
+                            user_id: user.id,
+                            date: today,
+                            weight_kg: enteredWeightKg,
+                            source: 'manual',
+                        });
+
+                    weightError = result.error;
+                }
+
+                if (weightError) {
+                    setError(`Profile saved, but weight could not be updated: ${weightError.message}`);
+
+                    return;
+                }
             }
 
             router.replace('/(tabs)/profile');
