@@ -512,6 +512,37 @@ export default function EditProfile() {
                             keyboardType="number-pad"
                         />
                     </View>
+
+                    <Text style={styles.inputLabel}>Weight</Text>
+                    <View style={styles.inputWrapper}>
+                        <Ionicons
+                            name="scale-outline"
+                            size={18}
+                            color={theme.colors.textSubtle}
+                            style={styles.inputIcon}
+                        />
+                        <TextInput
+                            style={styles.input}
+                            value={weight}
+                            onChangeText={value =>
+                                setWeight(
+                                    value.replace(/[^0-9.]/g, '')
+                                )
+                            }
+                            placeholder={
+                                units === 'imperial'
+                                    ? 'Your weight in pounds'
+                                    : 'Your weight in kilograms'
+                            }
+                            placeholderTextColor={
+                                theme.colors.textLight
+                            }
+                            keyboardType="decimal-pad"
+                        />
+                        <Text style={styles.inputUnit}>
+                            {units === 'imperial' ? 'lb' : 'kg'}
+                        </Text>
+                    </View>
                 </View>
                 
                 <Text style={styles.sectionLabel}>ACTIVITY LEVEL</Text>
@@ -915,5 +946,11 @@ const styles = StyleSheet.create({
         ...theme.typography.label,
         color: theme.colors.primary,
         fontWeight: '600',
+    },
+    inputUnit: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: theme.colors.textSubtle,
+        marginRight: theme.spacing.md,
     },
 });
