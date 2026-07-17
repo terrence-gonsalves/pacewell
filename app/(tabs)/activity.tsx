@@ -7,16 +7,16 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
+import { WorkoutData } from '../../types/health';
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
 import { getRecentWorkouts } from '../../lib/health';
 import { hasHealthPermissions } from '../../lib/healthPermissions';
-import { WorkoutData } from '../../types/health';
+import { getUserSetting } from '../../lib/localSettings';
 
 type ActivityGroup = {
     date: string;
@@ -46,7 +46,6 @@ const EXERTION_LABELS: EmojiScaleLabels = {
 };
 
 const DEFAULT_WEEKLY_TARGET = 5; // placeholder — will be user-configurable
-const WEEKLY_GOAL_KEY = 'pacewell_weekly_goal';
 const ACTIVITY_HISTORY_DAYS = 14;
 
 const DEFAULT_FORM = {
@@ -193,7 +192,7 @@ export default function Activity() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState(DEFAULT_FORM);
-    const [weeklyTarget, setWeeklyTarget] = useState(5);
+    const [weeklyTarget, setWeeklyTarget] = useState(DEFAULT_WEEKLY_TARGET);
     const [wearableWorkouts, setWearableWorkouts] = useState<WorkoutData[]>([]);
     const [isImporting, setIsImporting] = useState<string | null>(null);
     const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
@@ -222,9 +221,14 @@ export default function Activity() {
 
         const historyStart = getActivityHistoryStart();
         const weekStart = getWeekStart();
-        const storedGoal = await AsyncStorage.getItem(WEEKLY_GOAL_KEY);
+        const storedGoal = await getUserSetting(user.id, 'weekly_goal');
+        const parsedGoal = Number(storedGoal);
 
-        if (storedGoal) setWeeklyTarget(Number(storedGoal));
+        setWeeklyTarget(
+            Number.isFinite(parsedGoal) && parsedGoal > 0
+                ? parsedGoal
+                : DEFAULT_WEEKLY_TARGET
+        );
 
         const [historyResult, weekResult] = await Promise.all([
             supabase
