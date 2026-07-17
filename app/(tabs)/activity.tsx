@@ -18,6 +18,11 @@ import { getRecentWorkouts } from '../../lib/health';
 import { hasHealthPermissions } from '../../lib/healthPermissions';
 import { WorkoutData } from '../../types/health';
 
+type ActivityGroup = {
+    date: string;
+    activities: ActivityLog[];
+};
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ACTIVITY_TYPES: { type: ActivityType; emoji: string; label: string }[] = [
@@ -42,6 +47,7 @@ const EXERTION_LABELS: EmojiScaleLabels = {
 
 const DEFAULT_WEEKLY_TARGET = 5; // placeholder — will be user-configurable
 const WEEKLY_GOAL_KEY = 'pacewell_weekly_goal';
+const ACTIVITY_HISTORY_DAYS = 14;
 
 const DEFAULT_FORM = {
     activityType: 'walking' as ActivityType,
@@ -72,6 +78,41 @@ const getWeekStart = (): string => {
     const diff = now.getDate() - day + (day === 0 ? -6 : 1);
 
     return getLocalDate(new Date(now.setDate(diff)));
+};
+
+const getActivityHistoryStart = (): string => {
+    const startDate = new Date();
+
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(
+        startDate.getDate() -
+        (ACTIVITY_HISTORY_DAYS - 1)
+    );
+
+    return getLocalDate(startDate);
+};
+
+const groupActivitiesByDate = (
+    activities: ActivityLog[]
+): ActivityGroup[] => {
+    const groups = activities.reduce<
+        Record<string, ActivityLog[]>
+    >((result, activity) => {
+        if (!result[activity.date]) {
+            result[activity.date] = [];
+        }
+
+        result[activity.date].push(activity);
+
+        return result;
+    }, {});
+
+    return Object.entries(groups)
+        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+        .map(([date, groupedActivities]) => ({
+            date,
+            activities: groupedActivities,
+        }));
 };
 
 // ─── Sub Components ───────────────────────────────────────────────────────────
@@ -179,19 +220,20 @@ export default function Activity() {
 
         if (!user) return;
 
-        const today = getLocalDate();
+        const historyStart = getActivityHistoryStart();
         const weekStart = getWeekStart();
         const storedGoal = await AsyncStorage.getItem(WEEKLY_GOAL_KEY);
 
         if (storedGoal) setWeeklyTarget(Number(storedGoal));
 
-        const [todayResult, weekResult] = await Promise.all([
+        const [historyResult, weekResult] = await Promise.all([
             supabase
                 .from('activity_logs')
                 .select('*')
                 .eq('user_id', user.id)
-                .eq('date', today)
-                .order('created_at', { ascending: false }),
+                .gte('date', historyStart)
+                .order('date', {ascending: false,})
+                .order('created_at', {ascending: false,}),
             supabase
                 .from('activity_logs')
                 .select('id')
@@ -199,9 +241,19 @@ export default function Activity() {
                 .gte('date', weekStart),
         ]);
 
-        setActivities((todayResult.data ?? []) as ActivityLog[]);
+        if (historyResult.error) {
+            console.error(
+                'Activity history load error:',
+                historyResult.error
+            );
+        
+            setError('Your activity history could not be loaded.');
+        }
+
+        setActivities((historyResult.data ?? []) as ActivityLog[]);
         setWeeklyCount(weekResult.data?.length ?? 0);
         setIsLoading(false);
+
         await loadWearableWorkouts();
     };
 
@@ -332,6 +384,8 @@ export default function Activity() {
         100
     );
 
+    const activityGroups = groupActivitiesByDate(activities);
+
     const today = formatDate(new Date(), {
         weekday: 'long',
         day: 'numeric',
@@ -408,84 +462,108 @@ export default function Activity() {
                 </View>
                 )}
 
-                <Text style={styles.dateLabel}>{getDateLabel(getLocalDate())}</Text>
-
                 {activities.length === 0 ? (
                 <View style={styles.emptyCard}>
                     <Text style={styles.emptyEmoji}>🏃</Text>
-                    <Text style={styles.emptyTitle}>No activities yet today</Text>
-                    <Text style={styles.emptySubtitle}>
-                        Tap the + button to log your first activity
-                    </Text>
+                    <Text style={styles.emptyTitle}>No activities in the last 14 days</Text>
+                    <Text style={styles.emptySubtitle}>Tap the + button to log an activity</Text>
                 </View>
                 ) : (
-                <View style={styles.activitiesCard}>
+                    activityGroups.map(group => (
+                    <View
+                        key={group.date}
+                        style={styles.activityGroup}
+                    >
+                        <Text style={styles.dateLabel}>{getDateLabel(group.date)}</Text>
+                        <View style={styles.activitiesCard}>
+                            {group.activities.map(
+                                (activity, index) => {
+                                    const meta =
+                                        getActivityMeta(activity.activity_type);
 
-                    {activities.map((activity, index) => {
-                        const meta = getActivityMeta(activity.activity_type);
-                        const time = new Date(activity.created_at).toLocaleTimeString(
-                            [], { hour: '2-digit', minute: '2-digit' }
-                        );
+                                    const time = new Date(activity.created_at).toLocaleTimeString(
+                                        [],
+                                        {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        }
+                                    );
 
-                        return (
-                            <View key={activity.id}>
-                                <View style={styles.activityRow}>
-                                    <View style={styles.activityIconContainer}>
-                                        <Text style={styles.activityEmoji}>{meta.emoji}</Text>
-                                    </View>
-                                    <View style={styles.activityInfo}>
-                                        <Text style={styles.activityType}>{meta.label}</Text>
-                                        <Text style={styles.activityMeta}>
-                                            {activity.duration_minutes} min · {time}
-                                        </Text>
+                                    return (
+                                        <View key={activity.id}>
+                                            <View style={styles.activityRow}>
+                                                <View style={styles.activityIconContainer}>
+                                                    <Text style={ styles.activityEmoji}>{meta.emoji}</Text>
+                                                </View>
 
-                                        {activity.notes && (
-                                        <Text style={styles.activityNotes}>{activity.notes}</Text>
-                                        )}
+                                                <View style={styles.activityInfo}>
+                                                    <Text style={styles.activityType}>{meta.label}</Text>
+                                                    <Text style={styles.activityMeta}>
+                                                        {activity.duration_minutes}{' '}min · {time}
+                                                    </Text>
 
-                                    </View>
-                                    <View style={styles.activityRight}>
-                                        <View style={[
-                                            styles.effortBadge,
-                                            activity.perceived_exertion >= 4 && styles.effortBadgeHigh,
-                                        ]}>
-                                            <Text style={[
-                                                styles.effortBadgeText,
-                                                activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
-                                            ]}>
-                                                {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
-                                            </Text>
-                                        </View>
+                                                    {activity.notes && (
+                                                        <Text style={styles.activityNotes}>{activity.notes}</Text>
+                                                    )}
 
-                                        <TouchableOpacity
-                                            style={styles.deleteButton}
-                                            onPress={() => handleDelete(activity.id)}
-                                            disabled={isDeleting === activity.id}
-                                        >
+                                                </View>
 
-                                            {isDeleting === activity.id ? (
-                                            <ActivityIndicator size="small" color={theme.colors.danger} />
-                                            ) : (
-                                            <Ionicons
-                                                name="close-circle-outline"
-                                                size={20}
-                                                color={theme.colors.textLight}
-                                            />
+                                                <View style={styles.activityRight}>
+                                                    <View style={[
+                                                            styles.effortBadge,
+                                                            activity.perceived_exertion >= 4 &&styles.effortBadgeHigh,
+                                                        ]}
+                                                    >
+                                                        <Text style={[
+                                                                styles.effortBadgeText,
+                                                                activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
+                                                            ]}
+                                                        >
+                                                            {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
+                                                        </Text>
+                                                    </View>
+
+                                                    <TouchableOpacity
+                                                        style={styles.deleteButton}
+                                                        onPress={() =>
+                                                            handleDelete(
+                                                                activity.id
+                                                            )
+                                                        }
+                                                        disabled={isDeleting === activity.id}
+                                                    >
+                                                        {isDeleting === activity.id ? (
+                                                        <ActivityIndicator
+                                                            size="small"
+                                                            color={theme.colors.danger}
+                                                        />
+                                                        ) : (
+                                                        <Ionicons
+                                                            name="close-circle-outline"
+                                                            size={20}
+                                                            color={
+                                                                theme
+                                                                    .colors
+                                                                    .textLight
+                                                            }
+                                                        />
+                                                        )}
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </View>
+
+                                            {index < group.activities.length - 1 && (
+                                            <View style={styles.divider} />
                                             )}
 
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
+                                        </View>
+                                    );
+                                }
+                            )}
 
-                                {index < activities.length - 1 && (
-                                <View style={styles.divider} />
-                                )}
-
-                            </View>
-                        );
-                    })}
-
-                </View>
+                        </View>
+                    </View>
+                    ))
                 )}
                 
                 <View style={styles.weeklyGoalCard}>
@@ -866,5 +944,8 @@ const styles = StyleSheet.create({
         ...theme.typography.caption,
         color: theme.colors.white,
         fontWeight: '600',
+    },
+    activityGroup: {
+        marginBottom: theme.spacing.sm,
     },
 });
