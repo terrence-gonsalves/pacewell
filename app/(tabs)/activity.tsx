@@ -449,6 +449,7 @@ export default function Activity() {
                 <Text style={styles.headerTitle}>Activity Log</Text>
                 <Text style={styles.headerSubtitle}>{today}</Text>
             </View>
+
             <View style={styles.headerDivider} />
 
             {isLoading ? (
@@ -577,28 +578,47 @@ export default function Activity() {
                                                             {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
                                                         </Text>
                                                     </View>
+                                                    
+                                                    <View style={styles.activityActions}>
 
-                                                    <TouchableOpacity
-                                                        style={[
-                                                            styles.deleteButton,
-                                                            isDeleting !== null && styles.deleteButtonDisabled,
-                                                        ]}
-                                                        onPress={() => confirmDelete(activity)}
-                                                        disabled={isDeleting !== null}
-                                                    >
-                                                        {isDeleting === activity.id ? (
-                                                        <ActivityIndicator
-                                                            size="small"
-                                                            color={theme.colors.danger}
-                                                        />
-                                                        ) : (
-                                                        <Ionicons
-                                                            name="trash-outline"
-                                                            size={19}
-                                                            color={theme.colors.textLight}
-                                                        />
+                                                        {activity.source === 'manual' && (
+                                                        <TouchableOpacity
+                                                            style={styles.editButton}
+                                                            onPress={() => router.push({
+                                                                pathname: '/log-activity',
+                                                                params: {
+                                                                    from: 'activity',
+                                                                    activityId: activity.id,
+                                                                },
+                                                            })}
+                                                            disabled={isDeleting !== null}
+                                                        >
+                                                            <Ionicons name="pencil-outline" size={18} color={theme.colors.primary} />
+                                                        </TouchableOpacity>
                                                         )}
-                                                    </TouchableOpacity>
+
+                                                        <TouchableOpacity
+                                                            style={[
+                                                                styles.deleteButton,
+                                                                isDeleting !== null && styles.deleteButtonDisabled,
+                                                            ]}
+                                                            onPress={() => confirmDelete(activity)}
+                                                            disabled={isDeleting !== null}
+                                                        >
+                                                            {isDeleting === activity.id ? (
+                                                            <ActivityIndicator
+                                                                size="small"
+                                                                color={theme.colors.danger}
+                                                            />
+                                                            ) : (
+                                                            <Ionicons
+                                                                name="trash-outline"
+                                                                size={19}
+                                                                color={theme.colors.textLight}
+                                                            />
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    </View>
                                                 </View>
                                             </View>
 
@@ -636,7 +656,7 @@ export default function Activity() {
                     </View>
                 </View>
 
-                </ScrollView>
+            </ScrollView>
             )}
             
             <TouchableOpacity
@@ -1010,4 +1030,17 @@ const styles = StyleSheet.create({
         padding: theme.spacing.md,
         marginBottom: theme.spacing.md,
     }, 
+    activityActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+    },    
+    editButton: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.primaryLight,
+    },
 });
