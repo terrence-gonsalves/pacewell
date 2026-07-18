@@ -110,7 +110,10 @@ const Stepper = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function LogActivity() {
-    const { from } = useLocalSearchParams<{ from?: string }>();
+    const { from, activityId } = useLocalSearchParams<{
+        from?: string;
+        activityId?: string;
+    }>();
 
     const [activityType, setActivityType] = useState<ActivityType>('walking');
     const [duration, setDuration] = useState(30);
@@ -118,6 +121,63 @@ export default function LogActivity() {
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(!!activityId);
+    const [activityDate, setActivityDate] = useState<string | null>(null);
+
+    const isEditing = !!activityId;
+
+    useEffect(() => {
+        if (activityId) loadActivity();
+    }, [activityId]);
+
+    const loadActivity = async () => {
+        setIsLoading(true);
+        setError(null);
+    
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+    
+            if (!user) {
+                setError('No user session found. Please log in again.');
+                return;
+            }
+    
+            const { data, error: loadError } = await supabase
+                .from('activity_logs')
+                .select('id, date, activity_type, duration_minutes, perceived_exertion, notes, source')
+                .eq('id', activityId)
+                .eq('user_id', user.id)
+                .maybeSingle();
+    
+            if (loadError) {
+                setError(loadError.message);
+                
+                return;
+            }
+    
+            if (!data) {
+                setError('This activity could not be found.');
+
+                return;
+            }
+    
+            if (data.source !== 'manual') {
+                setError('Imported activities cannot be edited.');
+
+                return;
+            }
+    
+            setActivityType(data.activity_type as ActivityType);
+            setDuration(data.duration_minutes);
+            setPerceivedExertion(data.perceived_exertion as EmojiScale);
+            setNotes(data.notes ?? '');
+            setActivityDate(data.date);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'The activity could not be loaded.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleBack = () => {
         if (from === 'dashboard') {
@@ -142,20 +202,37 @@ export default function LogActivity() {
                 return;
             }
 
-            const today = getLocalDate();
-
-            const { error } = await supabase.from('activity_logs').insert({
-                user_id: user.id,
-                date: today,
+            const activityValues = {
                 activity_type: activityType,
                 duration_minutes: duration,
                 perceived_exertion: perceivedExertion,
-                notes: notes || null,
-                source: 'manual',
-            });
+                notes: notes.trim() || null,
+            };
+            
+            let saveError;
+            
+            if (isEditing) {
+                const result = await supabase
+                    .from('activity_logs')
+                    .update(activityValues)
+                    .eq('id', activityId)
+                    .eq('user_id', user.id)
+                    .eq('source', 'manual');
+            
+                saveError = result.error;
+            } else {
+                const result = await supabase.from('activity_logs').insert({
+                    user_id: user.id,
+                    date: getLocalDate(),
+                    ...activityValues,
+                    source: 'manual',
+                });
+            
+                saveError = result.error;
+            }
 
-            if (error) {
-                setError(error.message);
+            if (saveError) {
+                setError(saveError.message);
 
                 return;
             }
@@ -170,6 +247,14 @@ export default function LogActivity() {
 
     // ─── Render ───────────────────────────────────────────────────────────────
 
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+        );
+    }
+
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -182,7 +267,7 @@ export default function LogActivity() {
                 >
                     <Ionicons name="arrow-back" size={24} color={theme.colors.textDark} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Log Activity</Text>
+                <Text style={styles.headerTitle}>{isEditing ? 'Edit Activity' : 'Log Activity'}</Text>
                 <View style={{ width: 40 }} />
             </View>
             <View style={styles.headerDivider} />
@@ -492,5 +577,11 @@ const styles = StyleSheet.create({
     activityTypeButtonActive: {
         borderColor: '#2d6a4f',
         backgroundColor: '#f0faf4',
+    },
+    loadingContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.colors.background,
     },
 });
