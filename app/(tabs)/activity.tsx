@@ -189,21 +189,12 @@ export default function Activity() {
     const [activities, setActivities] = useState<ActivityLog[]>([]);
     const [weeklyCount, setWeeklyCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [form, setForm] = useState(DEFAULT_FORM);
     const [weeklyTarget, setWeeklyTarget] = useState(DEFAULT_WEEKLY_TARGET);
     const [wearableWorkouts, setWearableWorkouts] = useState<WorkoutData[]>([]);
     const [isImporting, setIsImporting] = useState<string | null>(null);
     const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
-
-    const updateForm = <K extends keyof typeof DEFAULT_FORM>(
-        key: K,
-        value: (typeof DEFAULT_FORM)[K]
-    ) => {
-        setForm(prev => ({ ...prev, [key]: value }));
-    };
 
     // ─── Load Activities ──────────────────────────────────────────────────────
 
@@ -326,45 +317,6 @@ export default function Activity() {
             console.error('Import error:', err);
         } finally {
             setIsImporting(null);
-        }
-    };
-
-    // ─── Submit ───────────────────────────────────────────────────────────────
-
-    const handleSubmit = async () => {
-        setIsSubmitting(true);
-        setError(null);
-
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) return;
-
-            const today = getLocalDate();
-
-            const { error } = await supabase.from('activity_logs').insert({
-                user_id: user.id,
-                date: today,
-                activity_type: form.activityType,
-                duration_minutes: form.duration,
-                perceived_exertion: form.perceivedExertion,
-                notes: form.notes || null,
-                source: 'manual',
-            });
-
-            if (error) {
-                setError(error.message);
-
-                return;
-            }
-
-            setForm(DEFAULT_FORM);
-
-            await loadActivities();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong.');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
