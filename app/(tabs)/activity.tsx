@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -369,13 +370,57 @@ export default function Activity() {
 
     // ─── Delete ───────────────────────────────────────────────────────────────
 
-    const handleDelete = async (id: string) => {
-        setIsDeleting(id);
+    const confirmDelete = (activity: ActivityLog) => {
+        const isImported = activity.source && activity.source !== 'manual';
+    
+        const message = isImported
+            ? 'This removes the activity from Pacewell. It will not remove the original workout from your health app.'
+            : 'This activity will be permanently removed from your history.';
+    
+        Alert.alert(
+            'Delete Activity?',
+            message,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => handleDelete(activity),
+                },
+            ]
+        );
+    };
 
-        await supabase.from('activity_logs').delete().eq('id', id);
-        await loadActivities();
+    const handleDelete = async (activity: ActivityLog) => {
+        setIsDeleting(activity.id);
+        setError(null);
+    
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+    
+            if (!user) {
+                setError('You must be signed in to delete an activity.');
+                return;
+            }
+    
+            const { error: deleteError } = await supabase
+                .from('activity_logs')
+                .delete()
+                .eq('id', activity.id)
+                .eq('user_id', user.id);
+    
+            if (deleteError) {
+                setError(`Activity could not be deleted: ${deleteError.message}`);
 
-        setIsDeleting(null);
+                return;
+            }
+    
+            await loadActivities();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Activity could not be deleted.');
+        } finally {
+            setIsDeleting(null);
+        }
     };
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -466,6 +511,13 @@ export default function Activity() {
                 </View>
                 )}
 
+                {error && (
+                <View style={styles.errorCard}>
+                    <Ionicons name="alert-circle-outline" size={18} color={theme.colors.danger} />
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
+                )}
+
                 {activities.length === 0 ? (
                 <View style={styles.emptyCard}>
                     <Text style={styles.emptyEmoji}>🏃</Text>
@@ -482,8 +534,7 @@ export default function Activity() {
                         <View style={styles.activitiesCard}>
                             {group.activities.map(
                                 (activity, index) => {
-                                    const meta =
-                                        getActivityMeta(activity.activity_type);
+                                    const meta = getActivityMeta(activity.activity_type);
 
                                     const time = new Date(activity.created_at).toLocaleTimeString(
                                         [],
@@ -528,13 +579,12 @@ export default function Activity() {
                                                     </View>
 
                                                     <TouchableOpacity
-                                                        style={styles.deleteButton}
-                                                        onPress={() =>
-                                                            handleDelete(
-                                                                activity.id
-                                                            )
-                                                        }
-                                                        disabled={isDeleting === activity.id}
+                                                        style={[
+                                                            styles.deleteButton,
+                                                            isDeleting !== null && styles.deleteButtonDisabled,
+                                                        ]}
+                                                        onPress={() => confirmDelete(activity)}
+                                                        disabled={isDeleting !== null}
                                                     >
                                                         {isDeleting === activity.id ? (
                                                         <ActivityIndicator
@@ -543,13 +593,9 @@ export default function Activity() {
                                                         />
                                                         ) : (
                                                         <Ionicons
-                                                            name="close-circle-outline"
-                                                            size={20}
-                                                            color={
-                                                                theme
-                                                                    .colors
-                                                                    .textLight
-                                                            }
+                                                            name="trash-outline"
+                                                            size={19}
+                                                            color={theme.colors.textLight}
                                                         />
                                                         )}
                                                     </TouchableOpacity>
@@ -952,4 +998,16 @@ const styles = StyleSheet.create({
     activityGroup: {
         marginBottom: theme.spacing.sm,
     },
+    deleteButtonDisabled: {
+        opacity: 0.5,
+    },
+    errorCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.dangerLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+    }, 
 });
