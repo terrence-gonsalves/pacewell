@@ -345,32 +345,39 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
             return [];
         }
   
-      // Map Health Connect exercise types to our ActivityType
-      const exerciseTypeMap: Record<number, ActivityType> = {
-        79: 'walking',
-        56: 'running',
-        8: 'cycling',
-        82: 'swimming',
-        64: 'strength',
-        61: 'yoga',
-        73: 'tennis',
-        30: 'golf',
-      };
-  
-      return records.map((w: any) => {
-        const durationMinutes = Math.round(
-          (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / (1000 * 60)
-        );
-        return {
-          id: w.metadata?.id ?? Math.random().toString(),
-          activityType: exerciseTypeMap[w.exerciseType] ?? 'other',
-          durationMinutes,
-          startTime: w.startTime,
-          endTime: w.endTime,
-          activeCalories: null,
-          source: 'health_connect',
+        // map Health Connect exercise types to our ActivityType
+        const exerciseTypeMap: Record<number, ActivityType> = {
+            79: 'walking',
+            56: 'running',
+            8: 'cycling',
+            82: 'swimming',
+            64: 'strength',
+            61: 'yoga',
+            73: 'tennis',
+            30: 'golf',
         };
-      });
+  
+        return records.map((w: any) => {
+            const durationMinutes = Math.round(
+                (new Date(w.endTime).getTime() - new Date(w.startTime).getTime()) / (1000 * 60)
+            );
+
+            const fallbackId = [
+                w.startTime,
+                w.endTime,
+                w.exerciseType,
+            ].join(':');
+
+            return {
+                id: w.metadata?.id ?? fallbackId,
+                activityType: exerciseTypeMap[w.exerciseType] ?? 'other',
+                durationMinutes,
+                startTime: w.startTime,
+                endTime: w.endTime,
+                activeCalories: null,
+                source: 'health_connect',
+            };
+        });
   
     } catch (err) {
         console.error('Health Connect workouts error:', err);

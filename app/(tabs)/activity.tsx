@@ -267,22 +267,37 @@ export default function Activity() {
 
         if (!user) return;
 
-        const today = getLocalDate();
-        const { data: existing } = await supabase
-            .from('activity_logs')
-            .select('source, created_at')
-            .eq('user_id', user.id)
-            .eq('date', today)
-            .in('source', ['wearable', 'healthkit', 'health_connect']);
+        const workoutIds = workouts.map(workout => workout.id);
 
-        // only show workouts not already imported
-        const alreadyImported = existing?.length ?? 0;
-
-        if (workouts.length > alreadyImported) {
-            setWearableWorkouts(workouts.slice(alreadyImported));
-        } else {
+        if (workoutIds.length === 0) {
             setWearableWorkouts([]);
+
+            return;
         }
+
+        const { data: existing, error } = await supabase
+            .from('activity_logs')
+            .select('external_workout_id')
+            .eq('user_id', user.id)
+            .in('source', ['healthkit', 'health_connect'])
+            .in('external_workout_id', workoutIds);
+
+        if (error) {
+            console.error('Imported workout lookup error:', error);
+            setWearableWorkouts([]);
+            
+            return;
+        }
+
+        const importedWorkoutIds = new Set(
+            (existing ?? [])
+                .map(activity => activity.external_workout_id)
+                .filter(Boolean)
+        );
+
+        setWearableWorkouts(
+            workouts.filter(workout => !importedWorkoutIds.has(workout.id))
+        );
     };
 
     // ─── Handle Workout Import ─────────────────────────────────────────────────────
@@ -297,16 +312,23 @@ export default function Activity() {
       
             const { error } = await supabase.from('activity_logs').insert({
                 user_id: user.id,
-                date: getLocalDate(),
+                date: getLocalDate(new Date(workout.startTime)),
                 activity_type: workout.activityType,
                 duration_minutes: workout.durationMinutes,
                 perceived_exertion: 3,
-                notes: `Imported`,
-                source: workout.source || 'wearable',
+                notes: 'Imported',
+                source: workout.source || 'health_connect',
+                external_workout_id: workout.id,
+                is_hidden: false,
             });
 
             if (error) {
-                console.error('Import error:', error.message);
+                if (error.code === '23505') {
+                    setError('This workout has already been imported.');
+                } else {
+                    setError(`Workout could not be imported: ${error.message}`);
+                }
+            
                 return;
             }
         

@@ -65,6 +65,8 @@ export interface ActivityLog {
     perceived_exertion: EmojiScale;
     notes?: string;
     source: 'manual' | 'healthkit' | 'health_connect';
+    external_workout_id: string | null;
+    is_hidden: boolean;
     created_at: string;
 }
 
