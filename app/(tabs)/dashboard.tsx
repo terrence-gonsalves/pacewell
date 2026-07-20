@@ -326,6 +326,7 @@ export default function Dashboard() {
                         .from('activity_logs')
                         .select('*')
                         .eq('user_id', user.id)
+                        .eq('is_hidden', false)
                         .order('created_at', { ascending: false })
                         .limit(5),
 
@@ -529,8 +530,6 @@ export default function Dashboard() {
                             </Text>
                         </View>
                         )}
-
-                        <View style={styles.onlineDot} />
                     </TouchableOpacity>  
                 </View>
 
