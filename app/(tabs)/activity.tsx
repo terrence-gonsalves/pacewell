@@ -344,19 +344,19 @@ export default function Activity() {
     // ─── Delete ───────────────────────────────────────────────────────────────
 
     const confirmDelete = (activity: ActivityLog) => {
-        const isImported = activity.source && activity.source !== 'manual';
-    
+        const isImported = activity.source !== 'manual';
+
         const message = isImported
-            ? 'This removes the activity from Pacewell. It will not remove the original workout from your health app.'
+            ? 'This removes the activity from Pacewell. It will not delete the original workout from your health app or offer it for import again.'
             : 'This activity will be permanently removed from your history.';
-    
+
         Alert.alert(
-            'Delete Activity?',
+            'Remove Activity?',
             message,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: 'Remove',
                     style: 'destructive',
                     onPress: () => handleDelete(activity),
                 },
