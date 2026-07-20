@@ -194,7 +194,6 @@ export default function Activity() {
     const [weeklyTarget, setWeeklyTarget] = useState(DEFAULT_WEEKLY_TARGET);
     const [wearableWorkouts, setWearableWorkouts] = useState<WorkoutData[]>([]);
     const [isImporting, setIsImporting] = useState<string | null>(null);
-    const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
 
     // ─── Load Activities ──────────────────────────────────────────────────────
 
@@ -331,9 +330,7 @@ export default function Activity() {
             
                 return;
             }
-        
-            // mark as imported immediately so it disappears from the list
-            setImportedIds(prev => new Set([...prev, workout.id]));
+            
             await loadActivities();
         } catch (err) {
             console.error('Import error:', err);
