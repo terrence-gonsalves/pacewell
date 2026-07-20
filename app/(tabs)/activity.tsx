@@ -226,13 +226,15 @@ export default function Activity() {
                 .from('activity_logs')
                 .select('*')
                 .eq('user_id', user.id)
+                .eq('is_hidden', false)
                 .gte('date', historyStart)
-                .order('date', {ascending: false,})
-                .order('created_at', {ascending: false,}),
+                .order('date', { ascending: false })
+                .order('created_at', { ascending: false }),
             supabase
                 .from('activity_logs')
                 .select('id')
                 .eq('user_id', user.id)
+                .eq('is_hidden', false)
                 .gte('date', weekStart),
         ]);
 
