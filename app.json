@@ -75,7 +75,7 @@
         }
       ],
       "expo-font",
-      "expo-background-fetch",
+      "expo-background-task",
       "expo-task-manager",
       "expo-background-task"
     ],

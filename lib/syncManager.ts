@@ -1,4 +1,4 @@
-import * as BackgroundFetch from 'expo-background-fetch';
+import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { getHealthSummary } from './health';
 import { hasHealthPermissions } from './healthPermissions';
@@ -171,18 +171,18 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
         const settings = await getSyncSettings();
 
         if (!settings.enabled) {
-            return BackgroundFetch.BackgroundFetchResult.NoData;
+            return BackgroundTask.BackgroundTaskResult.Success;
         }
 
         const result = await performHealthSync();
 
         return result.success
-            ? BackgroundFetch.BackgroundFetchResult.NewData
-            : BackgroundFetch.BackgroundFetchResult.Failed;
+            ? BackgroundTask.BackgroundTaskResult.Success
+            : BackgroundTask.BackgroundTaskResult.Failed;
     } catch (err) {
         console.error('Background sync task error:', err);
 
-        return BackgroundFetch.BackgroundFetchResult.Failed;
+        return BackgroundTask.BackgroundTaskResult.Failed;
     }
 });
 
@@ -198,10 +198,8 @@ export const scheduleBackgroundSync = async (
 
         const intervalSeconds = validInterval * 60 * 60;
 
-        await BackgroundFetch.registerTaskAsync(BACKGROUND_SYNC_TASK, {
-            minimumInterval: intervalSeconds,
-            stopOnTerminate: false,
-            startOnBoot: true,
+        await BackgroundTask.registerTaskAsync(BACKGROUND_SYNC_TASK, {
+            minimumInterval: Math.max(15, Math.ceil(intervalSeconds / 60)),
         });
     } catch (err) {
         console.error('Error scheduling background sync:', err);
@@ -213,7 +211,7 @@ export const cancelBackgroundSync = async (): Promise<void> => {
         const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
 
         if (isRegistered) {
-            await BackgroundFetch.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
+            await BackgroundTask.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
 
             console.log('Background sync cancelled');
         }
