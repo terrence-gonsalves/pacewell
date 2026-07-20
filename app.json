@@ -76,7 +76,8 @@
       ],
       "expo-font",
       "expo-background-fetch",
-      "expo-task-manager"
+      "expo-task-manager",
+      "expo-background-task"
     ],
     "extra": {
       "router": {},
