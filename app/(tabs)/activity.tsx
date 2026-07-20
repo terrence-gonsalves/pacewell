@@ -376,11 +376,27 @@ export default function Activity() {
                 return;
             }
     
-            const { error: deleteError } = await supabase
-                .from('activity_logs')
-                .delete()
-                .eq('id', activity.id)
-                .eq('user_id', user.id);
+            let deleteError;
+
+            if (activity.source === 'manual') {
+                const result = await supabase
+                    .from('activity_logs')
+                    .delete()
+                    .eq('id', activity.id)
+                    .eq('user_id', user.id)
+                    .eq('source', 'manual');
+
+                deleteError = result.error;
+            } else {
+                const result = await supabase
+                    .from('activity_logs')
+                    .update({ is_hidden: true })
+                    .eq('id', activity.id)
+                    .eq('user_id', user.id)
+                    .in('source', ['healthkit', 'health_connect']);
+
+                deleteError = result.error;
+            }
     
             if (deleteError) {
                 setError(`Activity could not be deleted: ${deleteError.message}`);
