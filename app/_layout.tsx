@@ -91,6 +91,7 @@ export default function RootLayout() {
             await handleDeepLink(url);
 
             if (Linking.parse(url).queryParams?.type === 'recovery') {
+                passwordRecoveryRef.current = true;
                 router.replace('/(auth)/reset-password');
             }
         });
@@ -102,6 +103,7 @@ export default function RootLayout() {
             await handleDeepLink(url);
 
             if (Linking.parse(url).queryParams?.type === 'recovery') {
+                passwordRecoveryRef.current = true;
                 router.replace('/(auth)/reset-password');
             }
         });
