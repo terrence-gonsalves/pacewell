@@ -77,11 +77,17 @@ export default function Login() {
 
         setLoading(true);
 
-        await supabase.auth.resetPasswordForEmail(email);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: 'pacewell://auth/callback?type=recovery',
+        });
 
-        setError(null);
+        if (error) {
+            setError(error.message);
+        } else {
+            setError('Password reset email sent. Check your inbox.');
+        }
+        
         setLoading(false);
-        setError('Password reset email sent. Check your inbox.');
     };
 
     const handleSubmit = () => {
