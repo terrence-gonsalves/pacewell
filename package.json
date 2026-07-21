@@ -15,7 +15,6 @@
     "@react-native-community/datetimepicker": "8.6.0",
     "@supabase/supabase-js": "^2.99.3",
     "expo": "~55.0.28",
-    "expo-background-fetch": "~55.0.18",
     "expo-background-task": "~55.0.20",
     "expo-build-properties": "~55.0.16",
     "expo-constants": "~55.0.17",
