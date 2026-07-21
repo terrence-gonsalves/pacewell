@@ -156,29 +156,23 @@ export default function RootLayout() {
             setLoading(false);
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             sessionRef.current = session;
             setSession(session);
-
+        
             if (splashCompleteRef.current) {
-                if (session) {
-                    router.replace(
-                        '/(tabs)/dashboard'
-                    );
+                if (event === 'PASSWORD_RECOVERY') {
+                    router.replace('/(auth)/reset-password');
+                } else if (session) {
+                    router.replace('/(tabs)/dashboard');
                 } else {
-                    router.replace(
-                        '/(auth)/login'
-                    );
+                    router.replace('/(auth)/login');
                 }
             }
-
-            if (session) {
+        
+            if (session && event !== 'PASSWORD_RECOVERY') {
                 ensureProfile(session).catch(
-                    err =>
-                        console.error(
-                            'ensureProfile error:',
-                            err
-                        )
+                    err => console.error('ensureProfile error:', err)
                 );
             }
         });
