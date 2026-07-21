@@ -241,6 +241,7 @@ export default function Insights() {
 
                     </TouchableOpacity>
                 </View>
+
                 <View style={styles.headerDivider} />
                 
                 <View style={styles.heroBanner}>
@@ -316,8 +317,8 @@ export default function Insights() {
                             style={[
                                 styles.insightCard,
                                 {
-                                backgroundColor: config.bg,
-                                borderColor: config.borderColor,
+                                    backgroundColor: config.bg,
+                                    borderColor: config.borderColor,
                                 },
                             ]}
                         >
@@ -391,13 +392,13 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background,
     },
     inner: {
+        paddingHorizontal: theme.spacing.lg,
         paddingBottom: 48,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: theme.spacing.lg,
         paddingTop: 60,
         paddingBottom: theme.spacing.md,
     },
@@ -425,7 +426,6 @@ const styles = StyleSheet.create({
     },
     heroBanner: {
         backgroundColor: theme.colors.primary,
-        marginHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.lg,
         padding: theme.spacing.lg,
         alignItems: 'center',
@@ -501,7 +501,6 @@ const styles = StyleSheet.create({
     emptyState: {
         alignItems: 'center',
         paddingTop: theme.spacing.xxl,
-        paddingHorizontal: theme.spacing.xl,
     },
     emptyEmoji: {
         fontSize: 48,
@@ -521,13 +520,11 @@ const styles = StyleSheet.create({
     sectionLabel: {
         ...theme.typography.sectionHeading,
         color: theme.colors.textDark,
-        paddingHorizontal: theme.spacing.lg,
         marginBottom: theme.spacing.md,
     },
     insightCard: {
         borderRadius: theme.radius.lg,
         padding: theme.spacing.lg,
-        marginHorizontal: theme.spacing.lg,
         marginBottom: theme.spacing.md,
         borderWidth: 1,
     },

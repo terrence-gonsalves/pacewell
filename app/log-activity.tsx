@@ -260,20 +260,23 @@ export default function LogActivity() {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-            <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={handleBack}
-                >
-                    <Ionicons name="arrow-back" size={24} color={theme.colors.textDark} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>{isEditing ? 'Edit Activity' : 'Log Activity'}</Text>
-                <View style={{ width: 40 }} />
+            <View style={styles.inner}>
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={handleBack}
+                    >
+                        <Ionicons name="arrow-back" size={24} color={theme.colors.textDark} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>{isEditing ? 'Edit Activity' : 'Log Activity'}</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+
+                <View style={styles.headerDivider} />            
             </View>
-            <View style={styles.headerDivider} />
 
             <ScrollView
-                contentContainerStyle={styles.inner}
+                contentContainerStyle={styles.innerContainer}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
@@ -381,7 +384,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: theme.spacing.lg,
         paddingTop: 60,
         paddingBottom: theme.spacing.md,
     },
@@ -402,9 +404,12 @@ const styles = StyleSheet.create({
     headerDivider: {
         height: 1,
         backgroundColor: theme.colors.border,
-        marginBottom: theme.spacing.lg,
+        marginBottom: theme.spacing.sm,
     },
     inner: {
+        paddingHorizontal: theme.spacing.lg,
+    },
+    innerContainer: {
         paddingHorizontal: theme.spacing.lg,
         paddingBottom: theme.spacing.xxl,
     },
