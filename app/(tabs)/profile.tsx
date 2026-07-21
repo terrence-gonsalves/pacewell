@@ -645,14 +645,6 @@ export default function Profile() {
         );
     };
 
-    if (isLoading) {
-        return (
-            <View style={styles.centred}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-        );
-    }
-
     // ─── Render ───────────────────────────────────────────────────────────────
 
     return (
@@ -665,522 +657,531 @@ export default function Profile() {
                     <Text style={styles.headerTitle}>My Profile</Text>
                 </View>
                 <View style={styles.headerDivider} />
-                
-                <View style={styles.profileCard}>
-                    <View style={styles.avatarWrapper}>
 
-                        {profile?.avatar_url ? (
-                        <Image
-                            source={{ uri: profile.avatar_url }}
-                            style={styles.avatarImage}
-                        />
-                        ) : (
-                        <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>
-                                {profile?.full_name?.charAt(0).toUpperCase() ?? '?'}
-                            </Text>
+                {isLoading ? (
+                <View style={styles.centred}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                </View>
+                ) : (
+                <>                
+                    <View style={styles.profileCard}>
+                        <View style={styles.avatarWrapper}>
+
+                            {profile?.avatar_url ? (
+                            <Image
+                                source={{ uri: profile.avatar_url }}
+                                style={styles.avatarImage}
+                            />
+                            ) : (
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarText}>
+                                    {profile?.full_name?.charAt(0).toUpperCase() ?? '?'}
+                                </Text>
+                            </View>
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.editAvatarButton}
+                                onPress={() => router.push('/edit-profile')}
+                            >
+                                <Ionicons name="pencil" size={12} color={theme.colors.white} />
+                            </TouchableOpacity>
                         </View>
-                        )}
+                        
+                        <Text style={styles.profileName}>{profile?.full_name ?? 'Pacewell User'}</Text>
+                        <Text style={styles.profileAge}>
+                            Age {profile?.age} · Since {new Date(profile?.created_at ?? '').getFullYear()}
+                        </Text>
+                        
+                        <View style={styles.badgesRow}>
+                            <View style={styles.activityBadge}>
+                                <Text style={styles.activityBadgeEmoji}>
+                                    {ACTIVITY_LEVEL_ICONS[profile?.activity_level ?? 'moderate']}
+                                </Text>
+                                <Text style={styles.activityBadgeText}>
+                                    {ACTIVITY_LEVEL_LABELS[profile?.activity_level ?? 'moderate']} Tier
+                                </Text>
+                            </View>
 
+                            {streak > 0 && (
+                            <View style={styles.streakBadge}>
+                                <Ionicons name="flash" size={12} color={theme.colors.primary} />
+                                <Text style={styles.streakBadgeText}>{streak} Day Streak</Text>
+                            </View>
+                            )}
+
+                        </View>
+                        
                         <TouchableOpacity
-                            style={styles.editAvatarButton}
+                            style={styles.editButton}
                             onPress={() => router.push('/edit-profile')}
                         >
-                            <Ionicons name="pencil" size={12} color={theme.colors.white} />
+                            <Text style={styles.editButtonText}>Edit Profile</Text>
                         </TouchableOpacity>
                     </View>
                     
-                    <Text style={styles.profileName}>{profile?.full_name ?? 'Pacewell User'}</Text>
-                    <Text style={styles.profileAge}>
-                        Age {profile?.age} · Since {new Date(profile?.created_at ?? '').getFullYear()}
-                    </Text>
-                    
-                    <View style={styles.badgesRow}>
-                        <View style={styles.activityBadge}>
-                            <Text style={styles.activityBadgeEmoji}>
-                                {ACTIVITY_LEVEL_ICONS[profile?.activity_level ?? 'moderate']}
-                            </Text>
-                            <Text style={styles.activityBadgeText}>
-                                {ACTIVITY_LEVEL_LABELS[profile?.activity_level ?? 'moderate']} Tier
-                            </Text>
-                        </View>
-
-                        {streak > 0 && (
-                        <View style={styles.streakBadge}>
-                            <Ionicons name="flash" size={12} color={theme.colors.primary} />
-                            <Text style={styles.streakBadgeText}>{streak} Day Streak</Text>
-                        </View>
-                        )}
-
-                    </View>
-                    
-                    <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => router.push('/edit-profile')}
-                    >
-                        <Text style={styles.editButtonText}>Edit Profile</Text>
-                    </TouchableOpacity>
-                </View>
-                
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>MY HEALTH</Text>
-                    <View style={styles.card}>
-                        <TouchableOpacity
-                            style={styles.settingRow}
-                            onPress={() => {
-                                setTempGoal(weeklyGoal);
-                                setGoalsModalVisible(true);
-                            }}
-                        >
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons name="trophy-outline" size={18} color={theme.colors.primary} />
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>MY HEALTH</Text>
+                        <View style={styles.card}>
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={() => {
+                                    setTempGoal(weeklyGoal);
+                                    setGoalsModalVisible(true);
+                                }}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons name="trophy-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.settingLabel}>Wellness Goals</Text>
+                                        <Text style={styles.settingSubtitle}>
+                                            {weeklyGoal} activities per week
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View>
-                                    <Text style={styles.settingLabel}>Wellness Goals</Text>
-                                    <Text style={styles.settingSubtitle}>
-                                        {weeklyGoal} activities per week
-                                    </Text>
-                                </View>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
-                        </TouchableOpacity>
-
-                        <View style={styles.divider} />
-
-                        <TouchableOpacity
-                            style={styles.settingRow}
-                            onPress={() => setSyncModalVisible(true)}
-                        >
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons name="watch-outline" size={18} color={theme.colors.primary} />
-                                </View>
-                                <View>
-                                    <Text style={styles.settingLabel}>Sync Devices</Text>
-                                    <Text style={styles.settingSubtitle}>
-                                        {healthConnected
-                                        ? `Last synced: ${lastSyncedText}`
-                                        : 'Apple Health, Health Connect'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <View style={styles.settingRight}>
                                 <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                            </TouchableOpacity>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
-                    <View style={styles.card}>
-                        <View style={styles.settingRow}>
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons
-                                        name="notifications-outline"
-                                        size={18}
-                                        color={theme.colors.primary}
+                            <View style={styles.divider} />
+
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={() => setSyncModalVisible(true)}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons name="watch-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.settingLabel}>Sync Devices</Text>
+                                        <Text style={styles.settingSubtitle}>
+                                            {healthConnected
+                                            ? `Last synced: ${lastSyncedText}`
+                                            : 'Apple Health, Health Connect'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View style={styles.settingRight}>
+                                    <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
+                        <View style={styles.card}>
+                            <View style={styles.settingRow}>
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons
+                                            name="notifications-outline"
+                                            size={18}
+                                            color={theme.colors.primary}
+                                        />
+                                    </View>
+
+                                    <View style={styles.settingTextContainer}>
+                                        <Text style={styles.settingLabel}>{notificationsEnabled ? 'Disable' : 'Enable'} Notificaions</Text>
+                                        <Text style={styles.settingSubtitle}>
+                                            {notificationPermission === 'denied'
+                                                ? 'Disabled in device settings'
+                                                : notificationsEnabled
+                                                    ? 'Set Pacewell reminders'
+                                                    : 'Allow Pacewell reminders'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {isUpdatingNotifications ? (
+                                <ActivityIndicator
+                                    size="small"
+                                    color={theme.colors.primary}
+                                />
+                                ) : (
+                                <Switch
+                                    value={notificationsEnabled}
+                                    onValueChange={handleNotificationsToggle}
+                                    trackColor={{
+                                        false: theme.colors.border,
+                                        true: theme.colors.primary,
+                                    }}
+                                    thumbColor={theme.colors.white}
+                                />
+                                )}
+                            </View>
+
+                            {notificationPermission === 'denied' && (
+                            <TouchableOpacity
+                                style={styles.notificationSettingsButton}
+                                onPress={() => Linking.openSettings()}
+                            >
+                                <Text style={styles.notificationSettingsButtonText}>
+                                    Open device notification settings
+                                </Text>
+                            </TouchableOpacity>
+                            )}
+
+                            <View style={styles.divider} />
+
+                            <View
+                                style={[
+                                    styles.reminderContainer,
+                                    !notificationsEnabled && styles.settingDisabled,
+                                ]}
+                            >
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingLeft}>
+                                        <View style={styles.settingIconContainer}>
+                                            <Ionicons
+                                                name="calendar-outline"
+                                                size={18}
+                                                color={
+                                                    notificationsEnabled
+                                                        ? theme.colors.primary
+                                                        : theme.colors.textLight
+                                                }
+                                            />
+                                        </View>
+
+                                        <View style={styles.settingTextContainer}>
+                                            <Text
+                                                style={[
+                                                    styles.settingLabel,
+                                                    !notificationsEnabled &&
+                                                        styles.settingTextDisabled,
+                                                ]}
+                                            >
+                                                Daily Check-in Reminder
+                                            </Text>
+
+                                            <Text
+                                                style={[
+                                                    styles.settingSubtitle,
+                                                    !notificationsEnabled &&
+                                                        styles.settingTextDisabled,
+                                                ]}
+                                            >
+                                                {!notificationsEnabled
+                                                    ? 'Enable notifications'
+                                                    : checkinReminderEnabled
+                                                        ? `Daily at ${formatDisplayTime(notifTime)}`
+                                                        : 'Off'}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <Switch
+                                        value={checkinReminderEnabled}
+                                        onValueChange={handleCheckinReminderToggle}
+                                        disabled={!notificationsEnabled}
+                                        trackColor={{
+                                            false: theme.colors.border,
+                                            true: theme.colors.primary,
+                                        }}
+                                        thumbColor={theme.colors.white}
                                     />
                                 </View>
 
-                                <View style={styles.settingTextContainer}>
-                                    <Text style={styles.settingLabel}>{notificationsEnabled ? 'Disable' : 'Enable'} Notificaions</Text>
-                                    <Text style={styles.settingSubtitle}>
-                                        {notificationPermission === 'denied'
-                                            ? 'Disabled in device settings'
-                                            : notificationsEnabled
-                                                ? 'Set Pacewell reminders'
-                                                : 'Allow Pacewell reminders'}
+                                {notificationsEnabled && checkinReminderEnabled && (
+                                <View style={styles.reminderTimeRow}>
+                                    <Text style={styles.reminderTimeLabel}>
+                                        Reminder time
                                     </Text>
+
+                                    <TouchableOpacity
+                                        style={styles.timeButton}
+                                        onPress={() => setShowTimePicker(true)}
+                                    >
+                                        <Text style={styles.timeButtonText}>
+                                            {formatDisplayTime(notifTime)}
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
+                                )}
                             </View>
 
-                            {isUpdatingNotifications ? (
-                            <ActivityIndicator
-                                size="small"
-                                color={theme.colors.primary}
-                            />
-                            ) : (
-                            <Switch
-                                value={notificationsEnabled}
-                                onValueChange={handleNotificationsToggle}
-                                trackColor={{
-                                    false: theme.colors.border,
-                                    true: theme.colors.primary,
+                            {showTimePicker && (
+                            <DateTimePicker
+                                value={(() => {
+                                    const [hours, minutes] = notifTime
+                                        .split(':')
+                                        .map(Number);
+
+                                    const date = new Date();
+
+                                    date.setHours(hours, minutes, 0, 0);
+
+                                    return date;
+                                })()}
+                                mode="time"
+                                is24Hour={false}
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowTimePicker(false);
+
+                                    if (event.type === 'dismissed' || !selectedDate) {
+                                        return;
+                                    }
+
+                                    const hours = String(
+                                        selectedDate.getHours()
+                                    ).padStart(2, '0');
+
+                                    const minutes = String(
+                                        selectedDate.getMinutes()
+                                    ).padStart(2, '0');
+
+                                    handleNotifTimeSave(
+                                        `${hours}:${minutes}`
+                                    );
                                 }}
-                                thumbColor={theme.colors.white}
+                            />
+                            )}
+
+                            <View style={styles.divider} />
+
+                            <View
+                                style={[
+                                    styles.reminderContainer,
+                                    !notificationsEnabled && styles.settingDisabled,
+                                ]}
+                            >
+                                <View style={styles.settingRow}>
+                                    <View style={styles.settingLeft}>
+                                        <View style={styles.settingIconContainer}>
+                                            <Ionicons
+                                                name="moon-outline"
+                                                size={18}
+                                                color={
+                                                    notificationsEnabled
+                                                        ? theme.colors.primary
+                                                        : theme.colors.textLight
+                                                }
+                                            />
+                                        </View>
+
+                                        <View style={styles.settingTextContainer}>
+                                            <Text
+                                                style={[
+                                                    styles.settingLabel,
+                                                    !notificationsEnabled &&
+                                                        styles.settingTextDisabled,
+                                                ]}
+                                            >
+                                                Insight Reminder
+                                            </Text>
+
+                                            <Text
+                                                style={[
+                                                    styles.settingSubtitle,
+                                                    !notificationsEnabled &&
+                                                        styles.settingTextDisabled,
+                                                ]}
+                                            >
+                                                {!notificationsEnabled
+                                                    ? 'Enable notifications'
+                                                    : insightReminderEnabled
+                                                        ? `Daily at ${formatDisplayTime(bedtime)}`
+                                                        : 'Off'}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <Switch
+                                        value={insightReminderEnabled}
+                                        onValueChange={handleInsightReminderToggle}
+                                        disabled={!notificationsEnabled}
+                                        trackColor={{
+                                            false: theme.colors.border,
+                                            true: theme.colors.primary,
+                                        }}
+                                        thumbColor={theme.colors.white}
+                                    />
+                                </View>
+
+                                {notificationsEnabled && insightReminderEnabled && (
+                                <View style={styles.reminderTimeRow}>
+                                    <Text style={styles.reminderTimeLabel}>
+                                        Reminder time
+                                    </Text>
+
+                                    <TouchableOpacity
+                                        style={styles.timeButton}
+                                        onPress={() => setShowBedtimePicker(true)}
+                                    >
+                                        <Text style={styles.timeButtonText}>
+                                            {formatDisplayTime(bedtime)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                                )}
+                            </View>
+
+                            {showBedtimePicker && (
+                            <DateTimePicker
+                                value={(() => {
+                                    const [hours, minutes] = bedtime
+                                        .split(':')
+                                        .map(Number);
+
+                                    const date = new Date();
+
+                                    date.setHours(hours, minutes, 0, 0);
+
+                                    return date;
+                                })()}
+                                mode="time"
+                                is24Hour={false}
+                                display="default"
+                                onChange={(event, selectedDate) => {
+                                    setShowBedtimePicker(false);
+
+                                    if (event.type === 'dismissed' || !selectedDate) {
+                                        return;
+                                    }
+
+                                    const hours = String(
+                                        selectedDate.getHours()
+                                    ).padStart(2, '0');
+
+                                    const minutes = String(
+                                        selectedDate.getMinutes()
+                                    ).padStart(2, '0');
+
+                                    handleBedtimeSave(
+                                        `${hours}:${minutes}`
+                                    );
+                                }}
                             />
                             )}
                         </View>
-
-                        {notificationPermission === 'denied' && (
-                        <TouchableOpacity
-                            style={styles.notificationSettingsButton}
-                            onPress={() => Linking.openSettings()}
-                        >
-                            <Text style={styles.notificationSettingsButtonText}>
-                                Open device notification settings
-                            </Text>
-                        </TouchableOpacity>
-                        )}
-
-                        <View style={styles.divider} />
-
-                        <View
-                            style={[
-                                styles.reminderContainer,
-                                !notificationsEnabled && styles.settingDisabled,
-                            ]}
-                        >
+                    </View>
+                    
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+                        <View style={styles.card}>                        
                             <View style={styles.settingRow}>
                                 <View style={styles.settingLeft}>
                                     <View style={styles.settingIconContainer}>
-                                        <Ionicons
-                                            name="calendar-outline"
-                                            size={18}
-                                            color={
-                                                notificationsEnabled
-                                                    ? theme.colors.primary
-                                                    : theme.colors.textLight
-                                            }
-                                        />
+                                        <Ionicons name="resize-outline" size={18} color={theme.colors.primary} />
                                     </View>
-
-                                    <View style={styles.settingTextContainer}>
-                                        <Text
-                                            style={[
-                                                styles.settingLabel,
-                                                !notificationsEnabled &&
-                                                    styles.settingTextDisabled,
-                                            ]}
-                                        >
-                                            Daily Check-in Reminder
-                                        </Text>
-
-                                        <Text
-                                            style={[
-                                                styles.settingSubtitle,
-                                                !notificationsEnabled &&
-                                                    styles.settingTextDisabled,
-                                            ]}
-                                        >
-                                            {!notificationsEnabled
-                                                ? 'Enable notifications'
-                                                : checkinReminderEnabled
-                                                    ? `Daily at ${formatDisplayTime(notifTime)}`
-                                                    : 'Off'}
+                                    <View>
+                                        <Text style={styles.settingLabel}>Units</Text>
+                                        <Text style={styles.settingSubtitle}>
+                                            {units === 'metric' ? 'Metric (km, kg)' : 'Imperial (mi, lbs)'}
                                         </Text>
                                     </View>
                                 </View>
-
                                 <Switch
-                                    value={checkinReminderEnabled}
-                                    onValueChange={handleCheckinReminderToggle}
-                                    disabled={!notificationsEnabled}
-                                    trackColor={{
-                                        false: theme.colors.border,
-                                        true: theme.colors.primary,
-                                    }}
+                                    value={units === 'imperial'}
+                                    onValueChange={handleUnitsToggle}
+                                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                                     thumbColor={theme.colors.white}
                                 />
                             </View>
+                            
+                            <View style={styles.divider} />
 
-                            {notificationsEnabled && checkinReminderEnabled && (
-                            <View style={styles.reminderTimeRow}>
-                                <Text style={styles.reminderTimeLabel}>
-                                    Reminder time
-                                </Text>
-
-                                <TouchableOpacity
-                                    style={styles.timeButton}
-                                    onPress={() => setShowTimePicker(true)}
-                                >
-                                    <Text style={styles.timeButtonText}>
-                                        {formatDisplayTime(notifTime)}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                            )}
-                        </View>
-
-                        {showTimePicker && (
-                        <DateTimePicker
-                            value={(() => {
-                                const [hours, minutes] = notifTime
-                                    .split(':')
-                                    .map(Number);
-
-                                const date = new Date();
-
-                                date.setHours(hours, minutes, 0, 0);
-
-                                return date;
-                            })()}
-                            mode="time"
-                            is24Hour={false}
-                            display="default"
-                            onChange={(event, selectedDate) => {
-                                setShowTimePicker(false);
-
-                                if (event.type === 'dismissed' || !selectedDate) {
-                                    return;
-                                }
-
-                                const hours = String(
-                                    selectedDate.getHours()
-                                ).padStart(2, '0');
-
-                                const minutes = String(
-                                    selectedDate.getMinutes()
-                                ).padStart(2, '0');
-
-                                handleNotifTimeSave(
-                                    `${hours}:${minutes}`
-                                );
-                            }}
-                        />
-                        )}
-
-                        <View style={styles.divider} />
-
-                        <View
-                            style={[
-                                styles.reminderContainer,
-                                !notificationsEnabled && styles.settingDisabled,
-                            ]}
-                        >
                             <View style={styles.settingRow}>
                                 <View style={styles.settingLeft}>
                                     <View style={styles.settingIconContainer}>
-                                        <Ionicons
-                                            name="moon-outline"
-                                            size={18}
-                                            color={
-                                                notificationsEnabled
-                                                    ? theme.colors.primary
-                                                    : theme.colors.textLight
-                                            }
-                                        />
+                                        <Ionicons name="megaphone-outline" size={18} color={theme.colors.primary} />
                                     </View>
-
-                                    <View style={styles.settingTextContainer}>
-                                        <Text
-                                            style={[
-                                                styles.settingLabel,
-                                                !notificationsEnabled &&
-                                                    styles.settingTextDisabled,
-                                            ]}
-                                        >
-                                            Insight Reminder
-                                        </Text>
-
-                                        <Text
-                                            style={[
-                                                styles.settingSubtitle,
-                                                !notificationsEnabled &&
-                                                    styles.settingTextDisabled,
-                                            ]}
-                                        >
-                                            {!notificationsEnabled
-                                                ? 'Enable notifications'
-                                                : insightReminderEnabled
-                                                    ? `Daily at ${formatDisplayTime(bedtime)}`
-                                                    : 'Off'}
+                                    <View>
+                                        <Text style={styles.settingLabel}>Updates & Promotions</Text>
+                                        <Text style={styles.settingSubtitle}>
+                                            Be notified of updates & offers
                                         </Text>
                                     </View>
                                 </View>
 
+                                {isSavingMarketing ? (
+                                <ActivityIndicator size="small" color={theme.colors.primary} />
+                                ) : (
                                 <Switch
-                                    value={insightReminderEnabled}
-                                    onValueChange={handleInsightReminderToggle}
-                                    disabled={!notificationsEnabled}
-                                    trackColor={{
-                                        false: theme.colors.border,
-                                        true: theme.colors.primary,
-                                    }}
+                                    value={profile?.marketing_opt_in ?? false}
+                                    onValueChange={handleMarketingToggle}
+                                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                                     thumbColor={theme.colors.white}
                                 />
+                                )}
+
                             </View>
-
-                            {notificationsEnabled && insightReminderEnabled && (
-                            <View style={styles.reminderTimeRow}>
-                                <Text style={styles.reminderTimeLabel}>
-                                    Reminder time
-                                </Text>
-
-                                <TouchableOpacity
-                                    style={styles.timeButton}
-                                    onPress={() => setShowBedtimePicker(true)}
-                                >
-                                    <Text style={styles.timeButtonText}>
-                                        {formatDisplayTime(bedtime)}
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                            )}
-                        </View>
-
-                        {showBedtimePicker && (
-                        <DateTimePicker
-                            value={(() => {
-                                const [hours, minutes] = bedtime
-                                    .split(':')
-                                    .map(Number);
-
-                                const date = new Date();
-
-                                date.setHours(hours, minutes, 0, 0);
-
-                                return date;
-                            })()}
-                            mode="time"
-                            is24Hour={false}
-                            display="default"
-                            onChange={(event, selectedDate) => {
-                                setShowBedtimePicker(false);
-
-                                if (event.type === 'dismissed' || !selectedDate) {
-                                    return;
-                                }
-
-                                const hours = String(
-                                    selectedDate.getHours()
-                                ).padStart(2, '0');
-
-                                const minutes = String(
-                                    selectedDate.getMinutes()
-                                ).padStart(2, '0');
-
-                                handleBedtimeSave(
-                                    `${hours}:${minutes}`
-                                );
-                            }}
-                        />
-                        )}
-                    </View>
-                </View>
-                
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>PREFERENCES</Text>
-                    <View style={styles.card}>                        
-                        <View style={styles.settingRow}>
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons name="resize-outline" size={18} color={theme.colors.primary} />
-                                </View>
-                                <View>
-                                    <Text style={styles.settingLabel}>Units</Text>
-                                    <Text style={styles.settingSubtitle}>
-                                        {units === 'metric' ? 'Metric (km, kg)' : 'Imperial (mi, lbs)'}
-                                    </Text>
-                                </View>
-                            </View>
-                            <Switch
-                                value={units === 'imperial'}
-                                onValueChange={handleUnitsToggle}
-                                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                                thumbColor={theme.colors.white}
-                            />
-                        </View>
-                        
-                        <View style={styles.divider} />
-
-                        <View style={styles.settingRow}>
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons name="megaphone-outline" size={18} color={theme.colors.primary} />
-                                </View>
-                                <View>
-                                    <Text style={styles.settingLabel}>Updates & Promotions</Text>
-                                    <Text style={styles.settingSubtitle}>
-                                        Be notified of updates & offers
-                                    </Text>
-                                </View>
-                            </View>
-
-                            {isSavingMarketing ? (
-                            <ActivityIndicator size="small" color={theme.colors.primary} />
-                            ) : (
-                            <Switch
-                                value={profile?.marketing_opt_in ?? false}
-                                onValueChange={handleMarketingToggle}
-                                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                                thumbColor={theme.colors.white}
-                            />
-                            )}
-
                         </View>
                     </View>
-                </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>ACCOUNT</Text>
-                    <View style={styles.card}>
-                        <TouchableOpacity
-                            style={styles.settingRow}
-                            onPress={handleChangePassword}
-                        >
-                            <View style={styles.settingLeft}>
-                                <View style={styles.settingIconContainer}>
-                                    <Ionicons name="key-outline" size={18} color={theme.colors.primary} />
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>ACCOUNT</Text>
+                        <View style={styles.card}>
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={handleChangePassword}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons name="key-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <Text style={styles.settingLabel}>Change Password</Text>
                                 </View>
-                                <Text style={styles.settingLabel}>Change Password</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
-                        </TouchableOpacity>
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </TouchableOpacity>
 
-                        <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                        <TouchableOpacity
-                            style={styles.settingRow}
-                            onPress={handleSignOut}
-                        >
-                            <View style={styles.settingLeft}>
-                                <View style={[styles.settingIconContainer, styles.settingIconDanger]}>
-                                    <Ionicons name="log-out-outline" size={18} color={theme.colors.danger} />
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={handleSignOut}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={[styles.settingIconContainer, styles.settingIconDanger]}>
+                                        <Ionicons name="log-out-outline" size={18} color={theme.colors.danger} />
+                                    </View>
+                                    <Text style={[styles.settingLabel, styles.dangerText]}>Sign Out</Text>
                                 </View>
-                                <Text style={[styles.settingLabel, styles.dangerText]}>Sign Out</Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
-                        </TouchableOpacity>
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </TouchableOpacity>
 
-                        <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                        <TouchableOpacity
-                            style={styles.settingRow}
-                            onPress={() => {
-                                setDeleteConfirmText('');
-                                setDeleteModalVisible(true);
-                            }}
-                        >
-                            <View style={styles.settingLeft}>
-                                <View style={[styles.settingIconContainer, styles.settingIconDanger]}>
-                                    <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={() => {
+                                    setDeleteConfirmText('');
+                                    setDeleteModalVisible(true);
+                                }}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={[styles.settingIconContainer, styles.settingIconDanger]}>
+                                        <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
+                                    </View>
+                                    <Text style={[styles.settingLabel, styles.dangerText]}>
+                                        Delete Account
+                                    </Text>
                                 </View>
-                                <Text style={[styles.settingLabel, styles.dangerText]}>
-                                    Delete Account
-                                </Text>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
-                        </TouchableOpacity>
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-                
-                <View style={styles.footer}>
-                    <Text style={styles.footerAppName}>Pacewell</Text>
-                    <Text style={styles.footerVersion}>Version {APP_VERSION}</Text>
-                    <View style={styles.footerLinks}>
-                        <TouchableOpacity>
-                            <Text style={styles.footerLink}>Terms of Service</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.footerDot}>·</Text>
-                        <TouchableOpacity>
-                            <Text style={styles.footerLink}>Privacy Policy</Text>
-                        </TouchableOpacity>
+                    
+                    <View style={styles.footer}>
+                        <Text style={styles.footerAppName}>Pacewell</Text>
+                        <Text style={styles.footerVersion}>Version {APP_VERSION}</Text>
+                        <View style={styles.footerLinks}>
+                            <TouchableOpacity>
+                                <Text style={styles.footerLink}>Terms of Service</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.footerDot}>·</Text>
+                            <TouchableOpacity>
+                                <Text style={styles.footerLink}>Privacy Policy</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
+                </>
+                )}
+
             </ScrollView>
             
             <WellnessGoalsModal
@@ -1221,16 +1222,17 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.colors.background,
     },
-    centred: {
+    centred: {        
         flex: 1,
         justifyContent: 'center',
+        marginTop: 60,
         alignItems: 'center',
     },
     inner: {
+        paddingHorizontal: theme.spacing.lg,
         paddingBottom: 48,
     },
     header: {
-        paddingHorizontal: theme.spacing.lg,
         paddingTop: 60,
         paddingBottom: theme.spacing.md,
     },
@@ -1245,7 +1247,6 @@ const styles = StyleSheet.create({
     },
     profileCard: {
         backgroundColor: theme.colors.card,
-        marginHorizontal: theme.spacing.lg,
         borderRadius: theme.radius.lg,
         padding: theme.spacing.lg,
         alignItems: 'center',
@@ -1349,7 +1350,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     section: {
-        paddingHorizontal: theme.spacing.lg,
         marginBottom: theme.spacing.lg,
     },
     sectionTitle: {

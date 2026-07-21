@@ -434,219 +434,220 @@ export default function Activity() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Activity Log</Text>
-                <Text style={styles.headerSubtitle}>{today}</Text>
-            </View>
-
-            <View style={styles.headerDivider} />
-
-            {isLoading ? (
-            <View style={styles.centred}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-            ) : (
             <ScrollView
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={styles.inner}
                 showsVerticalScrollIndicator={false}
             >
-
-                {wearableWorkouts.length > 0 && (
-                <View>
-                    <View style={styles.importHeaderRow}>
-                        <Ionicons name="watch-outline" size={16} color={theme.colors.primary} />
-                        <Text style={styles.importHeaderText}>
-                            {wearableWorkouts.length} workout{wearableWorkouts.length > 1 ? 's' : ''} detected from your wearable
-                        </Text>
-                    </View>
-                    <View style={styles.activitiesCard}>
-                    
-                        {wearableWorkouts.map((workout, index) => {
-                            const meta = getActivityMeta(workout.activityType);
-
-                            return (
-                                <View key={workout.id}>
-
-                                    {index > 0 && <View style={styles.divider} />}
-
-                                    <View style={styles.activityRow}>
-                                        <View style={styles.activityIconContainer}>
-                                            <Text style={styles.activityEmoji}>{meta.emoji}</Text>
-                                        </View>
-                                        <View style={styles.activityInfo}>
-                                            <Text style={styles.activityType}>{meta.label}</Text>
-                                            <Text style={styles.activityMeta}>
-                                                {workout.durationMinutes} min · {new Date(workout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </Text>
-                                        </View>
-                                        <TouchableOpacity
-                                            style={[styles.importButton, isImporting === workout.id && styles.buttonDisabled]}
-                                            onPress={() => handleImportWorkout(workout)}
-                                            disabled={isImporting === workout.id}
-                                        >
-
-                                            {isImporting === workout.id ? (
-                                            <ActivityIndicator size="small" color={theme.colors.white} />
-                                            ) : (
-                                            <Text style={styles.importButtonText}>Import</Text>
-                                            )}
-                                            
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            );
-                        })}
-
-                    </View>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Activity Log</Text>
+                    <Text style={styles.headerSubtitle}>{today}</Text>
                 </View>
-                )}
 
-                {error && (
-                <View style={styles.errorCard}>
-                    <Ionicons name="alert-circle-outline" size={18} color={theme.colors.danger} />
-                    <Text style={styles.errorText}>{error}</Text>
-                </View>
-                )}
+                <View style={styles.headerDivider} />
 
-                {activities.length === 0 ? (
-                <View style={styles.emptyCard}>
-                    <Text style={styles.emptyEmoji}>🏃</Text>
-                    <Text style={styles.emptyTitle}>No activities in the last 14 days</Text>
-                    <Text style={styles.emptySubtitle}>Tap the + button to log an activity</Text>
+                {isLoading ? (
+                <View style={styles.centred}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
                 </View>
                 ) : (
-                    activityGroups.map(group => (
-                    <View
-                        key={group.date}
-                        style={styles.activityGroup}
-                    >
-                        <Text style={styles.dateLabel}>{getDateLabel(group.date)}</Text>
+                <View>
+                    {wearableWorkouts.length > 0 && (
+                    <View>
+                        <View style={styles.importHeaderRow}>
+                            <Ionicons name="watch-outline" size={16} color={theme.colors.primary} />
+                            <Text style={styles.importHeaderText}>
+                                {wearableWorkouts.length} workout{wearableWorkouts.length > 1 ? 's' : ''} detected from your wearable
+                            </Text>
+                        </View>
                         <View style={styles.activitiesCard}>
-                            {group.activities.map(
-                                (activity, index) => {
-                                    const meta = getActivityMeta(activity.activity_type);
+                        
+                            {wearableWorkouts.map((workout, index) => {
+                                const meta = getActivityMeta(workout.activityType);
 
-                                    const time = new Date(activity.created_at).toLocaleTimeString(
-                                        [],
-                                        {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        }
-                                    );
+                                return (
+                                    <View key={workout.id}>
 
-                                    return (
-                                        <View key={activity.id}>
-                                            <View style={styles.activityRow}>
-                                                <View style={styles.activityIconContainer}>
-                                                    <Text style={ styles.activityEmoji}>{meta.emoji}</Text>
-                                                </View>
+                                        {index > 0 && <View style={styles.divider} />}
 
-                                                <View style={styles.activityInfo}>
-                                                    <Text style={styles.activityType}>{meta.label}</Text>
-                                                    <Text style={styles.activityMeta}>
-                                                        {activity.duration_minutes}{' '}min · {time}
-                                                    </Text>
+                                        <View style={styles.activityRow}>
+                                            <View style={styles.activityIconContainer}>
+                                                <Text style={styles.activityEmoji}>{meta.emoji}</Text>
+                                            </View>
+                                            <View style={styles.activityInfo}>
+                                                <Text style={styles.activityType}>{meta.label}</Text>
+                                                <Text style={styles.activityMeta}>
+                                                    {workout.durationMinutes} min · {new Date(workout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                style={[styles.importButton, isImporting === workout.id && styles.buttonDisabled]}
+                                                onPress={() => handleImportWorkout(workout)}
+                                                disabled={isImporting === workout.id}
+                                            >
 
-                                                    {activity.notes && (
-                                                        <Text style={styles.activityNotes}>{activity.notes}</Text>
-                                                    )}
+                                                {isImporting === workout.id ? (
+                                                <ActivityIndicator size="small" color={theme.colors.white} />
+                                                ) : (
+                                                <Text style={styles.importButtonText}>Import</Text>
+                                                )}
+                                                
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                );
+                            })}
 
-                                                </View>
+                        </View>
+                    </View>
+                    )}
 
-                                                <View style={styles.activityRight}>
-                                                    <View style={[
-                                                            styles.effortBadge,
-                                                            activity.perceived_exertion >= 4 &&styles.effortBadgeHigh,
-                                                        ]}
-                                                    >
-                                                        <Text style={[
-                                                                styles.effortBadgeText,
-                                                                activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
-                                                            ]}
-                                                        >
-                                                            {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
-                                                        </Text>
+                    {error && (
+                    <View style={styles.errorCard}>
+                        <Ionicons name="alert-circle-outline" size={18} color={theme.colors.danger} />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                    )}
+
+                    {activities.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyEmoji}>🏃</Text>
+                        <Text style={styles.emptyTitle}>No activities in the last 14 days</Text>
+                        <Text style={styles.emptySubtitle}>Tap the + button to log an activity</Text>
+                    </View>
+                    ) : (
+                    activityGroups.map(group => (
+                        <View
+                            key={group.date}
+                            style={styles.activityGroup}
+                        >
+                            <Text style={styles.dateLabel}>{getDateLabel(group.date)}</Text>
+                            <View style={styles.activitiesCard}>
+                                {group.activities.map(
+                                    (activity, index) => {
+                                        const meta = getActivityMeta(activity.activity_type);
+
+                                        const time = new Date(activity.created_at).toLocaleTimeString(
+                                            [],
+                                            {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            }
+                                        );
+
+                                        return (
+                                            <View key={activity.id}>
+                                                <View style={styles.activityRow}>
+                                                    <View style={styles.activityIconContainer}>
+                                                        <Text style={ styles.activityEmoji}>{meta.emoji}</Text>
                                                     </View>
-                                                    
-                                                    <View style={styles.activityActions}>
 
-                                                        {activity.source === 'manual' && (
-                                                        <TouchableOpacity
-                                                            style={styles.editButton}
-                                                            onPress={() => router.push({
-                                                                pathname: '/log-activity',
-                                                                params: {
-                                                                    from: 'activity',
-                                                                    activityId: activity.id,
-                                                                },
-                                                            })}
-                                                            disabled={isDeleting !== null}
-                                                        >
-                                                            <Ionicons name="pencil-outline" size={18} color={theme.colors.primary} />
-                                                        </TouchableOpacity>
+                                                    <View style={styles.activityInfo}>
+                                                        <Text style={styles.activityType}>{meta.label}</Text>
+                                                        <Text style={styles.activityMeta}>
+                                                            {activity.duration_minutes}{' '}min · {time}
+                                                        </Text>
+
+                                                        {activity.notes && (
+                                                            <Text style={styles.activityNotes}>{activity.notes}</Text>
                                                         )}
 
-                                                        <TouchableOpacity
-                                                            style={[
-                                                                styles.deleteButton,
-                                                                isDeleting !== null && styles.deleteButtonDisabled,
+                                                    </View>
+
+                                                    <View style={styles.activityRight}>
+                                                        <View style={[
+                                                                styles.effortBadge,
+                                                                activity.perceived_exertion >= 4 &&styles.effortBadgeHigh,
                                                             ]}
-                                                            onPress={() => confirmDelete(activity)}
-                                                            disabled={isDeleting !== null}
                                                         >
-                                                            {isDeleting === activity.id ? (
-                                                            <ActivityIndicator
-                                                                size="small"
-                                                                color={theme.colors.danger}
-                                                            />
-                                                            ) : (
-                                                            <Ionicons
-                                                                name="trash-outline"
-                                                                size={19}
-                                                                color={theme.colors.textLight}
-                                                            />
+                                                            <Text style={[
+                                                                    styles.effortBadgeText,
+                                                                    activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
+                                                                ]}
+                                                            >
+                                                                {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
+                                                            </Text>
+                                                        </View>
+                                                        
+                                                        <View style={styles.activityActions}>
+
+                                                            {activity.source === 'manual' && (
+                                                            <TouchableOpacity
+                                                                style={styles.editButton}
+                                                                onPress={() => router.push({
+                                                                    pathname: '/log-activity',
+                                                                    params: {
+                                                                        from: 'activity',
+                                                                        activityId: activity.id,
+                                                                    },
+                                                                })}
+                                                                disabled={isDeleting !== null}
+                                                            >
+                                                                <Ionicons name="pencil-outline" size={18} color={theme.colors.primary} />
+                                                            </TouchableOpacity>
                                                             )}
-                                                        </TouchableOpacity>
+
+                                                            <TouchableOpacity
+                                                                style={[
+                                                                    styles.deleteButton,
+                                                                    isDeleting !== null && styles.deleteButtonDisabled,
+                                                                ]}
+                                                                onPress={() => confirmDelete(activity)}
+                                                                disabled={isDeleting !== null}
+                                                            >
+                                                                {isDeleting === activity.id ? (
+                                                                <ActivityIndicator
+                                                                    size="small"
+                                                                    color={theme.colors.danger}
+                                                                />
+                                                                ) : (
+                                                                <Ionicons
+                                                                    name="trash-outline"
+                                                                    size={19}
+                                                                    color={theme.colors.textLight}
+                                                                />
+                                                                )}
+                                                            </TouchableOpacity>
+                                                        </View>
                                                     </View>
                                                 </View>
+
+                                                {index < group.activities.length - 1 && (
+                                                <View style={styles.divider} />
+                                                )}
+
                                             </View>
+                                        );
+                                    }
+                                )}
 
-                                            {index < group.activities.length - 1 && (
-                                            <View style={styles.divider} />
-                                            )}
-
-                                        </View>
-                                    );
-                                }
-                            )}
-
+                            </View>
                         </View>
-                    </View>
-                    ))
-                )}
+                        ))
+                    )}
                 
-                <View style={styles.weeklyGoalCard}>
-                    <View style={styles.weeklyGoalHeader}>
-                        <View style={styles.weeklyGoalLeft}>
-                            <Ionicons name="flame" size={20} color={theme.colors.primary} />
-                            <Text style={styles.weeklyGoalTitle}>Weekly Goal</Text>
+                    <View style={styles.weeklyGoalCard}>
+                        <View style={styles.weeklyGoalHeader}>
+                            <View style={styles.weeklyGoalLeft}>
+                                <Ionicons name="flame" size={20} color={theme.colors.primary} />
+                                <Text style={styles.weeklyGoalTitle}>Weekly Goal</Text>
+                            </View>
+                            <Text style={styles.weeklyGoalCount}>
+                                {weeklyCount} of {weeklyTarget} activities
+                            </Text>
                         </View>
-                        <Text style={styles.weeklyGoalCount}>
-                            {weeklyCount} of {weeklyTarget} activities
-                        </Text>
-                    </View>
-                    <View style={styles.progressTrack}>
-                        <View
-                            style={[
-                            styles.progressFill,
-                            { width: `${progressPercent}%` },
-                            ]}
-                        />
+                        <View style={styles.progressTrack}>
+                            <View
+                                style={[
+                                styles.progressFill,
+                                { width: `${progressPercent}%` },
+                                ]}
+                            />
+                        </View>
                     </View>
                 </View>
+                )}
 
             </ScrollView>
-            )}
             
             <TouchableOpacity
                 style={styles.fab}
@@ -669,9 +670,12 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background,
     },
     header: {
-        paddingHorizontal: theme.spacing.lg,
-        paddingTop: 60,
         paddingBottom: theme.spacing.md,
+    },    
+    inner: {
+        paddingTop: 60,
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: 100,
     },
     headerTitle: {
         ...theme.typography.screenTitle,
@@ -690,6 +694,7 @@ const styles = StyleSheet.create({
     centred: {
         flex: 1,
         justifyContent: 'center',
+        marginTop: 60,
         alignItems: 'center',
     },
     listContent: {
