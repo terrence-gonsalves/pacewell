@@ -175,8 +175,12 @@ export default function RootLayout() {
             sessionRef.current = session;
             setSession(session);
         
+            if (event === 'PASSWORD_RECOVERY') {
+                passwordRecoveryRef.current = true;
+            }
+            
             if (splashCompleteRef.current) {
-                if (event === 'PASSWORD_RECOVERY') {
+                if (passwordRecoveryRef.current && session) {
                     router.replace('/(auth)/reset-password');
                 } else if (session) {
                     router.replace('/(tabs)/dashboard');
