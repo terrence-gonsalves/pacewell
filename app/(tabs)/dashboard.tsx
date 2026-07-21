@@ -491,19 +491,9 @@ export default function Dashboard() {
     const getActivityMeta = (type: ActivityType) =>
         ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
 
-    // ─── Loading ──────────────────────────────────────────────────────────────
-
-    if (isLoading) {
-        return (
-            <View style={styles.centred}>
-                <ActivityIndicator size="large" color={theme.colors.primary} />
-            </View>
-        );
-    }
-
     // ─── Render ───────────────────────────────────────────────────────────────
 
-  return (
+    return (
         <View style={styles.container}>
             <ScrollView
                 contentContainerStyle={styles.inner}
@@ -534,308 +524,316 @@ export default function Dashboard() {
                 </View>
 
                 <View style={styles.headerDivider} />
-                
-                <View style={styles.greetingSection}>
-                    <Text style={styles.greetingLine1}>{getGreeting()}</Text>
-                    <Text style={styles.greetingName}>{data?.firstName}</Text>
-                    <Text style={styles.greetingSubtitle}>Ready for a healthy day?</Text>
-                </View>
-                
-                {data?.streak !== undefined && data.streak >= 1 && (
-                <View style={styles.streakCard}>
-                    <View style={styles.streakLeft}>
-                        <Text style={styles.streakLabel}>CURRENT STREAK</Text>
-                        <View style={styles.streakCountRow}>
-                            <Text style={styles.streakCount}>{data.streak}</Text>
-                            <Text style={styles.streakDays}> Days</Text>
-                        </View>
-                        <Text style={styles.streakMotivation}>
-                            You're on a roll — keep it going! 💪
-                        </Text>
-                    </View>
-                    <View style={styles.streakIconContainer}>
-                        <Ionicons name="flash" size={28} color={theme.colors.primary} />
-                    </View>
-                </View>
-                )}
-                
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Today's Check-in</Text>
 
-                    {data?.hasCheckedInToday ? (
-                    <TouchableOpacity
-                        style={styles.checkInComplete}
-                        onPress={() => router.push('/(tabs)/checkin')}
-                    >
-                        <View style={styles.checkInIconContainer}>
-                            <Ionicons name="checkmark-circle" size={32} color={theme.colors.primary} />
-                        </View>
-                        <View style={styles.checkInText}>
-                            <Text style={styles.checkInTitle}>All done for today</Text>
-                            <Text style={styles.checkInSubtitle}>Tap to review or edit</Text>
-                        </View>
-                    </TouchableOpacity>
-                    ) : (
-                    <TouchableOpacity
-                        style={styles.checkInPending}
-                        onPress={() => router.push('/(tabs)/checkin')}
-                    >
-                        <View style={styles.checkInIconContainer}>
-                            <Ionicons name="time-outline" size={28} color={theme.colors.textSubtle} />
-                        </View>
-                        <View style={styles.checkInText}>
-                            <Text style={styles.checkInPendingTitle}>Today's Check-in</Text>
-                            <Text style={styles.checkInSubtitle}>
-                                Takes less than 1 minute to complete.
+                {isLoading ? (
+                <View style={styles.centred}>
+                    <ActivityIndicator size="large" color={theme.colors.primary} />
+                </View>
+                ) : (
+                <>
+                    <View style={styles.greetingSection}>
+                        <Text style={styles.greetingLine1}>{getGreeting()}</Text>
+                        <Text style={styles.greetingName}>{data?.firstName}</Text>
+                        <Text style={styles.greetingSubtitle}>Ready for a healthy day?</Text>
+                    </View>
+                    
+                    {data?.streak !== undefined && data.streak >= 1 && (
+                    <View style={styles.streakCard}>
+                        <View style={styles.streakLeft}>
+                            <Text style={styles.streakLabel}>CURRENT STREAK</Text>
+                            <View style={styles.streakCountRow}>
+                                <Text style={styles.streakCount}>{data.streak}</Text>
+                                <Text style={styles.streakDays}> Days</Text>
+                            </View>
+                            <Text style={styles.streakMotivation}>
+                                You're on a roll — keep it going! 💪
                             </Text>
                         </View>
+                        <View style={styles.streakIconContainer}>
+                            <Ionicons name="flash" size={28} color={theme.colors.primary} />
+                        </View>
+                    </View>
+                    )}
+                    
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Today's Check-in</Text>
+
+                        {data?.hasCheckedInToday ? (
                         <TouchableOpacity
-                            style={styles.startButton}
+                            style={styles.checkInComplete}
                             onPress={() => router.push('/(tabs)/checkin')}
                         >
-                            <Text style={styles.startButtonText}>Start</Text>
+                            <View style={styles.checkInIconContainer}>
+                                <Ionicons name="checkmark-circle" size={32} color={theme.colors.primary} />
+                            </View>
+                            <View style={styles.checkInText}>
+                                <Text style={styles.checkInTitle}>All done for today</Text>
+                                <Text style={styles.checkInSubtitle}>Tap to review or edit</Text>
+                            </View>
                         </TouchableOpacity>
-                    </TouchableOpacity>
-                    )}
+                        ) : (
+                        <TouchableOpacity
+                            style={styles.checkInPending}
+                            onPress={() => router.push('/(tabs)/checkin')}
+                        >
+                            <View style={styles.checkInIconContainer}>
+                                <Ionicons name="time-outline" size={28} color={theme.colors.textSubtle} />
+                            </View>
+                            <View style={styles.checkInText}>
+                                <Text style={styles.checkInPendingTitle}>Today's Check-in</Text>
+                                <Text style={styles.checkInSubtitle}>
+                                    Takes less than 1 minute to complete.
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.startButton}
+                                onPress={() => router.push('/(tabs)/checkin')}
+                            >
+                                <Text style={styles.startButtonText}>Start</Text>
+                            </TouchableOpacity>
+                        </TouchableOpacity>
+                        )}
 
-                </View>
+                    </View>
 
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>
-                        Health Signals
-                    </Text>
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>
+                            Health Signals
+                        </Text>
 
-                    <View style={styles.healthSignalsGrid}>
-                        <View style={styles.healthSignalCard}>
-                            <View style={styles.healthSignalIcon}>
-                                <Ionicons
-                                    name="footsteps-outline"
-                                    size={22}
-                                    color={theme.colors.primary}
-                                />
+                        <View style={styles.healthSignalsGrid}>
+                            <View style={styles.healthSignalCard}>
+                                <View style={styles.healthSignalIcon}>
+                                    <Ionicons
+                                        name="footsteps-outline"
+                                        size={22}
+                                        color={theme.colors.primary}
+                                    />
+                                </View>
+
+                                <Text style={styles.healthSignalValue}>
+                                    {formatSteps(data?.steps ?? null)}
+                                </Text>
+
+                                <Text style={styles.healthSignalLabel}>STEPS</Text>
+                                <Text style={styles.healthSignalMeta}>Today</Text>
                             </View>
 
-                            <Text style={styles.healthSignalValue}>
-                                {formatSteps(data?.steps ?? null)}
-                            </Text>
+                            <View style={styles.healthSignalCard}>
+                                <View style={styles.healthSignalIcon}>
+                                    <Ionicons
+                                        name="heart-outline"
+                                        size={22}
+                                        color={theme.colors.primary}
+                                    />
+                                </View>
 
-                            <Text style={styles.healthSignalLabel}>STEPS</Text>
-                            <Text style={styles.healthSignalMeta}>Today</Text>
-                        </View>
+                                <Text style={styles.healthSignalValue}>
+                                    {formatHeartRate(
+                                        data?.restingHeartRate ??
+                                        data?.averageHeartRate ??
+                                        null
+                                    )}
+                                </Text>
 
-                        <View style={styles.healthSignalCard}>
-                            <View style={styles.healthSignalIcon}>
-                                <Ionicons
-                                    name="heart-outline"
-                                    size={22}
-                                    color={theme.colors.primary}
-                                />
+                                <Text style={styles.healthSignalLabel}>HEART RATE</Text>
+
+                                <Text style={styles.healthSignalMeta}>
+                                    {data?.restingHeartRate !== null &&
+                                    data?.restingHeartRate !== undefined
+                                        ? 'Resting'
+                                        : data?.averageHeartRate !== null &&
+                                            data?.averageHeartRate !== undefined
+                                            ? 'Average today'
+                                            : 'No data'}
+                                </Text>
                             </View>
 
-                            <Text style={styles.healthSignalValue}>
-                                {formatHeartRate(
-                                    data?.restingHeartRate ??
-                                    data?.averageHeartRate ??
-                                    null
-                                )}
-                            </Text>
+                            <View style={styles.healthSignalCard}>
+                                <View style={styles.healthSignalIcon}>
+                                    <Ionicons
+                                        name="scale-outline"
+                                        size={22}
+                                        color={theme.colors.primary}
+                                    />
+                                </View>
 
-                            <Text style={styles.healthSignalLabel}>HEART RATE</Text>
+                                <Text style={styles.healthSignalValue}>
+                                    {formatWeight(
+                                        data?.weightKg ?? null,
+                                        data?.units ?? 'metric'
+                                    )}
+                                </Text>
 
-                            <Text style={styles.healthSignalMeta}>
-                                {data?.restingHeartRate !== null &&
-                                data?.restingHeartRate !== undefined
-                                    ? 'Resting'
-                                    : data?.averageHeartRate !== null &&
-                                        data?.averageHeartRate !== undefined
-                                        ? 'Average today'
+                                <Text style={styles.healthSignalLabel}>WEIGHT</Text>
+
+                                <Text style={styles.healthSignalMeta}>
+                                    {data?.weightDate
+                                        ? formatDate(
+                                            parseLocalDate(data.weightDate),
+                                            {
+                                                day: 'numeric',
+                                                month: 'short',
+                                            }
+                                        )
                                         : 'No data'}
-                            </Text>
-                        </View>
-
-                        <View style={styles.healthSignalCard}>
-                            <View style={styles.healthSignalIcon}>
-                                <Ionicons
-                                    name="scale-outline"
-                                    size={22}
-                                    color={theme.colors.primary}
-                                />
+                                </Text>
                             </View>
-
-                            <Text style={styles.healthSignalValue}>
-                                {formatWeight(
-                                    data?.weightKg ?? null,
-                                    data?.units ?? 'metric'
-                                )}
-                            </Text>
-
-                            <Text style={styles.healthSignalLabel}>WEIGHT</Text>
-
-                            <Text style={styles.healthSignalMeta}>
-                                {data?.weightDate
-                                    ? formatDate(
-                                        parseLocalDate(data.weightDate),
-                                        {
-                                            day: 'numeric',
-                                            month: 'short',
-                                        }
-                                    )
-                                    : 'No data'}
-                            </Text>
                         </View>
                     </View>
-                </View>
-                
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Weekly Averages</Text>
+                    
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Weekly Averages</Text>
 
-                    {data?.avgMood === null ? (
-                    <View style={styles.emptyCard}>
-                        <Text style={styles.emptyText}>
-                            Complete a few check-ins to see your averages
-                        </Text>
-                    </View>
-                    ) : (
-                    <View style={styles.statsRow}>
-                        <View style={styles.statCard}>
-                            <Text style={styles.statEmoji}>
-                                {getEmojiForAverage(data?.avgMood ?? 3, MOOD_LABELS)}
+                        {data?.avgMood === null ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>
+                                Complete a few check-ins to see your averages
                             </Text>
-                            <Text style={styles.statValue}>
-                                {getDescriptiveLabel(data?.avgMood ?? 3, MOOD_LABELS)}
-                            </Text>
-                            <Text style={styles.statLabel}>MOOD</Text>
                         </View>
-                        <View style={styles.statCard}>
-                            <Text style={styles.statEmoji}>
-                                {getEmojiForAverage(data?.avgEnergy ?? 3, ENERGY_LABELS)}
-                            </Text>
-                            <Text style={styles.statValue}>
-                                {getDescriptiveLabel(data?.avgEnergy ?? 3, ENERGY_LABELS)}
-                            </Text>
-                            <Text style={styles.statLabel}>ENERGY</Text>
-                        </View>
-                        <View style={styles.statCard}>
-                            <Text style={styles.statEmoji}>😴</Text>
-                            <Text style={styles.statValue}>
-                                {getSleepLabel(data?.avgSleepHours ?? 7)}
-                            </Text>
-                            <Text style={styles.statLabel}>SLEEP</Text>
-                        </View>
-                    </View>
-                    )}
-
-                </View>
-                
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Latest Insight</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/insights')}>
-                            <Text style={styles.seeAllText}>See all →</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {data?.latestInsight ? (
-                    <TouchableOpacity
-                        style={styles.insightCard}
-                        onPress={() => router.push('/(tabs)/insights')}
-                    >
-                        <View style={styles.insightHeader}>
-                            <View style={styles.insightBadge}>
-                                <Text style={styles.insightBadgeText}>AI Insight</Text>
+                        ) : (
+                        <View style={styles.statsRow}>
+                            <View style={styles.statCard}>
+                                <Text style={styles.statEmoji}>
+                                    {getEmojiForAverage(data?.avgMood ?? 3, MOOD_LABELS)}
+                                </Text>
+                                <Text style={styles.statValue}>
+                                    {getDescriptiveLabel(data?.avgMood ?? 3, MOOD_LABELS)}
+                                </Text>
+                                <Text style={styles.statLabel}>MOOD</Text>
                             </View>
-                            <Text style={styles.insightDate}>
+                            <View style={styles.statCard}>
+                                <Text style={styles.statEmoji}>
+                                    {getEmojiForAverage(data?.avgEnergy ?? 3, ENERGY_LABELS)}
+                                </Text>
+                                <Text style={styles.statValue}>
+                                    {getDescriptiveLabel(data?.avgEnergy ?? 3, ENERGY_LABELS)}
+                                </Text>
+                                <Text style={styles.statLabel}>ENERGY</Text>
+                            </View>
+                            <View style={styles.statCard}>
+                                <Text style={styles.statEmoji}>😴</Text>
+                                <Text style={styles.statValue}>
+                                    {getSleepLabel(data?.avgSleepHours ?? 7)}
+                                </Text>
+                                <Text style={styles.statLabel}>SLEEP</Text>
+                            </View>
+                        </View>
+                        )}
 
-                                {formatDate(
-                                    parseLocalDate(data.latestInsight.created_at.split('T')[0]),
-                                    { day: 'numeric', month: 'short' }
-                                )}
+                    </View>
+                    
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Latest Insight</Text>
+                            <TouchableOpacity onPress={() => router.push('/(tabs)/insights')}>
+                                <Text style={styles.seeAllText}>See all →</Text>
+                            </TouchableOpacity>
+                        </View>
 
+                        {data?.latestInsight ? (
+                        <TouchableOpacity
+                            style={styles.insightCard}
+                            onPress={() => router.push('/(tabs)/insights')}
+                        >
+                            <View style={styles.insightHeader}>
+                                <View style={styles.insightBadge}>
+                                    <Text style={styles.insightBadgeText}>AI Insight</Text>
+                                </View>
+                                <Text style={styles.insightDate}>
+
+                                    {formatDate(
+                                        parseLocalDate(data.latestInsight.created_at.split('T')[0]),
+                                        { day: 'numeric', month: 'short' }
+                                    )}
+
+                                </Text>
+                            </View>
+                            <Text style={styles.insightContent} numberOfLines={3}>
+                                {data.latestInsight.content}
+                            </Text>
+                            <Text style={styles.learnMore}>Learn more →</Text>
+                        </TouchableOpacity>
+                        ) : (
+                        <TouchableOpacity
+                            style={styles.insightEmptyCard}
+                            onPress={() => router.push('/(tabs)/insights')}
+                        >
+                            <Text style={styles.insightEmptyEmoji}>🤖</Text>
+                            <Text style={styles.insightEmptyTitle}>No insights yet</Text>
+                            <Text style={styles.insightEmptyText}>
+                                Complete a few daily check-ins and Pacewell will start generating personalised insights for you.
+                            </Text>
+                        </TouchableOpacity>
+                        )}
+
+                    </View>
+                    
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Recent Activity</Text>
+                            <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
+                                <Text style={styles.seeAllText}>View All →</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {data?.recentActivities.length === 0 ? (
+                        <View style={styles.emptyCard}>
+                            <Text style={styles.emptyText}>
+                                No activities logged yet — tap + to add one
                             </Text>
                         </View>
-                        <Text style={styles.insightContent} numberOfLines={3}>
-                            {data.latestInsight.content}
-                        </Text>
-                        <Text style={styles.learnMore}>Learn more →</Text>
-                    </TouchableOpacity>
-                    ) : (
-                    <TouchableOpacity
-                        style={styles.insightEmptyCard}
-                        onPress={() => router.push('/(tabs)/insights')}
-                    >
-                        <Text style={styles.insightEmptyEmoji}>🤖</Text>
-                        <Text style={styles.insightEmptyTitle}>No insights yet</Text>
-                        <Text style={styles.insightEmptyText}>
-                            Complete a few daily check-ins and Pacewell will start generating personalised insights for you.
-                        </Text>
-                    </TouchableOpacity>
-                    )}
+                        ) : (
+                        <View style={styles.card}>
 
-                </View>
-                
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Recent Activity</Text>
-                        <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
-                            <Text style={styles.seeAllText}>View All →</Text>
-                        </TouchableOpacity>
-                    </View>
+                            {data?.recentActivities.map((activity, index) => {
+                                const meta = getActivityMeta(activity.activity_type);
 
-                    {data?.recentActivities.length === 0 ? (
-                    <View style={styles.emptyCard}>
-                        <Text style={styles.emptyText}>
-                            No activities logged yet — tap + to add one
-                        </Text>
-                    </View>
-                    ) : (
-                    <View style={styles.card}>
-
-                        {data?.recentActivities.map((activity, index) => {
-                            const meta = getActivityMeta(activity.activity_type);
-
-                            return (
-                                <View key={activity.id}>
-                                    <View style={styles.activityRow}>
-                                        <View style={styles.activityIconContainer}>
-                                            <Text style={styles.activityEmoji}>{meta.emoji}</Text>
-                                        </View>
-                                        <View style={styles.activityInfo}>
-                                            <Text style={styles.activityType}>
-                                                {meta.label}
-                                            </Text>
-                                            <Text style={styles.activityMeta}>
-                                                {activity.duration_minutes} min
-                                            </Text>
-                                        </View>
-                                        <View style={styles.activityRight}>
-                                            <View style={styles.effortBadge}>
-                                                <Text style={styles.effortBadgeText}>
-                                                    {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
+                                return (
+                                    <View key={activity.id}>
+                                        <View style={styles.activityRow}>
+                                            <View style={styles.activityIconContainer}>
+                                                <Text style={styles.activityEmoji}>{meta.emoji}</Text>
+                                            </View>
+                                            <View style={styles.activityInfo}>
+                                                <Text style={styles.activityType}>
+                                                    {meta.label}
+                                                </Text>
+                                                <Text style={styles.activityMeta}>
+                                                    {activity.duration_minutes} min
                                                 </Text>
                                             </View>
-                                            <Text style={styles.activityDate}>
+                                            <View style={styles.activityRight}>
+                                                <View style={styles.effortBadge}>
+                                                    <Text style={styles.effortBadgeText}>
+                                                        {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
+                                                    </Text>
+                                                </View>
+                                                <Text style={styles.activityDate}>
 
-                                                {formatDate(parseLocalDate(activity.date), {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                })}
+                                                    {formatDate(parseLocalDate(activity.date), {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                    })}
 
-                                            </Text>
+                                                </Text>
+                                            </View>
                                         </View>
-                                    </View>
 
-                                    {index < (data?.recentActivities.length ?? 0) - 1 && (
-                                    <View style={styles.divider} />
-                                    )}
-                                    
-                                </View>
-                            );
-                        })}
+                                        {index < (data?.recentActivities.length ?? 0) - 1 && (
+                                        <View style={styles.divider} />
+                                        )}
+                                        
+                                    </View>
+                                );
+                            })}
+
+                        </View>
+                        )}
 
                     </View>
-                    )}
-
-                </View>
+                </>
+                )}
             </ScrollView>
             
             <TouchableOpacity
@@ -862,6 +860,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: 60,
         backgroundColor: theme.colors.background,
     },
     inner: {
