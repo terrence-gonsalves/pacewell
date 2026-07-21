@@ -84,13 +84,23 @@ export default function RootLayout() {
         initializeBackgroundSync();
 
         // handle deep links when app is already open
-        const linkingSub = Linking.addEventListener('url', ({ url }) => {
-            handleDeepLink(url);
+        const linkingSub = Linking.addEventListener('url', async ({ url }) => {
+            await handleDeepLink(url);
+
+            if (Linking.parse(url).queryParams?.type === 'recovery') {
+                router.replace('/(auth)/reset-password');
+            }
         });
 
         // handle deep link that launched the app
-        Linking.getInitialURL().then(url => {
-            if (url) handleDeepLink(url);
+        Linking.getInitialURL().then(async url => {
+            if (!url) return;
+
+            await handleDeepLink(url);
+
+            if (Linking.parse(url).queryParams?.type === 'recovery') {
+                router.replace('/(auth)/reset-password');
+            }
         });
 
         notificationListener.current = Notifications.addNotificationReceivedListener(
