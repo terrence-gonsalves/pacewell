@@ -76,6 +76,9 @@ export default function RootLayout() {
     // track whether splash has completed so post-splash auth changes can navigate
     const splashCompleteRef = useRef(false);
 
+    // preserve password recovery routing while the splash screen is active
+    const passwordRecoveryRef = useRef(false);
+
     const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
     const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
