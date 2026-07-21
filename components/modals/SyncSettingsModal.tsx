@@ -9,6 +9,7 @@ import {
     Switch,
     Animated,
     ActivityIndicator,
+    Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -208,9 +209,12 @@ export default function SyncSettingsModal({
                 </TouchableOpacity>
                 
                 {syncMessage && (
-                <View style={styles.syncMessage}>
+                <TouchableOpacity 
+                    style={styles.syncMessage} 
+                    onPress={() => Linking.openSettings()}
+                >
                     <Text style={styles.syncMessageText}>{syncMessage}</Text>
-                </View>
+                </TouchableOpacity>
                 )}
                 
                 <View style={styles.divider} />
