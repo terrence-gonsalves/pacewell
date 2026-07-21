@@ -204,7 +204,13 @@ export default function RootLayout() {
     const handleSplashComplete = () => {
         splashCompleteRef.current = true;
         setShowCustomSplash(false);
-
+    
+        if (passwordRecoveryRef.current) {
+            router.replace('/(auth)/reset-password');
+    
+            return;
+        }
+    
         // use the ref to get the latest session value — not the closure value
         if (sessionRef.current) {
             router.replace('/(tabs)/dashboard');
