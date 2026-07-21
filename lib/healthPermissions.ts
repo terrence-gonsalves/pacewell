@@ -129,7 +129,11 @@ export const getHealthPermissionStatus = async (): Promise<string> => {
 };
 
 export const hasHealthPermissions = async (): Promise<boolean> => {
+    if (Platform.OS === 'android') {
+        return checkHealthConnectPermissions();
+    }
+
     const status = await getHealthPermissionStatus();
-    
+
     return status === 'granted';
 };
