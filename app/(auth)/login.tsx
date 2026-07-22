@@ -68,26 +68,13 @@ export default function Login() {
         setLoading(false);
     };
 
-    const handleForgotPassword = async () => {
-        if (!email) {
-            setError('Please enter your email address first.');
-        
-            return;
-        }
-
-        setLoading(true);
-
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: 'pacewell://auth/callback?type=recovery',
+    const handleForgotPassword = () => {
+        setError(null);
+    
+        router.push({
+            pathname: '/(auth)/forgot-password',
+            params: email ? { email } : {},
         });
-
-        if (error) {
-            setError(error.message);
-        } else {
-            setError('Password reset email sent. Check your inbox.');
-        }
-        
-        setLoading(false);
     };
 
     const handleSubmit = () => {
