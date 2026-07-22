@@ -81,11 +81,14 @@ export default function ResetPassword() {
 
                     <TouchableOpacity
                         style={styles.primaryButton}
-                        onPress={() => router.replace('/(tabs)')}
+                        onPress={async () => {
+                            await supabase.auth.signOut();
+                            router.replace('/(auth)/login');
+                        }}
                     >
                         <View style={styles.buttonInner}>
                             <Text style={styles.primaryButtonText}>
-                                Continue to Pacewell
+                                Return to Sign In
                             </Text>
 
                             <Ionicons
