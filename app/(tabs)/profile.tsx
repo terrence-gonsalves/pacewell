@@ -553,7 +553,16 @@ export default function Profile() {
                 {
                     text: 'Send Link',
                     onPress: async () => {
-                        await supabase.auth.resetPasswordForEmail(user.email!);
+                        const { error } = await supabase.auth.resetPasswordForEmail(user.email!, {
+                            redirectTo: 'pacewell://auth/callback?type=recovery',
+                        });
+                    
+                        if (error) {
+                            Alert.alert('Unable to send email', error.message);
+                    
+                            return;
+                        }
+                    
                         Alert.alert('Email sent', 'Check your inbox for the reset link.');
                     },
                 },
