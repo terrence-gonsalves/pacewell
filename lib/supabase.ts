@@ -1,7 +1,6 @@
 import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, processLock } from '@supabase/supabase-js';
-import * as Linking from 'expo-linking';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -31,45 +30,79 @@ if (Platform.OS !== 'web') {
     );
 }
 
-// handle magic link and OAuth deep links, parses the token from the URL and exchanges it for a session
-export const handleDeepLink = async (url: string) => {
-    try {
+export type DeepLinkResult = 'recovery' | 'authenticated' | null;
 
-        // supabase auth links use hash fragments (#access_token=...)
+// handle authentication deep links and exchange their tokens for a session
+export const handleDeepLink = async (
+    url: string
+): Promise<DeepLinkResult> => {
+    try {
+        const params: Record<string, string> = {};
+
+        const parseParameters = (value: string) => {
+            value.split('&').forEach(pair => {
+                const separatorIndex = pair.indexOf('=');
+
+                if (separatorIndex === -1) return;
+
+                const key = pair.substring(0, separatorIndex);
+                const parameterValue = pair.substring(separatorIndex + 1);
+
+                if (key && parameterValue) {
+                    params[decodeURIComponent(key)] =
+                        decodeURIComponent(parameterValue);
+                }
+            });
+        };
+
+        const queryIndex = url.indexOf('?');
         const hashIndex = url.indexOf('#');
 
-        if (hashIndex === -1) {
-            return;
+        if (queryIndex !== -1) {
+            const queryEnd = hashIndex === -1 ? url.length : hashIndex;
+            const queryString = url.substring(queryIndex + 1, queryEnd);
+
+            parseParameters(queryString);
         }
 
-        const hashFragment = url.substring(hashIndex + 1);
+        if (hashIndex !== -1) {
+            const hashFragment = url.substring(hashIndex + 1);
 
-        // parse the hash fragment as URL params
-        const params: Record<string, string> = {};
-        
-        hashFragment.split('&').forEach(pair => {
-            const [key, value] = pair.split('=');
+            parseParameters(hashFragment);
+        }
 
-            if (key && value) {
-                params[decodeURIComponent(key)] = decodeURIComponent(value);
-            }
-        });
-        
+        const isPasswordRecovery = params.type === 'recovery';
+
+        if (params.error_description) {
+            throw new Error(params.error_description);
+        }
+
         if (params.access_token && params.refresh_token) {
-            const { data, error } = await supabase.auth.setSession({
+            const { error } = await supabase.auth.setSession({
                 access_token: params.access_token,
                 refresh_token: params.refresh_token,
             });
-        } else if (params.token_hash && params.type) {
+
+            if (error) throw error;
+
+            return isPasswordRecovery ? 'recovery' : 'authenticated';
+        }
+
+        if (params.token_hash && params.type) {
             const { error } = await supabase.auth.verifyOtp({
                 token_hash: params.token_hash,
                 type: params.type as any,
             });
-            console.log('=== OTP RESULT ===', error ? error.message : 'success');
-        } else {
-            console.log('=== NO VALID TOKEN IN HASH ===', params);
+
+            if (error) throw error;
+
+            return isPasswordRecovery ? 'recovery' : 'authenticated';
         }
+
+        return null;
     } catch (err) {
-        console.error('=== DEEP LINK ERROR ===', err);
+        console.error('Deep link error:', err);
+
+        return null;
     }
 };
