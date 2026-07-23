@@ -128,36 +128,55 @@ export default function RootLayout() {
     }, []);
 
     useEffect(() => {
-        supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+        const initializeAuth = async () => {
+            const initialUrl = await Linking.getInitialURL();
+        
+            if (initialUrl) {
+                const isPasswordRecovery =
+                    Linking.parse(initialUrl).queryParams?.type === 'recovery';
+        
+                if (isPasswordRecovery) {
+                    passwordRecoveryRef.current = true;
+                }
+        
+                await handleDeepLink(initialUrl);
+            }
+        
+            const {
+                data: { session },
+                error,
+            } = await supabase.auth.getSession();
+        
             if (error) {
-                const isInvalidRefreshToken = error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token');
-    
+                const isInvalidRefreshToken =
+                    error.message.includes('Invalid Refresh Token') ||
+                    error.message.includes('Refresh Token');
+        
                 if (isInvalidRefreshToken) {
-                    console.warn('Stored auth session is no longer valid. Clearing local session.');
-    
+                    console.warn(
+                        'Stored auth session is no longer valid. Clearing local session.'
+                    );
+        
                     await supabase.auth.signOut({
                         scope: 'local',
                     });
-    
+        
                     sessionRef.current = null;
-
                     setSession(null);
                     setLoading(false);
-    
+        
                     return;
                 }
-    
-                console.error(
-                    'Initial session error:',
-                    error
-                );
+        
+                console.error('Initial session error:', error);
             }
-    
+        
             sessionRef.current = session;
-
             setSession(session);
             setLoading(false);
-        });
+        };
+        
+        initializeAuth();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             sessionRef.current = session;
