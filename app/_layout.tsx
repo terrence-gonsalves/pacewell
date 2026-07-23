@@ -96,18 +96,6 @@ export default function RootLayout() {
             }
         });
 
-        // handle deep link that launched the app
-        Linking.getInitialURL().then(async url => {
-            if (!url) return;
-
-            await handleDeepLink(url);
-
-            if (Linking.parse(url).queryParams?.type === 'recovery') {
-                passwordRecoveryRef.current = true;
-                router.replace('/(auth)/reset-password');
-            }
-        });
-
         notificationListener.current = Notifications.addNotificationReceivedListener(
             notification => {
                 console.log('Notification received:', notification);
