@@ -88,9 +88,9 @@ export default function RootLayout() {
 
         // handle deep links when app is already open
         const linkingSub = Linking.addEventListener('url', async ({ url }) => {
-            await handleDeepLink(url);
-
-            if (Linking.parse(url).queryParams?.type === 'recovery') {
+            const result = await handleDeepLink(url);
+        
+            if (result === 'recovery') {
                 passwordRecoveryRef.current = true;
                 router.replace('/(auth)/reset-password');
             }
@@ -132,14 +132,11 @@ export default function RootLayout() {
             const initialUrl = await Linking.getInitialURL();
         
             if (initialUrl) {
-                const isPasswordRecovery =
-                    Linking.parse(initialUrl).queryParams?.type === 'recovery';
-        
-                if (isPasswordRecovery) {
+                const result = await handleDeepLink(initialUrl);
+            
+                if (result === 'recovery') {
                     passwordRecoveryRef.current = true;
                 }
-        
-                await handleDeepLink(initialUrl);
             }
         
             const {
