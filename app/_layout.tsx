@@ -197,6 +197,10 @@ export default function RootLayout() {
             }
             
             if (splashCompleteRef.current) {
+                if (event === 'USER_UPDATED' && passwordRecoveryRef.current) {
+                    return;
+                }
+            
                 if (passwordRecoveryRef.current && session) {
                     router.replace('/(auth)/reset-password');
                 } else if (session) {
