@@ -197,7 +197,7 @@ export default function RootLayout() {
             }
             
             if (splashCompleteRef.current) {
-                if (event === 'USER_UPDATED' && passwordRecoveryRef.current) {
+                if (event === 'USER_UPDATED') {
                     return;
                 }
             

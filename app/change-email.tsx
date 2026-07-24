@@ -133,8 +133,7 @@ export default function ChangeEmail() {
                     <Text style={styles.title}>Check your email</Text>
 
                     <Text style={styles.subtitle}>
-                        We sent confirmation instructions for changing your
-                        Pacewell email address.
+                        We sent confirmation instructions for changing your Pacewell email address.
                     </Text>
 
                     <View style={styles.emailSummary}>
@@ -148,8 +147,7 @@ export default function ChangeEmail() {
                     </View>
 
                     <Text style={styles.helperText}>
-                        For security, you may need to approve the change from
-                        both email addresses. Your account will continue using
+                        For security, you may need to approve the change from both email addresses. Your account will continue using
                         your current email until the confirmations are complete.
                     </Text>
 
@@ -210,8 +208,7 @@ export default function ChangeEmail() {
                 <Text style={styles.title}>Change email address</Text>
 
                 <Text style={styles.subtitle}>
-                    Enter the new email address you would like to use for your
-                    Pacewell account.
+                    Enter the new email address you would like to use for your Pacewell account.
                 </Text>
 
                 <View style={styles.formCard}>
