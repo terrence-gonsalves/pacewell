@@ -1127,6 +1127,21 @@ export default function Profile() {
                         <View style={styles.card}>
                             <TouchableOpacity
                                 style={styles.settingRow}
+                                onPress={() => router.push('/change-email')}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons name="mail-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <Text style={styles.settingLabel}>Change Email Address</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </TouchableOpacity>
+
+                            <View style={styles.divider} />
+
+                            <TouchableOpacity
+                                style={styles.settingRow}
                                 onPress={handleChangePassword}
                             >
                                 <View style={styles.settingLeft}>
