@@ -246,8 +246,6 @@ const getHealthConnectSleep = async (): Promise<SleepData | null> => {
 
             records = result?.records ?? [];
         } catch (err) {
-            console.log('Sleep permission not granted');
-
             return null;
         }
     
@@ -348,8 +346,6 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
 
             records = result?.records ?? [];
         } catch (err) {
-            console.log('Exercise permission not granted');
-
             return [];
         }
   
