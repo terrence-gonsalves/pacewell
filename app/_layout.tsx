@@ -101,12 +101,6 @@ export default function RootLayout() {
             }
         });
 
-        notificationListener.current = Notifications.addNotificationReceivedListener(
-            notification => {
-                console.log('Notification received:', notification);
-            }
-        );
-
         responseListener.current = Notifications.addNotificationResponseReceivedListener(
             async response => {
                 const data = response.notification.request.content.data;
@@ -127,7 +121,6 @@ export default function RootLayout() {
 
         return () => {
             linkingSub.remove();
-            notificationListener.current?.remove();
             responseListener.current?.remove();
         };
     }, []);
