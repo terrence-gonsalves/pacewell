@@ -152,24 +152,22 @@ export default function RootLayout() {
                 const isInvalidRefreshToken =
                     error.message.includes('Invalid Refresh Token') ||
                     error.message.includes('Refresh Token');
-        
+            
                 if (isInvalidRefreshToken) {
-                    console.warn(
-                        'Stored auth session is no longer valid. Clearing local session.'
-                    );
-        
+                    console.warn('Stored auth session is no longer valid. Clearing local session.');
+            
                     await supabase.auth.signOut({
                         scope: 'local',
                     });
-        
+            
                     sessionRef.current = null;
                     setSession(null);
                     setLoading(false);
-        
+            
                     return;
                 }
-        
-                console.error('Initial session error:', error);
+            
+                console.error('Failed to restore the initial auth session');
             }
         
             sessionRef.current = session;
