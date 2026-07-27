@@ -319,8 +319,6 @@ serve(async (req) => {
                         // wait before retrying — exponential backoff
                         const waitMs = attempt * 2000;
 
-                        console.log(`Claude overloaded, retrying in ${waitMs}ms (attempt ${attempt}/${maxRetries})`);
-
                         await new Promise(resolve => setTimeout(resolve, waitMs));
 
                         continue;
