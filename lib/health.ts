@@ -138,19 +138,27 @@ const getHealthKitHeartRate = async (): Promise<HeartRateData | null> => {
                 'HKQuantityTypeIdentifierHeartRate',
                 { from: startDate, to: endDate, unit: 'count/min' }
             ) ?? [];
-        } catch (err) { console.log('HealthKit HR not available'); }
+        } catch {
+            hrSamples = [];
+        }
 
         try {
             restingHR = await HealthKit.getMostRecentQuantitySample(
-                'HKQuantityTypeIdentifierRestingHeartRate', 'count/min'
+                'HKQuantityTypeIdentifierRestingHeartRate',
+                'count/min'
             );
-        } catch (err) { console.log('HealthKit resting HR not available'); }
-
+        } catch {
+            restingHR = null;
+        }
+        
         try {
             hrv = await HealthKit.getMostRecentQuantitySample(
-                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN', 'ms'
+                'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+                'ms'
             );
-        } catch (err) { console.log('HealthKit HRV not available'); }
+        } catch {
+            hrv = null;
+        }
 
         if (hrSamples.length === 0 && !restingHR) return null;
 
