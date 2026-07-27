@@ -54,12 +54,14 @@ const ensureProfile = async (session: Session) => {
 const initializeBackgroundSync = async () => {
     try {
         const settings = await getSyncSettings();
-
+    
         if (settings.enabled) {
             await scheduleBackgroundSync(settings.intervalHours);
         }
     } catch (err) {
-        console.error('Background sync init error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+    
+        console.error('Background sync initialization failed:', message);
     }
 };
 
@@ -202,9 +204,11 @@ export default function RootLayout() {
             }
         
             if (session && event !== 'PASSWORD_RECOVERY') {
-                ensureProfile(session).catch(
-                    err => console.error('ensureProfile error:', err)
-                );
+                ensureProfile(session).catch(err => {
+                    const message = err instanceof Error ? err.message : 'Unknown error';
+            
+                    console.error('Failed to ensure user profile:', message);
+                });
             }
         });
 

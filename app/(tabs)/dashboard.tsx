@@ -268,7 +268,7 @@ export default function Dashboard() {
                 .maybeSingle();
     
             if (error) {
-                console.error('Profile load error:', error);
+                console.error('Profile load error:', error.message);
 
                 return null;
             }
@@ -396,7 +396,8 @@ export default function Dashboard() {
                         : 'metric',
             });
         } catch (err) {
-            console.error('Dashboard load error:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Dashboard load error:', message);
         } finally {
             setIsLoading(false);
         }

@@ -155,7 +155,8 @@ export const performHealthSync = async (): Promise<{
             data: summary,
         };
     } catch (err) {
-        console.error('Health sync error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health sync error:', message);
 
         return {
             success: false,
@@ -180,7 +181,8 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
             ? BackgroundTask.BackgroundTaskResult.Success
             : BackgroundTask.BackgroundTaskResult.Failed;
     } catch (err) {
-        console.error('Background sync task error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Background sync task error:', message);
 
         return BackgroundTask.BackgroundTaskResult.Failed;
     }
@@ -202,7 +204,8 @@ export const scheduleBackgroundSync = async (
             minimumInterval: Math.max(15, Math.ceil(intervalSeconds / 60)),
         });
     } catch (err) {
-        console.error('Error scheduling background sync:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Error scheduling background sync:', message);
     }
 };
 
@@ -214,7 +217,8 @@ export const cancelBackgroundSync = async (): Promise<void> => {
             await BackgroundTask.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
         }
     } catch (err) {
-        console.error('Error cancelling background sync:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Error cancelling background sync:', message);
     }
 };
 

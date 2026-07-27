@@ -223,10 +223,11 @@ export default function EditProfile() {
                 contentType,
                 });
         
-            if (uploadError) {
-                console.error('Upload error:', uploadError);
-                return null;
-            }
+                if (uploadError) {
+                    console.error('Avatar upload failed:', uploadError.message);
+
+                    return null;
+                }
         
             const { data } = supabase.storage
                 .from('avatars')
@@ -235,8 +236,11 @@ export default function EditProfile() {
             // add cache buster so updated photos reload correctly
             return `${data.publicUrl}?t=${Date.now()}`;      
         } catch (err) {
-          console.error('Avatar upload error:', err);
-          return null;
+            const message = err instanceof Error ? err.message : 'Unknown error';
+
+            console.error('Avatar upload error:', message);
+
+            return null;
         }
     };
 

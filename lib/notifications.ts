@@ -81,10 +81,8 @@ export const getNotificationPermissionStatus =
 
             return 'undetermined';
         } catch (error) {
-            console.error(
-                'Error checking notification permissions:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error checking notification permissions:', message);
 
             return 'undetermined';
         }
@@ -103,10 +101,8 @@ export const requestNotificationPermissions =
 
             return permissions.status === 'granted';
         } catch (error) {
-            console.error(
-                'Error requesting notification permissions:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error requesting notification permissions:', message);
 
             return false;
         }
@@ -120,9 +116,7 @@ const parseReminderTime = (
     const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time);
 
     if (!match) {
-        console.error(
-            `Invalid reminder time: "${time}". Expected HH:mm.`
-        );
+        console.error(`Invalid reminder time: "${time}". Expected HH:mm.`);
 
         return null;
     }
@@ -183,10 +177,8 @@ export const scheduleDailyCheckInNotification = async (
 
         return true;
     } catch (error) {
-        console.error(
-            'Error scheduling check-in notification:',
-            error
-        );
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error scheduling check-in notification:', message);
 
         return false;
     }
@@ -209,10 +201,8 @@ export const cancelCheckInNotification =
                 CHECKIN_NOTIFICATION_ID_KEY
             );
         } catch (error) {
-            console.error(
-                'Error cancelling check-in notification:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error cancelling check-in notification:', message);
         }
     };
 
@@ -266,10 +256,8 @@ export const scheduleBedtimeInsightNotification = async (
 
         return true;
     } catch (error) {
-        console.error(
-            'Error scheduling insight reminder:',
-            error
-        );
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error scheduling insight reminder:', message);
 
         return false;
     }
@@ -292,10 +280,8 @@ export const cancelBedtimeInsightNotification =
                 INSIGHT_NOTIFICATION_ID_KEY
             );
         } catch (error) {
-            console.error(
-                'Error cancelling insight reminder:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error cancelling insight reminder:', message);
         }
     };
 

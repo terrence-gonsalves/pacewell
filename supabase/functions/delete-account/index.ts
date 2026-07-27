@@ -100,7 +100,8 @@ Deno.serve(async (req) => {
         );
 
     } catch (err) {
-        console.error('Unexpected error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Unexpected error:', message);
 
         return new Response(
             JSON.stringify({ error: 'An unexpected error occurred.' }),

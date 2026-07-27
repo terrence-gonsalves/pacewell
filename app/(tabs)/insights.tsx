@@ -171,7 +171,8 @@ export default function Insights() {
 
             setInsights(data ?? []);
         } catch (err) {
-            console.error('Error loading insights:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error loading insights:', message);
         } finally {
             if (!silent) setIsLoading(false);
         }

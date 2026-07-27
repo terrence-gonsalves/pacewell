@@ -72,7 +72,7 @@ export const generateInsights = async (): Promise<{
         });
 
         if (error) {
-            console.error('Edge Function error:', error);
+            console.error('Edge Function error:', error.message);
 
             return { success: false, message: error.message };
         }
@@ -86,7 +86,8 @@ export const generateInsights = async (): Promise<{
             already_generated: data?.already_generated ?? false,
         };
     } catch (err) {
-        console.error('Generate insights error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Generate insights error:', message);
 
         return {
             success: false,

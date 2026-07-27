@@ -101,7 +101,8 @@ export const handleDeepLink = async (
 
         return null;
     } catch (err) {
-        console.error('Deep link error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Deep link error:', message);
 
         return null;
     }
