@@ -144,9 +144,9 @@ export const performHealthSync = async (): Promise<{
         const alreadyGenerated = await hasGeneratedInsightsToday();
 
         if (!alreadyGenerated) {
-            generateInsights().catch(err =>
-                console.log('Background insight generation after sync:', err)
-            );
+            generateInsights().catch(() => {
+                console.error('Background insight generation failed');
+            });
         }
 
         return {
@@ -212,8 +212,6 @@ export const cancelBackgroundSync = async (): Promise<void> => {
 
         if (isRegistered) {
             await BackgroundTask.unregisterTaskAsync(BACKGROUND_SYNC_TASK);
-
-            console.log('Background sync cancelled');
         }
     } catch (err) {
         console.error('Error cancelling background sync:', err);

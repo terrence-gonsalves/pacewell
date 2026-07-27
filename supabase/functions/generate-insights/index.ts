@@ -364,8 +364,6 @@ serve(async (req) => {
             created_at: new Date().toISOString(),
         }));
         
-        console.log('Inserting insights:', JSON.stringify(insightsToInsert, null, 2));
-        
         const { data: insertedData, error: insertError } = await supabase
             .from('ai_insights')
             .insert(insightsToInsert)
@@ -379,8 +377,6 @@ serve(async (req) => {
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
             );
         }
-        
-        console.log('Insights saved successfully:', insertedData?.length, 'records');
         
         return new Response(
             JSON.stringify({ insights: parsedInsights.insights }),

@@ -428,13 +428,10 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
                 'HeartRate',
                 timeRange
             );
-
-            heartRateRecords =
-                result?.records ?? [];
-        } catch (err) {
-            console.log(
-                'Health Connect heart rate not available'
-            );
+        
+            heartRateRecords = result?.records ?? [];
+        } catch {
+            heartRateRecords = [];
         }
 
         try {
@@ -442,13 +439,10 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
                 'RestingHeartRate',
                 timeRange
             );
-
-            restingHeartRateRecords =
-                result?.records ?? [];
-        } catch (err) {
-            console.log(
-                'Health Connect resting heart rate not available'
-            );
+        
+            restingHeartRateRecords = result?.records ?? [];
+        } catch {
+            restingHeartRateRecords = [];
         }
 
         const heartRateValues = heartRateRecords.flatMap(
@@ -564,8 +558,6 @@ const getHealthConnectSteps = async (): Promise<StepData | null> => {
 
             return { count: total, date: getLocalDate() };
         } catch (err) {
-            console.log('Steps aggregation error:', err);
-
             return null;
         }
     } catch (err) {
