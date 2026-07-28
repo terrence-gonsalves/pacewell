@@ -11,12 +11,13 @@ import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
 interface SplashScreenProps {
+    ready: boolean;
     onComplete: () => void;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function CustomSplash({ onComplete }: SplashScreenProps) {
+export default function CustomSplash({ ready, onComplete }: SplashScreenProps) {
     const iconScale = useRef(new Animated.Value(0.3)).current;
     const iconOpacity = useRef(new Animated.Value(0)).current;
     const textOpacity = useRef(new Animated.Value(0)).current;
@@ -25,8 +26,6 @@ export default function CustomSplash({ onComplete }: SplashScreenProps) {
 
     useEffect(() => {
         Animated.sequence([
-
-            // icon scales and fades in
             Animated.parallel([
                 Animated.spring(iconScale, {
                     toValue: 1,
@@ -40,25 +39,26 @@ export default function CustomSplash({ onComplete }: SplashScreenProps) {
                     useNativeDriver: true,
                 }),
             ]),
-
-            // app name fades in
             Animated.timing(textOpacity, {
                 toValue: 1,
                 duration: 400,
                 useNativeDriver: true,
             }),
-
-            // tagline fades in
             Animated.timing(taglineOpacity, {
                 toValue: 1,
                 duration: 300,
                 useNativeDriver: true,
             }),
-
-            // hold for a moment
+        ]).start();
+    }, []);
+    
+    useEffect(() => {
+        if (!ready) {
+            return;
+        }
+    
+        Animated.sequence([
             Animated.delay(800),
-
-            // entire screen fades out
             Animated.timing(screenOpacity, {
                 toValue: 0,
                 duration: 400,
@@ -67,7 +67,7 @@ export default function CustomSplash({ onComplete }: SplashScreenProps) {
         ]).start(() => {
             onComplete();
         });
-    }, []);
+    }, [ready]);
 
     // ─── Render ───────────────────────────────────────────────────────────────
     

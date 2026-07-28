@@ -264,11 +264,10 @@ export default function RootLayout() {
                 style={styles.splashLayer}
                 onLayout={handleCustomSplashLayout}
             >
-                {!loading && (
                 <CustomSplash
+                    ready={!loading}
                     onComplete={handleSplashComplete}
                 />
-                )}
             </View>
             )}
         </>
