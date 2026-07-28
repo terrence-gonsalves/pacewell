@@ -289,9 +289,10 @@ export default function CheckIn() {
 
             // generate insights after successful check-in
             // run silently in background — don't block UI or show errors to user
-            generateInsights().catch(err => 
-                console.error('Background insight generation:', err)
-            );
+            generateInsights().catch(err => {
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                console.error('Background insight generation:', message)
+            });
             
             setSubmitted(true);
         } catch (err) {

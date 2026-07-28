@@ -17,7 +17,8 @@ export const openHealthConnectForPermissions = async (): Promise<void> => {
         await initialize();
         openHealthConnectSettings();
     } catch (err) {
-        console.error('Health Connect settings error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect settings error:', message);
     }
 };
 
@@ -42,7 +43,8 @@ export const checkHealthConnectPermissions = async (): Promise<boolean> => {
 
         return hasPermissions;
     } catch (err) {
-        console.error('Health Connect check error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect check error:', message);
 
         return false;
     }
@@ -78,7 +80,8 @@ export const requestHealthConnectPermissions = async (): Promise<boolean> => {
 
         return hasPermissions;
     } catch (err) {
-        console.error('Health Connect permission error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect permission error:', message);
 
         return false;
     }
@@ -104,7 +107,8 @@ const requestHealthKitPermissions = async (): Promise<boolean> => {
 
         return true;
     } catch (err) {
-        console.error('HealthKit permission error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('HealthKit permission error:', message);
 
         return false;
     }

@@ -84,7 +84,8 @@ const getHealthKitSleep = async (): Promise<SleepData | null> => {
             source: 'healthkit',
         };
     } catch (err) {
-        console.error('HealthKit sleep error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('HealthKit sleep error:', message);
 
         return null;
     }
@@ -115,7 +116,8 @@ const getHealthKitWorkouts = async (): Promise<WorkoutData[]> => {
             source: 'healthkit',
         }));
     } catch (err) {
-        console.error('HealthKit workouts error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('HealthKit workouts error:', message);
 
         return [];
     }
@@ -176,7 +178,8 @@ const getHealthKitHeartRate = async (): Promise<HeartRateData | null> => {
             recordedAt: new Date().toISOString(),
         };
     } catch (err) {
-        console.error('HealthKit heart rate error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('HealthKit heart rate error:', message);
 
         return null;
     }
@@ -202,7 +205,8 @@ const getHealthKitSteps = async (): Promise<StepData | null> => {
 
         return { count: total, date: getLocalDate() };
     } catch (err) {
-        console.error('HealthKit steps error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('HealthKit steps error:', message);
 
         return null;
     }
@@ -217,7 +221,8 @@ const getHealthKitWeight = async (): Promise<number | null> => {
 
         return sample?.quantity ? Math.round(sample.quantity * 10) / 10 : null;
     } catch (err) {
-        console.error('HealthKit weight error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('HealthKit weight error:', message);
 
         return null;
     }
@@ -314,7 +319,8 @@ const getHealthConnectSleep = async (): Promise<SleepData | null> => {
             source: 'health_connect',
         };  
     } catch (err) {
-        console.error('Health Connect sleep error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect sleep error:', message);
       
         return null;
     }
@@ -384,7 +390,8 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
         });
   
     } catch (err) {
-        console.error('Health Connect workouts error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect workouts error:', message);
         
         return [];
     }
@@ -520,10 +527,8 @@ const getHealthConnectHeartRate = async (): Promise<HeartRateData | null> => {
                 new Date().toISOString(),
         };
     } catch (err) {
-        console.error(
-            'Health Connect heart rate error:',
-            err
-        );
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect heart rate error:', message);
 
         return null;
     }
@@ -561,7 +566,8 @@ const getHealthConnectSteps = async (): Promise<StepData | null> => {
             return null;
         }
     } catch (err) {
-        console.error('Health Connect steps error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect steps error:', message);
 
         return null;
     }
@@ -599,7 +605,8 @@ const getHealthConnectWeight = async (): Promise<number | null> => {
 
         return Math.round(latest.weight.inKilograms * 10) / 10;
     } catch (err) {
-        console.error('Health Connect weight error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Health Connect weight error:', message);
 
         return null;
     }

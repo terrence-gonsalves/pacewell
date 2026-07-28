@@ -85,7 +85,7 @@ serve(async (req) => {
             .order('created_at', { ascending: false });
 
         if (existingInsightsError) {
-            console.error('Failed to check existing insights:', existingInsightsError);
+            console.error('Failed to check existing insights:', existingInsightsError.message);
 
             return new Response(
                 JSON.stringify({
@@ -368,7 +368,7 @@ serve(async (req) => {
             .select();
         
         if (insertError) {
-            console.error('Failed to insert insights:', insertError);
+            console.error('Failed to insert insights:', insertError.message);
             
             return new Response(
                 JSON.stringify({ error: 'Failed to save insights', details: insertError.message }),
@@ -381,7 +381,8 @@ serve(async (req) => {
             { status: 200, headers: { 'Content-Type': 'application/json' } }
         );
     } catch (err) {
-        console.error('Edge Function error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Edge Function error:', message);
 
         return new Response(
             JSON.stringify({ error: 'Internal server error' }),

@@ -284,7 +284,7 @@ export default function Activity() {
             .in('external_workout_id', workoutIds);
 
         if (error) {
-            console.error('Imported workout lookup error:', error);
+            console.error('Imported workout lookup error:', error.message);
             setWearableWorkouts([]);
             
             return;
@@ -335,7 +335,8 @@ export default function Activity() {
             
             await loadActivities();
         } catch (err) {
-            console.error('Import error:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Import error:', message);
         } finally {
             setIsImporting(null);
         }

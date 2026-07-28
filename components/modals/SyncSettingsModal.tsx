@@ -121,7 +121,8 @@ export default function SyncSettingsModal({
 
             onClose();
         } catch (err) {
-            console.error('Error saving sync settings:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error saving sync settings:', message);
         } finally {
             setIsSaving(false);
         }

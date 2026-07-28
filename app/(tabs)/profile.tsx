@@ -178,7 +178,8 @@ export default function Profile() {
             const dates = (checkInsResult.data ?? []).map(c => c.date);
             setStreak(calculateStreak(dates, today));
         } catch (err) {
-            console.error('Error loading profile:', err);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error loading profile:', message);
         } finally {
             setIsLoading(false);
         }
@@ -374,15 +375,10 @@ export default function Profile() {
             setNotificationsEnabled(true);
             setNotificationPermission('granted');
         } catch (error) {
-            console.error(
-                'Error updating notification preference:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error updating notification preference:', message);
     
-            Alert.alert(
-                'Unable to update notifications',
-                'Please try again.'
-            );
+            Alert.alert('Unable to update notifications', 'Please try again.');
         } finally {
             setIsUpdatingNotifications(false);
         }
@@ -435,15 +431,10 @@ export default function Profile() {
     
             setCheckinReminderEnabled(true);
         } catch (error) {
-            console.error(
-                'Error updating check-in reminder:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error updating check-in reminder:', message);
     
-            Alert.alert(
-                'Unable to update reminder',
-                'Please try again.'
-            );
+            Alert.alert('Unable to update reminder', 'Please try again.');
         }
     };
 
@@ -494,15 +485,10 @@ export default function Profile() {
     
             setInsightReminderEnabled(true);
         } catch (error) {
-            console.error(
-                'Error updating insight reminder:',
-                error
-            );
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error updating insight reminder:', message);
     
-            Alert.alert(
-                'Unable to update reminder',
-                'Please try again.'
-            );
+            Alert.alert('Unable to update reminder', 'Please try again.');
         }
     };
 

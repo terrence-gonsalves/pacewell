@@ -54,12 +54,14 @@ const ensureProfile = async (session: Session) => {
 const initializeBackgroundSync = async () => {
     try {
         const settings = await getSyncSettings();
-
+    
         if (settings.enabled) {
             await scheduleBackgroundSync(settings.intervalHours);
         }
     } catch (err) {
-        console.error('Background sync init error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+    
+        console.error('Background sync initialization failed:', message);
     }
 };
 
@@ -127,52 +129,59 @@ export default function RootLayout() {
 
     useEffect(() => {
         const initializeAuth = async () => {
-            const initialUrl = await Linking.getInitialURL();
+            try {
+                const initialUrl = await Linking.getInitialURL();
         
-            if (initialUrl) {
-                const isPasswordRecovery = initialUrl.includes('type=recovery') || initialUrl.includes('type%3Drecovery');
-            
-                if (isPasswordRecovery) {
-                    passwordRecoveryRef.current = true;
+                if (initialUrl) {
+                    const isPasswordRecovery = initialUrl.includes('type=recovery') || initialUrl.includes('type%3Drecovery');
+        
+                    if (isPasswordRecovery) {
+                        passwordRecoveryRef.current = true;
+                    }
+        
+                    const result = await handleDeepLink(initialUrl);
+        
+                    if (result === 'recovery') {
+                        passwordRecoveryRef.current = true;
+                    }
                 }
-            
-                const result = await handleDeepLink(initialUrl);
-            
-                if (result === 'recovery') {
-                    passwordRecoveryRef.current = true;
+        
+                const {
+                    data: { session },
+                    error,
+                } = await supabase.auth.getSession();
+        
+                if (error) {
+                    throw error;
                 }
-            }
         
-            const {
-                data: { session },
-                error,
-            } = await supabase.auth.getSession();
+                sessionRef.current = session;
+                setSession(session);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Unknown auth error';
         
-            if (error) {
                 const isInvalidRefreshToken =
-                    error.message.includes('Invalid Refresh Token') ||
-                    error.message.includes('Refresh Token');
-            
+                    message.includes('Invalid Refresh Token') ||
+                    message.includes('Refresh Token');
+        
                 if (isInvalidRefreshToken) {
                     console.warn('Stored auth session is no longer valid. Clearing local session.');
-            
+        
                     await supabase.auth.signOut({
                         scope: 'local',
                     });
-            
+        
                     sessionRef.current = null;
                     setSession(null);
-                    setLoading(false);
-            
-                    return;
-                }
-            
-                console.error('Failed to restore the initial auth session');
-            }
+                } else {
+                    console.error('Failed to restore the initial auth session:', message);
         
-            sessionRef.current = session;
-            setSession(session);
-            setLoading(false);
+                    sessionRef.current = null;
+                    setSession(null);
+                }
+            } finally {
+                setLoading(false);
+            }
         };
         
         initializeAuth();
@@ -202,9 +211,11 @@ export default function RootLayout() {
             }
         
             if (session && event !== 'PASSWORD_RECOVERY') {
-                ensureProfile(session).catch(
-                    err => console.error('ensureProfile error:', err)
-                );
+                ensureProfile(session).catch(err => {
+                    const message = err instanceof Error ? err.message : 'Unknown error';
+            
+                    console.error('Failed to ensure user profile:', message);
+                });
             }
         });
 

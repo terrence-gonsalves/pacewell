@@ -14,7 +14,7 @@ export const generateInsights = async (): Promise<{
         const { data, error } = await supabase.functions.invoke('generate-insights');
 
         if (error) {
-            console.error('Edge Function error:', error);
+            console.error('Edge Function error:', error.message);
 
             return { success: false, message: error.message };
         }
@@ -28,7 +28,8 @@ export const generateInsights = async (): Promise<{
         return { success: true };
 
     } catch (err) {
-        console.error('generateInsights error:', err);
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        console.error('generateInsights error:', message);
         
         return {
             success: false,
