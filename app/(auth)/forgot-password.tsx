@@ -25,11 +25,18 @@ export default function ForgotPassword() {
     const [emailSent, setEmailSent] = useState(false);
 
     const handleSendResetLink = async () => {
-        const trimmedEmail = email.trim();
+        const trimmedEmail = email.trim();        
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (!trimmedEmail) {
             setError('Please enter your email address.');
-
+        
+            return;
+        }
+        
+        if (!emailPattern.test(trimmedEmail)) {
+            setError('Please enter a valid email address.');
+        
             return;
         }
 
