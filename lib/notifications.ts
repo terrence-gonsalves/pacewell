@@ -184,6 +184,8 @@ export const scheduleDailyCheckInNotification = async (
     }
 };
 
+// ─── Cancel Checkin Reminder ────────────────────────────────────────────────────────
+
 export const cancelCheckInNotification =
     async (): Promise<void> => {
         try {
@@ -191,18 +193,41 @@ export const cancelCheckInNotification =
                 CHECKIN_NOTIFICATION_ID_KEY
             );
 
-            if (!notificationId) return;
+            if (notificationId) {
+                await Notifications.cancelScheduledNotificationAsync(
+                    notificationId
+                ).catch(() => undefined);
+            }
 
-            await Notifications.cancelScheduledNotificationAsync(
-                notificationId
+            const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+
+            const checkinNotifications = scheduledNotifications.filter(
+                notification =>
+                    notification.content.data?.notificationType ===
+                    'checkin-reminder'
+            );
+
+            await Promise.all(
+                checkinNotifications.map(notification =>
+                    Notifications.cancelScheduledNotificationAsync(
+                        notification.identifier
+                    )
+                )
             );
 
             await AsyncStorage.removeItem(
                 CHECKIN_NOTIFICATION_ID_KEY
             );
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Error cancelling check-in notification:', message);
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error';
+
+            console.error(
+                'Error cancelling check-in notification:',
+                message
+            );
         }
     };
 
@@ -263,6 +288,8 @@ export const scheduleBedtimeInsightNotification = async (
     }
 };
 
+// ─── Cancel Bedtime Notification ─────────────────────────────────────────────────────
+
 export const cancelBedtimeInsightNotification =
     async (): Promise<void> => {
         try {
@@ -270,18 +297,42 @@ export const cancelBedtimeInsightNotification =
                 INSIGHT_NOTIFICATION_ID_KEY
             );
 
-            if (!notificationId) return;
+            if (notificationId) {
+                await Notifications.cancelScheduledNotificationAsync(
+                    notificationId
+                ).catch(() => undefined);
+            }
 
-            await Notifications.cancelScheduledNotificationAsync(
-                notificationId
+            const scheduledNotifications =
+                await Notifications.getAllScheduledNotificationsAsync();
+
+            const insightNotifications = scheduledNotifications.filter(
+                notification =>
+                    notification.content.data?.notificationType ===
+                    'insight-reminder'
+            );
+
+            await Promise.all(
+                insightNotifications.map(notification =>
+                    Notifications.cancelScheduledNotificationAsync(
+                        notification.identifier
+                    )
+                )
             );
 
             await AsyncStorage.removeItem(
                 INSIGHT_NOTIFICATION_ID_KEY
             );
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Error cancelling insight reminder:', message);
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error';
+
+            console.error(
+                'Error cancelling insight reminder:',
+                message
+            );
         }
     };
 

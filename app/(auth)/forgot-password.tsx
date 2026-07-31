@@ -76,14 +76,12 @@ export default function ForgotPassword() {
 
                     <Text style={styles.title}>Check your email</Text>
 
-                    <Text style={styles.subtitle}>
-                        We sent a password reset link to:
-                    </Text>
+                    <Text style={styles.subtitle}>We sent a password reset link to:</Text>
 
                     <Text style={styles.emailConfirmation}>{email}</Text>
 
                     <Text style={styles.helperText}>
-                        The link may take a few minutes to arrive. Check your spam or junk folder if you do not see it.
+                        If an account exists for this email address, we've sent a password-reset link. Check your spam or junk folder if you don't see it.
                     </Text>
 
                     <TouchableOpacity
@@ -91,9 +89,7 @@ export default function ForgotPassword() {
                         onPress={() => router.replace('/(auth)/login')}
                     >
                         <View style={styles.buttonInner}>
-                            <Text style={styles.primaryButtonText}>
-                                Return to Sign In
-                            </Text>
+                            <Text style={styles.primaryButtonText}>Return to Sign In</Text>
 
                             <Ionicons
                                 name="arrow-forward"
