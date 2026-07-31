@@ -297,18 +297,42 @@ export const cancelBedtimeInsightNotification =
                 INSIGHT_NOTIFICATION_ID_KEY
             );
 
-            if (!notificationId) return;
+            if (notificationId) {
+                await Notifications.cancelScheduledNotificationAsync(
+                    notificationId
+                ).catch(() => undefined);
+            }
 
-            await Notifications.cancelScheduledNotificationAsync(
-                notificationId
+            const scheduledNotifications =
+                await Notifications.getAllScheduledNotificationsAsync();
+
+            const insightNotifications = scheduledNotifications.filter(
+                notification =>
+                    notification.content.data?.notificationType ===
+                    'insight-reminder'
+            );
+
+            await Promise.all(
+                insightNotifications.map(notification =>
+                    Notifications.cancelScheduledNotificationAsync(
+                        notification.identifier
+                    )
+                )
             );
 
             await AsyncStorage.removeItem(
                 INSIGHT_NOTIFICATION_ID_KEY
             );
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unknown error';
-            console.error('Error cancelling insight reminder:', message);
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : 'Unknown error';
+
+            console.error(
+                'Error cancelling insight reminder:',
+                message
+            );
         }
     };
 
