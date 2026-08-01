@@ -163,16 +163,20 @@ export default function Profile() {
             const globalEnabled = storedNotificationsEnabled === 'true' && permissionStatus === 'granted';
 
             setNotificationsEnabled(globalEnabled);
+            
+            const checkinEnabled = globalEnabled && storedCheckinReminderEnabled === 'true';
+            const insightEnabled = globalEnabled && storedInsightReminderEnabled === 'true';
 
-            setCheckinReminderEnabled(
-                globalEnabled &&
-                storedCheckinReminderEnabled === 'true'
-            );
+            setCheckinReminderEnabled(checkinEnabled);
+            setInsightReminderEnabled(insightEnabled);
 
-            setInsightReminderEnabled(
-                globalEnabled &&
-                storedInsightReminderEnabled === 'true'
-            );
+            if (!checkinEnabled) {
+                await cancelCheckInNotification();
+            }
+
+            if (!insightEnabled) {
+                await cancelBedtimeInsightNotification();
+            }
 
             // calculate streak
             const dates = (checkInsResult.data ?? []).map(c => c.date);
