@@ -178,7 +178,13 @@ export default function Insights() {
         }
     };
 
-    const handleGenerateInsights = async () => {    
+    const handleGenerateInsights = async () => {
+        if (insights.length > 0) {
+            setMessage('Insights have already been generated today.');
+    
+            return;
+        }
+    
         setIsGenerating(true);
         setMessage(null);
     
