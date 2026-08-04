@@ -178,13 +178,7 @@ export default function Insights() {
         }
     };
 
-    const handleGenerateInsights = async () => {
-        if (insights.length > 0) {
-            setMessage('Insights have already been generated today.');
-    
-            return;
-        }
-    
+    const handleGenerateInsights = async () => {    
         setIsGenerating(true);
         setMessage(null);
     
@@ -193,11 +187,7 @@ export default function Insights() {
         if (result.success) {
             await loadInsights(false);
     
-            if ('already_generated' in result) {
-                setMessage('Insights have already been generated today.');
-            } else {
-                setMessage(null);
-            }
+            setMessage(null);
         } else {
             setMessage(result.message ?? 'Something went wrong. Please try again.');
         }
