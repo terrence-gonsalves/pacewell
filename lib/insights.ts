@@ -108,9 +108,16 @@ export const generateInsights = async (): Promise<{
         const message = err instanceof Error ? err.message : 'Unknown error';
         console.error('Generate insights error:', message);
 
+        const isNetworkError =
+            message.toLowerCase().includes('network') ||
+            message.toLowerCase().includes('fetch') ||
+            message.toLowerCase().includes('request failed');
+
         return {
             success: false,
-            message: err instanceof Error ? err.message : 'Unknown error',
+            message: isNetworkError
+                ? 'Unable to connect. Check your internet connection and try again.'
+                : 'Unable to generate insights right now. Please try again.',
         };
     } finally {
         isGenerating = false;
