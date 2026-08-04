@@ -41,10 +41,29 @@ export const generateInsights = async (): Promise<{
     isGenerating = true;
 
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) {
+            const authMessage = authError.message.toLowerCase();
+        
+            if (authMessage.includes('network') || authMessage.includes('fetch') || authMessage.includes('request failed')) {
+                return {
+                    success: false,
+                    message: 'Unable to connect. Check your internet connection and try again.',
+                };
+            }
+        
+            return {
+                success: false,
+                message: 'Unable to verify your session. Please try again.',
+            };
+        }
+        
         if (!user) {
-            return { success: false, message: 'No active session' };
+            return {
+                success: false,
+                message: 'Your session has expired. Please sign in again.',
+            };
         }
 
         // check minimum check-ins requirement

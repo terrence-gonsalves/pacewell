@@ -415,8 +415,7 @@ export default function Activity() {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    const getActivityMeta = (type: ActivityType) =>
-        ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
+    const getActivityMeta = (type: ActivityType) => ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
 
     const progressPercent = Math.min(
         (weeklyCount / weeklyTarget) * 100,
