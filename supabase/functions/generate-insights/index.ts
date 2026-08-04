@@ -79,7 +79,7 @@ serve(async (req) => {
 
         const { data: existingInsights, error: existingInsightsError } = await supabase
             .from('ai_insights')
-            .select('id, insight_type, title, content, data_range_start, data_range_end, created_at')
+            .select('id, insight_type, title, goal_alignment, content, data_range_start, data_range_end, created_at')
             .eq('user_id', user_id)
             .eq('data_range_end', todayStr)
             .order('created_at', { ascending: false });
@@ -265,38 +265,99 @@ serve(async (req) => {
 
         // ─── Build Prompt ─────────────────────────────────────────────────────────
 
-        const prompt = `You are a personal wellness coach analysing health data for an active adult aged ${profile?.age ?? 40}+. 
-            Their activity level is ${profile?.activity_level ?? 'moderate'} and their health goals are: ${goalsFormatted}.
+        const prompt = `
+            You are a personal wellness coach analysing health data for an active adult aged ${profile?.age ?? 40}+.
 
-            Analyse the following 14 days of data and generate exactly 3 personalised wellness insights. Each insight must be specific, actionable and reference actual patterns you observe in the data.
+            USER PROFILE
+            Activity level: ${profile?.activity_level ?? 'moderate'}
+            Primary health goals: ${goalsFormatted}
 
-            DAILY CHECK-INS (mood, energy, stress, sleep quality 1-5 scale where 5=excellent):
+            Your task is to analyse all available data from the last 14 days and generate exactly 3 highly personalised wellness insights.
+
+            The user's selected health goals must be the primary framework used to decide which patterns are most important. Read and consider all available check-in, activity and wearable data, but prioritise patterns that directly help the user understand progress, risks or opportunities related to their selected goals.
+
+            HEALTH-GOAL INTERPRETATION
+
+            Use the following guidance when evaluating patterns:
+
+            - Prevent Injury:
+            Look for excessive activity load, sudden increases in duration or exertion, inadequate recovery, repeated high exertion, low sleep following demanding activity, declining energy, elevated resting heart rate, or patterns that may suggest insufficient rest.
+
+            - Improve Sleep:
+            Look for sleep duration, sleep quality, bedtime-related patterns, stress, activity timing, exertion, mood, energy and recovery patterns that may influence sleep.
+
+            - Manage Stress:
+            Look for stress trends and relationships with sleep, mood, energy, activity, recovery, heart rate and daily routines.
+
+            - Increase Energy:
+            Look for relationships involving sleep, activity level, recovery, stress, nutrition quality, hydration, mood, resting heart rate and daily energy ratings.
+
+            - Stay Active Longer:
+            Look for consistency, sustainable activity levels, recovery between activities, gradual progression, exertion balance, step patterns and behaviours that may support long-term activity.
+
+            - Monitor Recovery:
+            Look for resting heart rate, sleep, energy, stress, perceived exertion, activity frequency, rest days and changes following demanding activity.
+
+            DATA
+
+            DAILY CHECK-INS
+            Mood, energy, stress and sleep quality use a 1 to 5 scale, where 5 is best except stress, where 5 represents the highest stress.
+
             ${checkInsFormatted}
 
-            ACTIVITY LOGS:
+            ACTIVITY LOGS
+
             ${activitiesFormatted}
 
-            WEARABLE HEALTH METRICS (from connected device):
+            WEARABLE HEALTH METRICS
+
             ${healthMetricsFormatted}
 
-            Generate exactly 3 insights in this JSON format. Do not include any text outside the JSON:
+            SELECTION REQUIREMENTS
+
+            Before generating the response, internally identify the strongest evidence-supported patterns in the data.
+
+            Then select exactly 3 insights using these priorities:
+
+            1. Prefer patterns that directly relate to one or more of the user's selected health goals.
+            2. Use evidence from multiple data sources when that creates a meaningful connection.
+            3. Select the most useful and actionable patterns, not merely the easiest metrics to describe.
+            4. Do not focus on sleep, heart rate, steps or activity solely because wearable data is available.
+            5. An insight unrelated to the selected goals may only be included when it represents a meaningful health, recovery or behaviour pattern that the user should reasonably know about.
+            6. Avoid generating three insights from the same general category.
+            7. Do not repeat substantially similar observations across multiple insights.
+            8. Do not invent causal relationships. Describe correlations or associations unless the data clearly supports stronger wording.
+            9. Do not make medical diagnoses or claim that the data proves an injury, illness or medical condition.
+            10. If data for a selected goal is limited, say so indirectly by offering the strongest supported observation rather than fabricating a goal-specific conclusion.
+
+            CONTENT REQUIREMENTS
+
+            Each insight must:
+
+            - Clearly relate the observation to at least one selected health goal
+            - Reference specific dates, values, changes, frequencies or trends
+            - Explain why the pattern matters for that goal
+            - Include one realistic and concrete recommendation
+            - Be personalised to the user's actual data
+            - Be encouraging but honest
+            - Use 2 to 4 sentences
+            - Use a short title of no more than 8 words
+
+            Return exactly 3 insights in this JSON format:
+
             {
             "insights": [
                 {
                 "insight_type": "recovery|sleep|activity|nutrition|stress|heart_rate|steps|weight|pattern",
-                "title": "Short compelling title (max 8 words)",
-                "content": "Detailed insight referencing specific data points and dates. Include a concrete recommendation. (2-4 sentences)"
+                "goal_alignment": ["Prevent Injury"],
+                "title": "Short compelling title",
+                "content": "Detailed evidence-based insight with one concrete recommendation."
                 }
             ]
             }
 
-            Rules for good insights:
-            - Reference specific dates, numbers or trends from the data
-            - Connect patterns across different data types (e.g. sleep affecting energy, steps correlating with mood)
-            - Be encouraging but honest
-            - Give one clear actionable recommendation per insight
-            - Prioritise insights that reference wearable data when available
-            - Focus on patterns over the full 14 days not just recent days`;
+            Return valid JSON only. Do not include markdown, commentary or any text outside the JSON.
+            `;
 
         // ─── Call Claude ──────────────────────────────────────────────────────────
 
@@ -355,6 +416,7 @@ serve(async (req) => {
         const insightsToInsert = parsedInsights.insights.map((insight: any) => ({
             user_id,
             insight_type: insight.insight_type,
+            goal_alignment: insight.goal_alignment,
             title: insight.title,
             content: insight.content,
             data_range_start: fromDate,
