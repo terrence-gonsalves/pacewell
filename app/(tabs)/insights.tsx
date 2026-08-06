@@ -191,8 +191,16 @@ export default function Insights() {
         const result = await generateInsights();
     
         if (result.success) {
-            await loadInsights(false);
-    
+
+            // retry briefly after generation so the UI recovers cleanly when connectivity has only just been restored.
+            for (let attempt = 0; attempt < 5; attempt++) {
+                await loadInsights(attempt > 0);
+        
+                if (attempt < 4) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+        
             setMessage(null);
         } else {
             setMessage(result.message ?? 'Something went wrong. Please try again.');
