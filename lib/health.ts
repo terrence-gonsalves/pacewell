@@ -361,7 +361,7 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
             56: 'running',
             8: 'cycling',
             82: 'swimming',
-            64: 'strength',
+            70: 'strength',
             61: 'yoga',
             73: 'tennis',
             30: 'golf',
