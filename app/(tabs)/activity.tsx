@@ -508,123 +508,6 @@ export default function Activity() {
                     </View>
                     )}
 
-                    {activities.length === 0 ? (
-                    <View style={styles.emptyCard}>
-                        <Text style={styles.emptyEmoji}>🏃</Text>
-                        <Text style={styles.emptyTitle}>No activities in the last 14 days</Text>
-                        <Text style={styles.emptySubtitle}>Tap the + button to log an activity</Text>
-                    </View>
-                    ) : (
-                    activityGroups.map(group => (
-                        <View
-                            key={group.date}
-                            style={styles.activityGroup}
-                        >
-                            <Text style={styles.dateLabel}>{getDateLabel(group.date)}</Text>
-                            <View style={styles.activitiesCard}>
-                                {group.activities.map(
-                                    (activity, index) => {
-                                        const meta = getActivityMeta(activity.activity_type);
-
-                                        const time = new Date(activity.created_at).toLocaleTimeString(
-                                            [],
-                                            {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            }
-                                        );
-
-                                        return (
-                                            <View key={activity.id}>
-                                                <View style={styles.activityRow}>
-                                                    <View style={styles.activityIconContainer}>
-                                                        <Text style={ styles.activityEmoji}>{meta.emoji}</Text>
-                                                    </View>
-
-                                                    <View style={styles.activityInfo}>
-                                                        <Text style={styles.activityType}>{meta.label}</Text>
-                                                        <Text style={styles.activityMeta}>
-                                                            {activity.duration_minutes}{' '}min · {time}
-                                                        </Text>
-
-                                                        {activity.notes && (
-                                                            <Text style={styles.activityNotes}>{activity.notes}</Text>
-                                                        )}
-
-                                                    </View>
-
-                                                    <View style={styles.activityRight}>
-                                                        <View style={[
-                                                                styles.effortBadge,
-                                                                activity.perceived_exertion >= 4 &&styles.effortBadgeHigh,
-                                                            ]}
-                                                        >
-                                                            <Text style={[
-                                                                    styles.effortBadgeText,
-                                                                    activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
-                                                                ]}
-                                                            >
-                                                                {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
-                                                            </Text>
-                                                        </View>
-                                                        
-                                                        <View style={styles.activityActions}>
-
-                                                            {activity.source === 'manual' && (
-                                                            <TouchableOpacity
-                                                                style={styles.editButton}
-                                                                onPress={() => router.push({
-                                                                    pathname: '/log-activity',
-                                                                    params: {
-                                                                        from: 'activity',
-                                                                        activityId: activity.id,
-                                                                    },
-                                                                })}
-                                                                disabled={isDeleting !== null}
-                                                            >
-                                                                <Ionicons name="pencil-outline" size={18} color={theme.colors.primary} />
-                                                            </TouchableOpacity>
-                                                            )}
-
-                                                            <TouchableOpacity
-                                                                style={[
-                                                                    styles.deleteButton,
-                                                                    isDeleting !== null && styles.deleteButtonDisabled,
-                                                                ]}
-                                                                onPress={() => confirmDelete(activity)}
-                                                                disabled={isDeleting !== null}
-                                                            >
-                                                                {isDeleting === activity.id ? (
-                                                                <ActivityIndicator
-                                                                    size="small"
-                                                                    color={theme.colors.danger}
-                                                                />
-                                                                ) : (
-                                                                <Ionicons
-                                                                    name="trash-outline"
-                                                                    size={19}
-                                                                    color={theme.colors.textLight}
-                                                                />
-                                                                )}
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </View>
-                                                </View>
-
-                                                {index < group.activities.length - 1 && (
-                                                <View style={styles.divider} />
-                                                )}
-
-                                            </View>
-                                        );
-                                    }
-                                )}
-
-                            </View>
-                        </View>
-                        ))
-                    )}
-                
                     <View style={styles.weeklyGoalCard}>
                         <View style={styles.weeklyGoalHeader}>
                             <View style={styles.weeklyGoalLeft}>
@@ -644,6 +527,125 @@ export default function Activity() {
                             />
                         </View>
                     </View>
+
+                    {activities.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyEmoji}>🏃</Text>
+                        <Text style={styles.emptyTitle}>No activities in the last 14 days</Text>
+                        <Text style={styles.emptySubtitle}>Tap the + button to log an activity</Text>
+                    </View>
+                    ) : (
+                    activityGroups.map(group => (
+                    <View
+                        key={group.date}
+                        style={styles.activityGroup}
+                    >
+                        <Text style={styles.dateLabel}>{getDateLabel(group.date)}</Text>
+                        <View style={styles.activitiesCard}>
+                            {group.activities.map(
+                                (activity, index) => {
+                                    const meta = getActivityMeta(activity.activity_type);
+
+                                    const time = new Date(activity.created_at).toLocaleTimeString(
+                                        [],
+                                        {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        }
+                                    );
+
+                                    return (
+                                        <View key={activity.id}>
+                                            <View style={styles.activityRow}>
+                                                <View style={styles.activityIconContainer}>
+                                                    <Text style={ styles.activityEmoji}>{meta.emoji}</Text>
+                                                </View>
+
+                                                <View style={styles.activityInfo}>
+                                                    <Text style={styles.activityType}>{meta.label}</Text>
+                                                    <Text style={styles.activityMeta}>
+                                                        {activity.duration_minutes}{' '}min · {time}
+                                                    </Text>
+
+                                                    {activity.notes && (
+                                                        <Text style={styles.activityNotes}>{activity.notes}</Text>
+                                                    )}
+
+                                                </View>
+
+                                                <View style={styles.activityRight}>
+                                                    <View style={[
+                                                            styles.effortBadge,
+                                                            activity.perceived_exertion >= 4 &&styles.effortBadgeHigh,
+                                                        ]}
+                                                    >
+                                                        <Text style={[
+                                                                styles.effortBadgeText,
+                                                                activity.perceived_exertion >= 4 && styles.effortBadgeTextHigh,
+                                                            ]}
+                                                        >
+                                                            {EXERTION_LABELS[activity.perceived_exertion as EmojiScale].label}
+                                                        </Text>
+                                                    </View>
+                                                    
+                                                    <View style={styles.activityActions}>
+
+                                                        {activity.source === 'manual' && (
+                                                        <TouchableOpacity
+                                                            style={styles.editButton}
+                                                            onPress={() => router.push({
+                                                                pathname: '/log-activity',
+                                                                params: {
+                                                                    from: 'activity',
+                                                                    activityId: activity.id,
+                                                                },
+                                                            })}
+                                                            disabled={isDeleting !== null}
+                                                        >
+                                                            <Ionicons name="pencil-outline" size={18} color={theme.colors.primary} />
+                                                        </TouchableOpacity>
+                                                        )}
+
+                                                        <TouchableOpacity
+                                                            style={[
+                                                                styles.deleteButton,
+                                                                isDeleting !== null && styles.deleteButtonDisabled,
+                                                            ]}
+                                                            onPress={() => confirmDelete(activity)}
+                                                            disabled={isDeleting !== null}
+                                                        >
+                                                            {isDeleting === activity.id ? (
+                                                            <ActivityIndicator
+                                                                size="small"
+                                                                color={theme.colors.danger}
+                                                            />
+                                                            ) : (
+                                                            <Ionicons
+                                                                name="trash-outline"
+                                                                size={19}
+                                                                color={theme.colors.textLight}
+                                                            />
+                                                            )}
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            </View>
+
+                                            {index < group.activities.length - 1 && (
+                                            <View style={styles.divider} />
+                                            )}
+
+                                        </View>
+                                    );
+                                }
+                            )}
+
+                        </View>
+                    </View>
+                    ))
+
+                    )}
+
                 </View>
                 )}
 
@@ -811,6 +813,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.card,
         borderRadius: theme.radius.lg,
         padding: theme.spacing.lg,
+        marginBottom: theme.spacing.lg,
         borderWidth: 1,
         borderColor: theme.colors.border,
         ...theme.shadow.small,
