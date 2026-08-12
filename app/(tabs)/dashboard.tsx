@@ -300,6 +300,7 @@ export default function Dashboard() {
                 profile,
                 todayCheckInResult,
                 weekCheckInsResult,
+                streakCheckInsResult,
                 recentActivitiesResult,
                 latestInsightResult,
                 todayHealthResult,
@@ -320,6 +321,12 @@ export default function Dashboard() {
                         .select('date, mood, energy, sleep_hours')
                         .eq('user_id', user.id)
                         .gte('date', sevenDaysAgo)
+                        .order('date', { ascending: false }),
+
+                    supabase
+                        .from('daily_checkins')
+                        .select('date')
+                        .eq('user_id', user.id)
                         .order('date', { ascending: false }),
 
                     supabase
@@ -370,7 +377,8 @@ export default function Dashboard() {
                 ? checkIns.reduce((sum, c) => sum + c.sleep_hours, 0) / checkIns.length
                 : null;
 
-            const streak = calculateStreak(checkIns.map(c => c.date), today);
+            const streakDates = streakCheckInsResult.data ?? [];
+            const streak = calculateStreak(streakDates.map(c => c.date), today);
             const fallbackName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Pacewell User';
             const fullName = profile?.full_name ?? fallbackName;
             const firstName = fullName.split(' ')[0];
