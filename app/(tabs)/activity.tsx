@@ -278,15 +278,14 @@ export default function Activity() {
 
         const { data: existing, error } = await supabase
             .from('activity_logs')
-            .select('external_workout_id')
+            .select('id, date, activity_type, duration_minutes, source, external_workout_id')
             .eq('user_id', user.id)
-            .in('source', ['healthkit', 'health_connect'])
-            .in('external_workout_id', workoutIds);
+            .in('source', ['healthkit', 'health_connect']);
 
         if (error) {
             console.error('Imported workout lookup error:', error.message);
             setWearableWorkouts([]);
-            
+
             return;
         }
 
@@ -296,9 +295,41 @@ export default function Activity() {
                 .filter(Boolean)
         );
 
-        setWearableWorkouts(
-            workouts.filter(workout => !importedWorkoutIds.has(workout.id))
-        );
+        const availableWorkouts: WorkoutData[] = [];
+
+        for (const workout of workouts) {
+            if (importedWorkoutIds.has(workout.id)) {
+                continue;
+            }
+
+            const workoutDate = getLocalDate(new Date(workout.startTime));
+
+            const legacyMatch = (existing ?? []).find(activity =>
+                !activity.external_workout_id &&
+                activity.date === workoutDate &&
+                activity.activity_type === workout.activityType &&
+                activity.duration_minutes === workout.durationMinutes &&
+                activity.source === workout.source
+            );
+
+            if (legacyMatch) {
+                const { error: backfillError } = await supabase
+                    .from('activity_logs')
+                    .update({ external_workout_id: workout.id })
+                    .eq('id', legacyMatch.id)
+                    .eq('user_id', user.id);
+
+                if (backfillError) {
+                    console.error('Legacy workout backfill error:', backfillError.message);
+                }
+
+                continue;
+            }
+
+            availableWorkouts.push(workout);
+        }
+
+        setWearableWorkouts(availableWorkouts);
     };
 
     // ─── Handle Workout Import ─────────────────────────────────────────────────────
