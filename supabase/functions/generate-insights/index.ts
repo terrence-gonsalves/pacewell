@@ -72,7 +72,7 @@ serve(async (req) => {
         const todayStr = today.toISOString().split('T')[0];
         const fourteenDaysAgo = new Date(today);
 
-        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
         const fromDate = fourteenDaysAgo.toISOString().split('T')[0];
 
         // ─── Prevent Duplicate Insight Generation For Today ───────────────────────
