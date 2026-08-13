@@ -274,7 +274,11 @@ serve(async (req) => {
 
             Your task is to analyse all available data from the last 14 days and generate exactly 3 highly personalised wellness insights.
 
-            The user's selected health goals must be the primary framework used to decide which patterns are most important. Read and consider all available check-in, activity and wearable data, but prioritise patterns that directly help the user understand progress, risks or opportunities related to their selected goals.
+            The user's actual health data must determine which patterns are most important. Analyse the check-in, activity and wearable data first, then interpret the strongest evidence-supported patterns in the context of the user's activity level, selected health goals and overall health and wellbeing.
+
+            Selected health goals should guide relevance and recommendations, but must not override stronger patterns in the data. Do not force every observation to fit a selected goal. A meaningful pattern affecting recovery, activity, sleep, stress, energy or general wellbeing may be included even when it does not directly correspond to a selected goal.
+
+            Use the user's activity level when interpreting activity volume, consistency, exertion and recovery. The same amount of activity may have different significance for a sedentary, lightly active, moderately active or highly active person.
 
             HEALTH-GOAL INTERPRETATION
 
@@ -315,28 +319,33 @@ serve(async (req) => {
 
             SELECTION REQUIREMENTS
 
-            Before generating the response, internally identify the strongest evidence-supported patterns in the data.
+            Before generating the response, internally identify the strongest evidence-supported patterns across all available data.
 
             Then select exactly 3 insights using these priorities:
 
-            1. Prefer patterns that directly relate to one or more of the user's selected health goals.
-            2. Use evidence from multiple data sources when that creates a meaningful connection.
-            3. Select the most useful and actionable patterns, not merely the easiest metrics to describe.
-            4. Do not focus on sleep, heart rate, steps or activity solely because wearable data is available.
-            5. An insight unrelated to the selected goals may only be included when it represents a meaningful health, recovery or behaviour pattern that the user should reasonably know about.
-            6. Avoid generating three insights from the same general category.
-            7. Do not repeat substantially similar observations across multiple insights.
-            8. Do not invent causal relationships. Describe correlations or associations unless the data clearly supports stronger wording.
-            9. Do not make medical diagnoses or claim that the data proves an injury, illness or medical condition.
-            10. If data for a selected goal is limited, say so indirectly by offering the strongest supported observation rather than fabricating a goal-specific conclusion.
+            1. Evidence comes first. Select patterns that are genuinely supported by the user's check-ins, activities or wearable metrics.
+            2. Prioritise patterns that are meaningful for the user's health, wellbeing, activity, recovery or behaviour rather than simply reporting available measurements.
+            3. Use the user's selected health goals to determine which evidence-supported patterns are especially relevant and how recommendations should be framed.
+            4. Use the user's activity level to provide appropriate context for activity volume, consistency, exertion and recovery.
+            5. Prefer patterns supported across multiple dates or data sources when those relationships are meaningful.
+            6. A strong health or wellbeing pattern may be included even when it does not directly correspond to a selected goal.
+            7. Do not focus on sleep, heart rate, steps, weight or activity solely because those measurements are available.
+            8. Avoid generating three insights from the same general category.
+            9. Do not repeat substantially similar observations across multiple insights.
+            10. Distinguish correlation from causation. Do not claim that one behaviour caused another unless the available data can genuinely support that conclusion.
+            11. Do not make medical diagnoses, identify diseases or injuries, or imply that tracked data proves a medical condition.
+            12. When data is sparse or inconsistent, acknowledge uncertainty through cautious wording rather than manufacturing a trend.
+            13. Recommendations must be proportionate to the evidence and appropriate for general wellness. Avoid extreme changes based on short-term data.
 
             CONTENT REQUIREMENTS
 
             Each insight must:
 
-            - Clearly relate the observation to at least one selected health goal
-            - Reference specific dates, values, changes, frequencies or trends
-            - Explain why the pattern matters for that goal
+            - Clearly explain the evidence-supported observation
+            - Reference specific dates, values, changes, frequencies or trends where available
+            - Explain why the pattern matters for the user's health, wellbeing or activity
+            - Connect it to a selected health goal when there is a genuine and useful relationship
+            - Consider the user's activity level when relevant
             - Include one realistic and concrete recommendation
             - Be personalised to the user's actual data
             - Be encouraging but honest
