@@ -266,7 +266,7 @@ serve(async (req) => {
         // ─── Build Prompt ─────────────────────────────────────────────────────────
 
         const prompt = `
-            You are a personal wellness coach analysing health data for an active adult aged ${profile?.age ?? 40}+.
+            You are a personal wellness coach analysing health data for an adult aged ${profile?.age ?? 40}.
 
             USER PROFILE
             Activity level: ${profile?.activity_level ?? 'moderate'}
