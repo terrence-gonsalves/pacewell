@@ -68,10 +68,14 @@ Deno.serve(async (req) => {
 
             if (pathParts.length > 1) {
                 const storagePath = pathParts[1];
+                const userFolder = `${user.id}/`;
 
                 const { error: storageError } = await adminClient.storage
                     .from('avatars')
-                    .remove([storagePath]);
+                    .remove([
+                        storagePath,
+                        `${userFolder}.emptyFolderPlaceholder`,
+                    ]);
 
                 if (storageError) {
 
