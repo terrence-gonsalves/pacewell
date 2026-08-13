@@ -72,7 +72,7 @@ serve(async (req) => {
         const todayStr = today.toISOString().split('T')[0];
         const fourteenDaysAgo = new Date(today);
 
-        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
         const fromDate = fourteenDaysAgo.toISOString().split('T')[0];
 
         // ─── Prevent Duplicate Insight Generation For Today ───────────────────────
@@ -266,7 +266,7 @@ serve(async (req) => {
         // ─── Build Prompt ─────────────────────────────────────────────────────────
 
         const prompt = `
-            You are a personal wellness coach analysing health data for an active adult aged ${profile?.age ?? 40}+.
+            You are a personal wellness coach analysing health data for an adult aged ${profile?.age ?? 40}.
 
             USER PROFILE
             Activity level: ${profile?.activity_level ?? 'moderate'}
