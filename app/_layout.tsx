@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { Stack, router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
@@ -249,7 +250,7 @@ export default function RootLayout() {
     // ─── Render ──────────────────────────────────────────────────────────────
 
     return (
-        <>
+        <KeyboardProvider>
             <StatusBar hidden />
             <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="(auth)" />
@@ -270,7 +271,7 @@ export default function RootLayout() {
                 />
             </View>
             )}
-        </>
+        </KeyboardProvider>
     );
 }
 

@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
     Animated,
     ScrollView,
-    KeyboardAvoidingView,
+    Keyboard,
     Platform,
 } from 'react-native';
 import { theme } from '../../lib/theme';
@@ -39,6 +39,7 @@ export default function DeleteAccountModal({
     // animation values
     const backdropOpacity = useRef(new Animated.Value(0)).current;
     const sheetTranslateY = useRef(new Animated.Value(500)).current;
+    const keyboardOffset = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (visible) {
@@ -78,6 +79,32 @@ export default function DeleteAccountModal({
         }
     }, [visible]);
 
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    
+        const showSubscription = Keyboard.addListener(showEvent, event => {
+            Animated.timing(keyboardOffset, {
+                toValue: event.endCoordinates.height,
+                duration: 200,
+                useNativeDriver: false,
+            }).start();
+        });
+    
+        const hideSubscription = Keyboard.addListener(hideEvent, () => {
+            Animated.timing(keyboardOffset, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: false,
+            }).start();
+        });
+    
+        return () => {
+            showSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
+
     // ─── Render ───────────────────────────────────────────────────────────
 
     return (
@@ -88,10 +115,7 @@ export default function DeleteAccountModal({
             onRequestClose={onClose}
             statusBarTranslucent
         >
-            <KeyboardAvoidingView
-                style={styles.keyboardView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            >
+            <View style={styles.keyboardView}>
                 <Animated.View
                     style={[styles.backdrop, { opacity: backdropOpacity }]}
                 >
@@ -101,7 +125,10 @@ export default function DeleteAccountModal({
                 <Animated.View
                     style={[
                         styles.sheetContainer,
-                        { transform: [{ translateY: sheetTranslateY }] },
+                        {
+                            bottom: keyboardOffset,
+                            transform: [{ translateY: sheetTranslateY }],
+                        },
                     ]}
                 >
                     <View style={styles.sheetHandle} />
@@ -124,6 +151,8 @@ export default function DeleteAccountModal({
                             placeholder="Type DELETE here"
                             placeholderTextColor={theme.colors.textLight}
                             autoCapitalize="characters"
+                            returnKeyType="done"
+                            submitBehavior="blurAndSubmit"
                         />
                         <TouchableOpacity
                             style={[
@@ -146,7 +175,7 @@ export default function DeleteAccountModal({
                         </TouchableOpacity>
                     </ScrollView>
                 </Animated.View>
-            </KeyboardAvoidingView>
+            </View>
         </Modal>
     );
 }
@@ -164,7 +193,6 @@ const styles = StyleSheet.create({
     },
     sheetContainer: {
         position: 'absolute',
-        bottom: 0,
         left: 0,
         right: 0,
         backgroundColor: theme.colors.card,
