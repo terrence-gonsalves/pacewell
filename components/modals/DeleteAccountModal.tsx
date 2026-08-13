@@ -10,9 +10,8 @@ import {
     ActivityIndicator,
     Animated,
     ScrollView,
-    Keyboard,
-    Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { theme } from '../../lib/theme';
   
 interface DeleteAccountModalProps {
@@ -39,7 +38,6 @@ export default function DeleteAccountModal({
     // animation values
     const backdropOpacity = useRef(new Animated.Value(0)).current;
     const sheetTranslateY = useRef(new Animated.Value(500)).current;
-    const keyboardOffset = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (visible) {
@@ -79,32 +77,6 @@ export default function DeleteAccountModal({
         }
     }, [visible]);
 
-    useEffect(() => {
-        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    
-        const showSubscription = Keyboard.addListener(showEvent, event => {
-            Animated.timing(keyboardOffset, {
-                toValue: event.endCoordinates.height,
-                duration: 200,
-                useNativeDriver: false,
-            }).start();
-        });
-    
-        const hideSubscription = Keyboard.addListener(hideEvent, () => {
-            Animated.timing(keyboardOffset, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: false,
-            }).start();
-        });
-    
-        return () => {
-            showSubscription.remove();
-            hideSubscription.remove();
-        };
-    }, []);
-
     // ─── Render ───────────────────────────────────────────────────────────
 
     return (
@@ -125,17 +97,15 @@ export default function DeleteAccountModal({
                 <Animated.View
                     style={[
                         styles.sheetContainer,
-                        {
-                            bottom: keyboardOffset,
-                            transform: [{ translateY: sheetTranslateY }],
-                        },
+                        { transform: [{ translateY: sheetTranslateY }] },
                     ]}
                 >
                     <View style={styles.sheetHandle} />
-                    <ScrollView
+                    <KeyboardAwareScrollView
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
                         bounces={false}
+                        bottomOffset={20}
                     >            
                         <Text style={styles.deleteModalTitle}>Delete Account</Text>
                         <Text style={styles.deleteModalText}>
@@ -173,7 +143,7 @@ export default function DeleteAccountModal({
                         <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
                             <Text style={styles.cancelButtonText}>Cancel</Text>
                         </TouchableOpacity>
-                    </ScrollView>
+                    </KeyboardAwareScrollView>
                 </Animated.View>
             </View>
         </Modal>
