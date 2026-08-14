@@ -131,5 +131,8 @@ const styles = StyleSheet.create({
         color: 'rgba(255,255,255,0.7)',
         fontWeight: '400',
         letterSpacing: 0.3,
+        textAlign: 'center',
+        maxWidth: '90%',
+        paddingHorizontal: 16,
     },
 });
