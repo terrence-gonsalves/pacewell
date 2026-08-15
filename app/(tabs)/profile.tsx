@@ -1179,19 +1179,43 @@ export default function Profile() {
                             </TouchableOpacity>
                         </View>
                     </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>LEGAL</Text>
+                        <View style={styles.card}>
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={() => router.push('/privacy-policy')}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <Text style={styles.settingLabel}>Privacy Policy</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </TouchableOpacity>
+
+                            <View style={styles.divider} />
+
+                            <TouchableOpacity
+                                style={styles.settingRow}
+                                onPress={() => router.push('/terms-of-service')}
+                            >
+                                <View style={styles.settingLeft}>
+                                    <View style={styles.settingIconContainer}>
+                                        <Ionicons name="document-text-outline" size={18} color={theme.colors.primary} />
+                                    </View>
+                                    <Text style={styles.settingLabel}>Terms of Service</Text>
+                                </View>
+                                <Ionicons name="chevron-forward" size={18} color={theme.colors.textLight} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                     
                     <View style={styles.footer}>
                         <Text style={styles.footerAppName}>Pacewell</Text>
                         <Text style={styles.footerVersion}>Version {APP_VERSION}</Text>
-                        <View style={styles.footerLinks}>
-                            <TouchableOpacity onPress={() => router.push('/terms-of-service')}>
-                                <Text style={styles.footerLink}>Terms of Service</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.footerDot}>·</Text>
-                            <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
-                                <Text style={styles.footerLink}>Privacy Policy</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
                 </>
                 )}
