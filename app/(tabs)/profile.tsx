@@ -1188,7 +1188,7 @@ export default function Profile() {
                                 <Text style={styles.footerLink}>Terms of Service</Text>
                             </TouchableOpacity>
                             <Text style={styles.footerDot}>·</Text>
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push('/privacy-policy')}>
                                 <Text style={styles.footerLink}>Privacy Policy</Text>
                             </TouchableOpacity>
                         </View>
