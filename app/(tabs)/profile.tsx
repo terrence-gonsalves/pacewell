@@ -1184,7 +1184,7 @@ export default function Profile() {
                         <Text style={styles.footerAppName}>Pacewell</Text>
                         <Text style={styles.footerVersion}>Version {APP_VERSION}</Text>
                         <View style={styles.footerLinks}>
-                            <TouchableOpacity>
+                            <TouchableOpacity onPress={() => router.push('/terms-of-service')}>
                                 <Text style={styles.footerLink}>Terms of Service</Text>
                             </TouchableOpacity>
                             <Text style={styles.footerDot}>·</Text>
