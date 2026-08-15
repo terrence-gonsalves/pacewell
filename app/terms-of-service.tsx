@@ -486,8 +486,8 @@ const styles = StyleSheet.create({
     headerTitle: {
         flex: 1,
         textAlign: 'center',
+        ...theme.typography.sectionHeading,
         color: theme.colors.textDark,
-        ...theme.typography.screenTitle,
     },
     headerSpacer: {
         width: 44,
