@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -11,7 +11,7 @@ import {
     Image,
     Linking,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,6 +65,8 @@ const ACTIVITY_LEVEL_ICONS: Record<string, string> = {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Profile() {
+    const { section } = useLocalSearchParams<{ section?: string }>();
+    const scrollViewRef = useRef<ScrollView>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [units, setUnits] = useState<'metric' | 'imperial'>('metric');
     const [streak, setStreak] = useState(0);
@@ -649,6 +651,7 @@ export default function Profile() {
     return (
         <View style={styles.container}>
             <ScrollView
+                ref={scrollViewRef}
                 contentContainerStyle={styles.inner}
                 showsVerticalScrollIndicator={false}
             >
@@ -769,7 +772,23 @@ export default function Profile() {
                         </View>
                     </View>
 
-                    <View style={styles.section}>
+                    <View
+                        style={styles.section}
+                        onLayout={event => {
+                            if (section !== 'notifications') return;
+
+                            const y = event.nativeEvent.layout.y;
+
+                            requestAnimationFrame(() => {
+                                scrollViewRef.current?.scrollTo({
+                                    y: Math.max(0, y - theme.spacing.md),
+                                    animated: true,
+                                });
+
+                                router.setParams({ section: '' });
+                            });
+                        }}
+                    >
                         <Text style={styles.sectionTitle}>NOTIFICATIONS</Text>
                         <View style={styles.card}>
                             <View style={styles.settingRow}>
