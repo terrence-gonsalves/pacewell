@@ -10,6 +10,7 @@ import {
     Animated,
     ActivityIndicator,
     Linking,
+    AppState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -23,6 +24,12 @@ import {
     getLastSyncedFormatted,
 } from '../../lib/syncManager';
 import { theme } from '../../lib/theme';
+import {
+    getHealthConnectPermissionStatus,
+    HEALTH_CONNECT_PERMISSION_LABELS,
+    HealthConnectPermissionStatus,
+    openHealthConnectForPermissions,
+} from '../../lib/healthPermissions';
 
 interface SyncSettingsModalProps {
     visible: boolean;
@@ -48,6 +55,8 @@ export default function SyncSettingsModal({
     const [isSaving, setIsSaving] = useState(false);
     const [syncMessage, setSyncMessage] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
+    const [permissionStatus, setPermissionStatus] = useState<HealthConnectPermissionStatus | null>(null);
+    const [isCheckingPermissions, setIsCheckingPermissions] = useState(false);
 
     // animation values
     const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -56,6 +65,8 @@ export default function SyncSettingsModal({
     useEffect(() => {
         if (visible) {
             loadSettings();
+            checkPermissions();
+            setSyncMessage(null);
             setMounted(true);
 
             // fade in backdrop and slide up sheet simultaneously
@@ -90,7 +101,30 @@ export default function SyncSettingsModal({
                 setMounted(false);
             });
         }
+    }, [visible]); 
+
+    useEffect(() => {
+        if (!visible) return;
+    
+        const subscription = AppState.addEventListener('change', nextState => {
+            if (nextState === 'active') {
+                checkPermissions();
+            }
+        });
+    
+        return () => subscription.remove();
     }, [visible]);
+
+    const checkPermissions = async () => {
+        setIsCheckingPermissions(true);
+    
+        try {
+            const status = await getHealthConnectPermissionStatus();
+            setPermissionStatus(status);
+        } finally {
+            setIsCheckingPermissions(false);
+        }
+    };
 
     const loadSettings = async () => {
         const saved = await getSyncSettings();
@@ -129,9 +163,14 @@ export default function SyncSettingsModal({
     };
 
     const handleManualSync = async () => {
+        if (!permissionStatus?.allGranted) {
+            await openHealthConnectForPermissions();
+            return;
+        }
+    
         setIsSyncing(true);
         setSyncMessage(null);
-
+    
         const result = await performHealthSync();
 
         if (result.success) {
@@ -188,11 +227,66 @@ export default function SyncSettingsModal({
                         Last synced: {lastSyncedText}
                     </Text>
                 </View>
+
+                {isCheckingPermissions ? (
+                <View style={styles.permissionChecking}>
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                    <Text style={styles.permissionCheckingText}>
+                        Checking Health Connect permissions...
+                    </Text>
+                </View>
+                ) : permissionStatus && !permissionStatus.allGranted ? (
+                <View style={styles.permissionWarning}>
+                    <View style={styles.permissionWarningHeader}>
+                        <Ionicons
+                            name="warning-outline"
+                            size={20}
+                            color={theme.colors.warning}
+                        />
+                        <Text style={styles.permissionWarningTitle}>
+                            Health Connect permissions needed
+                        </Text>
+                    </View>
+
+                    <Text style={styles.permissionWarningText}>
+                        Pacewell needs access to the following data before health syncing can run:
+                    </Text>
+
+                    {permissionStatus.missingPermissions.map(permission => (
+                    <View
+                        key={permission.recordType}
+                        style={styles.permissionRow}
+                    >
+                        <Text style={styles.permissionBullet}>•</Text>
+                        <Text style={styles.permissionText}>
+                            {HEALTH_CONNECT_PERMISSION_LABELS[permission.recordType]}
+                        </Text>
+                    </View>
+                    ))}
+
+                    <TouchableOpacity
+                        style={styles.permissionButton}
+                        onPress={openHealthConnectForPermissions}
+                    >
+                        <Text style={styles.permissionButtonText}>
+                            Review Health Connect Permissions
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                ) : null}
                 
                 <TouchableOpacity
-                    style={[styles.syncNowButton, isSyncing && styles.syncNowButtonDisabled]}
+                    style={[
+                        styles.syncNowButton,
+                        (isSyncing || isCheckingPermissions || !permissionStatus?.allGranted) &&
+                            styles.syncNowButtonDisabled,
+                    ]}
                     onPress={handleManualSync}
-                    disabled={isSyncing}
+                    disabled={
+                        isSyncing ||
+                        isCheckingPermissions ||
+                        !permissionStatus?.allGranted
+                    }
                 >
                 
                     {isSyncing ? (
@@ -504,6 +598,72 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: theme.colors.white,
         fontSize: 16,
+        fontWeight: '600',
+    },
+    permissionChecking: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingVertical: theme.spacing.sm,
+        marginBottom: theme.spacing.md,
+    },
+    permissionCheckingText: {
+        ...theme.typography.caption,
+        color: theme.colors.textSubtle,
+    },
+    permissionWarning: {
+        backgroundColor: theme.colors.warningLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+        borderWidth: 1,
+        borderColor: theme.colors.warning,
+    },
+    permissionWarningHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        marginBottom: theme.spacing.sm,
+    },
+    permissionWarningTitle: {
+        ...theme.typography.body,
+        color: theme.colors.textDark,
+        fontWeight: '600',
+    },
+    permissionWarningText: {
+        ...theme.typography.caption,
+        color: theme.colors.textBody,
+        lineHeight: 18,
+        marginBottom: theme.spacing.sm,
+    },
+    permissionRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: theme.spacing.xs,
+    },
+    permissionBullet: {
+        width: 18,
+        color: theme.colors.warning,
+        fontSize: 14,
+    },
+    permissionText: {
+        flex: 1,
+        ...theme.typography.caption,
+        color: theme.colors.textBody,
+    },
+    permissionButton: {
+        marginTop: theme.spacing.sm,
+        paddingVertical: 10,
+        paddingHorizontal: theme.spacing.md,
+        borderRadius: theme.radius.sm,
+        backgroundColor: theme.colors.white,
+        borderWidth: 1,
+        borderColor: theme.colors.warning,
+        alignItems: 'center',
+    },
+    permissionButtonText: {
+        ...theme.typography.caption,
+        color: theme.colors.textDark,
         fontWeight: '600',
     },
 });
