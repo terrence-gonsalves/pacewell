@@ -126,10 +126,10 @@ const formatWeight = (
     if (weightKg === null) return '—';
 
     if (units === 'imperial') {
-        return `${(weightKg * KG_TO_LBS).toFixed(2)} lb`;
+        return `${(weightKg * KG_TO_LBS).toFixed(1)} lb`;
     }
 
-    return `${weightKg.toFixed(1)} kg`;
+    return `${weightKg.toFixed(2)} kg`;
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
