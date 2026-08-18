@@ -126,7 +126,7 @@ const formatWeight = (
     if (weightKg === null) return '—';
 
     if (units === 'imperial') {
-        return `${(weightKg * KG_TO_LBS).toFixed(1)} lb`;
+        return `${(weightKg * KG_TO_LBS).toFixed(2)} lb`;
     }
 
     return `${weightKg.toFixed(1)} kg`;
@@ -606,9 +606,7 @@ export default function Dashboard() {
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>
-                            Health Signals
-                        </Text>
+                        <Text style={styles.sectionTitle}>Health Signals</Text>
 
                         <View style={styles.healthSignalsGrid}>
                             <View style={styles.healthSignalCard}>
