@@ -4,6 +4,20 @@ import { getLocalDate } from './locale';
 
 let isGenerating = false;
 
+const isNetworkError = (message: string): boolean => {
+    const normalized = message.toLowerCase();
+
+    return (
+        normalized.includes('network') ||
+        normalized.includes('fetch') ||
+        normalized.includes('request failed') ||
+        normalized.includes('failed to send a request') ||
+        normalized.includes('functionsfetcherror')
+    );
+};
+
+const INSIGHTS_NETWORK_ERROR = 'Unable to generate insights. Check your internet connection and try again.';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const LAST_INSIGHTS_DATE_KEY = 'pacewell_last_insights_date';
@@ -44,12 +58,10 @@ export const generateInsights = async (): Promise<{
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         
         if (authError) {
-            const authMessage = authError.message.toLowerCase();
-        
-            if (authMessage.includes('network') || authMessage.includes('fetch') || authMessage.includes('request failed')) {
+            if (isNetworkError(authError.message)) {
                 return {
                     success: false,
-                    message: 'Unable to connect. Check your internet connection and try again.',
+                    message: INSIGHTS_NETWORK_ERROR,
                 };
             }
         
@@ -72,11 +84,22 @@ export const generateInsights = async (): Promise<{
             new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
         );
 
-        const { data: checkIns } = await supabase
+        const { data: checkIns, error: checkInsError } = await supabase
             .from('daily_checkins')
             .select('id')
             .eq('user_id', user.id)
             .gte('date', fourteenDaysAgo);
+
+        if (checkInsError) {
+            console.error('Check-in lookup error:', checkInsError.message);
+
+            return {
+                success: false,
+                message: isNetworkError(checkInsError.message)
+                    ? INSIGHTS_NETWORK_ERROR
+                    : 'Unable to generate insights right now. Please try again.',
+            };
+        }
 
         if (!checkIns || checkIns.length < MIN_CHECKINS_FOR_INSIGHTS) {
             return {
@@ -92,8 +115,13 @@ export const generateInsights = async (): Promise<{
 
         if (error) {
             console.error('Edge Function error:', error.message);
-
-            return { success: false, message: error.message };
+        
+            return {
+                success: false,
+                message: isNetworkError(error.message)
+                    ? INSIGHTS_NETWORK_ERROR
+                    : 'Unable to generate insights right now. Please try again.',
+            };
         }
 
         // mark insights as generated today
@@ -108,15 +136,10 @@ export const generateInsights = async (): Promise<{
         const message = err instanceof Error ? err.message : 'Unknown error';
         console.error('Generate insights error:', message);
 
-        const isNetworkError =
-            message.toLowerCase().includes('network') ||
-            message.toLowerCase().includes('fetch') ||
-            message.toLowerCase().includes('request failed');
-
         return {
             success: false,
-            message: isNetworkError
-                ? 'Unable to connect. Check your internet connection and try again.'
+            message: isNetworkError(message)
+                ? INSIGHTS_NETWORK_ERROR
                 : 'Unable to generate insights right now. Please try again.',
         };
     } finally {
