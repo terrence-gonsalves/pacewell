@@ -146,33 +146,12 @@ export const getHealthConnectPermissionStatus =
         }
     };
 
-export const checkHealthConnectPermissions = async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') return false;
+export const checkHealthConnectPermissions =
+    async (): Promise<boolean> => {
+        const status = await getHealthConnectPermissionStatus();
 
-    try {
-        const { getSdkStatus, initialize, getGrantedPermissions } = require('react-native-health-connect');
-        const status = await getSdkStatus();
-
-        if (status !== 3) return false;
-
-        await initialize();
-
-        const granted = await getGrantedPermissions();
-        const hasPermissions = granted && granted.length > 0;
-
-        await AsyncStorage.setItem(
-            HEALTH_PERMISSION_KEY,
-            hasPermissions ? 'granted' : 'not_determined'
-        );
-
-        return hasPermissions;
-    } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        console.error('Health Connect check error:', message);
-
-        return false;
-    }
-};
+        return status.allGranted;
+    };
 
 export const requestHealthConnectPermissions = async (): Promise<boolean> => {
     if (Platform.OS !== 'android') return false;
@@ -185,17 +164,18 @@ export const requestHealthConnectPermissions = async (): Promise<boolean> => {
         
         await initialize();
 
-        const granted = await requestPermission([
-            { accessType: 'read', recordType: 'SleepSession' },
-            { accessType: 'read', recordType: 'Steps' },
-            { accessType: 'read', recordType: 'HeartRate' },
-            { accessType: 'read', recordType: 'RestingHeartRate' },
-            { accessType: 'read', recordType: 'ExerciseSession' },
-            { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
-            { accessType: 'read', recordType: 'Weight' },
-        ]);
+        const granted = await requestPermission(
+            REQUIRED_HEALTH_CONNECT_PERMISSIONS
+        );
 
-        const hasPermissions = granted && granted.length > 0;
+        const hasPermissions =
+            REQUIRED_HEALTH_CONNECT_PERMISSIONS.every(required =>
+                granted.some(
+                    (permission: HealthConnectPermission) =>
+                        permission.accessType === required.accessType &&
+                        permission.recordType === required.recordType
+                )
+            );
 
         await AsyncStorage.setItem(
             HEALTH_PERMISSION_KEY,
