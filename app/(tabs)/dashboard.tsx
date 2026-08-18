@@ -14,7 +14,7 @@ import { AIInsight, ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } fr
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { supabase } from '../../lib/supabase';
-import { getUserSetting } from '../../lib/localSettings';
+import { getUserSetting, setUserSetting } from '../../lib/localSettings';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -226,6 +226,7 @@ export default function Dashboard() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [form, setForm] = useState(DEFAULT_FORM);
+    const [showReminderPrompt, setShowReminderPrompt] = useState(false);
 
     const updateForm = <K extends keyof typeof DEFAULT_FORM>(
         key: K,
@@ -306,6 +307,7 @@ export default function Dashboard() {
                 todayHealthResult,
                 latestWeightResult,
                 storedUnits,
+                reminderPromptDismissed,
             ] = await Promise.all([
                     fetchProfileWithRetry(user.id),
 
@@ -364,6 +366,7 @@ export default function Dashboard() {
                         .maybeSingle(),
                     
                     getUserSetting(user.id, 'units'),
+                    getUserSetting(user.id, 'reminder_prompt_dismissed'),
                 ]);
 
             const checkIns = weekCheckInsResult.data ?? [];
@@ -382,6 +385,8 @@ export default function Dashboard() {
             const fallbackName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? 'Pacewell User';
             const fullName = profile?.full_name ?? fallbackName;
             const firstName = fullName.split(' ')[0];
+
+            setShowReminderPrompt(reminderPromptDismissed !== 'true');
 
             setData({
                 firstName,
@@ -497,6 +502,20 @@ export default function Dashboard() {
         }
     };
 
+    const handleDismissReminderPrompt = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+    
+        if (!user) return;
+    
+        await setUserSetting(
+            user.id,
+            'reminder_prompt_dismissed',
+            'true'
+        );
+    
+        setShowReminderPrompt(false);
+    };
+
     const getActivityMeta = (type: ActivityType) =>
         ACTIVITY_TYPES.find(a => a.type === type) ?? ACTIVITY_TYPES[8];
 
@@ -545,6 +564,55 @@ export default function Dashboard() {
                         <Text style={styles.greetingName}>{data?.firstName}</Text>
                         <Text style={styles.greetingSubtitle}>Ready for a healthy day?</Text>
                     </View>
+
+                    {showReminderPrompt && (
+                    <View style={styles.reminderPromptCard}>
+                        <TouchableOpacity
+                            style={styles.reminderPromptClose}
+                            onPress={handleDismissReminderPrompt}
+                            accessibilityRole="button"
+                            accessibilityLabel="Dismiss reminder setup"
+                        >
+                            <Ionicons
+                                name="close"
+                                size={18}
+                                color={theme.colors.textSubtle}
+                            />
+                        </TouchableOpacity>
+
+                        <View style={styles.reminderPromptIcon}>
+                            <Ionicons
+                                name="notifications-outline"
+                                size={24}
+                                color={theme.colors.primary}
+                            />
+                        </View>
+
+                        <View style={styles.reminderPromptContent}>
+                            <Text style={styles.reminderPromptTitle}>
+                                Stay on track with reminders
+                            </Text>
+
+                            <Text style={styles.reminderPromptText}>
+                                Pacewell can remind you to complete your daily check-in and review your evening insights.
+                            </Text>
+
+                            <TouchableOpacity
+                                style={styles.reminderPromptButton}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: '/(tabs)/profile',
+                                        params: { section: 'notifications' },
+                                    })
+                                }
+                            >
+                                <Text style={styles.reminderPromptButtonText}>
+                                    Set Up Reminders
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
                     
                     {data?.streak !== undefined && data.streak >= 1 && (
                     <View style={styles.streakCard}>
@@ -1433,5 +1501,61 @@ const styles = StyleSheet.create({
         color: theme.colors.textLight,
         textAlign: 'center',
         marginTop: 4,
+    },
+    reminderPromptCard: {
+        flexDirection: 'row',
+        backgroundColor: theme.colors.primaryLight,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+        position: 'relative',
+    },
+    reminderPromptClose: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1,
+    },
+    reminderPromptIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: theme.colors.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: theme.spacing.md,
+    },
+    reminderPromptContent: {
+        flex: 1,
+        paddingRight: theme.spacing.lg,
+    },
+    reminderPromptTitle: {
+        ...theme.typography.cardTitle,
+        color: theme.colors.textDark,
+        marginBottom: theme.spacing.xs,
+    },
+    reminderPromptText: {
+        ...theme.typography.body,
+        color: theme.colors.textBody,
+        lineHeight: 21,
+        marginBottom: theme.spacing.md,
+    },
+    reminderPromptButton: {
+        alignSelf: 'flex-start',
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.radius.sm,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: 10,
+    },
+    reminderPromptButtonText: {
+        ...theme.typography.label,
+        color: theme.colors.white,
+        fontWeight: '600',
     },
 });
