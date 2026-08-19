@@ -17,6 +17,27 @@ import { theme } from '../../lib/theme';
 
 type AuthMode = 'password' | 'magic-link';
 
+const LOGIN_NETWORK_ERROR = 'Unable to connect. Check your internet connection and try again.';
+
+const getLoginErrorMessage = (error: unknown): string => {
+    const message =
+        error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+                ? error
+                : 'Unknown error';
+
+    const normalized = message.toLowerCase();
+
+    const isNetworkError =
+        normalized.includes('network') ||
+        normalized.includes('fetch') ||
+        normalized.includes('request failed') ||
+        normalized.includes('failed to send a request');
+
+    return isNetworkError ? LOGIN_NETWORK_ERROR : message;
+};
+
 export default function Login() {
     const [mode, setMode] = useState<AuthMode>('password');
     const [email, setEmail] = useState('');
@@ -30,42 +51,55 @@ export default function Login() {
     const handlePasswordLogin = async () => {
         if (!email || !password) {
             setError('Please enter your email and password.');
-        
+    
             return;
         }
-
+    
         setLoading(true);
         setError(null);
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-        if (error) setError(error.message);
-
-        setLoading(false);
+    
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+    
+            if (error) {
+                setError(getLoginErrorMessage(error.message));
+            }
+        } catch (err) {
+            setError(getLoginErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleMagicLink = async () => {
         if (!email) {
             setError('Please enter your email address.');
-        
+    
             return;
         }
-
+    
         setLoading(true);
         setError(null);
-
-        const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: { emailRedirectTo: 'pacewell://auth/callback' },
-        });
-
-        if (error) {
-            setError(error.message);
-        } else {
-            setMagicLinkSent(true);
+    
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: { emailRedirectTo: 'pacewell://auth/callback' },
+            });
+    
+            if (error) {
+                setError(getLoginErrorMessage(error.message));
+            } else {
+                setMagicLinkSent(true);
+            }
+        } catch (err) {
+            setError(getLoginErrorMessage(err));
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     const handleForgotPassword = () => {
