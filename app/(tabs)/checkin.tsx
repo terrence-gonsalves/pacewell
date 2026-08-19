@@ -23,6 +23,30 @@ import { hasHealthPermissions } from '../../lib/healthPermissions';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+const CHECKIN_NETWORK_ERROR =
+    'Unable to connect. Check your internet connection and try again.';
+
+const getCheckInErrorMessage = (error: unknown): string => {
+    const message =
+        error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+                ? error
+                : 'Unknown error';
+
+    const normalized = message.toLowerCase();
+
+    const isNetworkError =
+        normalized.includes('network') ||
+        normalized.includes('fetch') ||
+        normalized.includes('request failed') ||
+        normalized.includes('failed to send a request');
+
+    return isNetworkError
+        ? CHECKIN_NETWORK_ERROR
+        : 'Unable to save your check-in right now. Please try again.';
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CheckInState {
@@ -254,10 +278,16 @@ export default function CheckIn() {
         setSubmitError(null);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+            if (authError) {
+                setSubmitError(getCheckInErrorMessage(authError.message));
+
+                return;
+            }
 
             if (!user) {
-                setSubmitError('No user session found. Please log in again.');
+                setSubmitError('Your session has expired. Please sign in again.');
 
                 return;
             }
@@ -282,8 +312,8 @@ export default function CheckIn() {
                 : await supabase.from('daily_checkins').insert(payload);
 
             if (error) {
-                setSubmitError(error.message);
-
+                setSubmitError(getCheckInErrorMessage(error.message));
+            
                 return;
             }
 
@@ -296,7 +326,7 @@ export default function CheckIn() {
             
             setSubmitted(true);
         } catch (err) {
-            setSubmitError(err instanceof Error ? err.message : 'Something went wrong.');
+            setSubmitError(getCheckInErrorMessage(err));
         } finally {
             setIsSubmitting(false);
         }
