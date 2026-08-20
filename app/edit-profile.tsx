@@ -20,6 +20,7 @@ import { theme } from '../lib/theme';
 import { getUserSetting } from '../lib/localSettings';
 import { getLocalDate } from '../lib/locale';
 import { ActivityLevel, UserProfile } from '../types/health';
+import { useFeedback } from '../contexts/FeedbackContext';
 
 // ─── Constants ───────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ const KG_TO_LBS = 2.2046226218;
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function EditProfile() {
+    const { showFeedback } = useFeedback();
     const [fullName, setFullName] = useState('');
     const [age, setAge] = useState('');
     const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderate');
@@ -120,12 +122,10 @@ export default function EditProfile() {
         setOriginalWeightKg(latestWeightKg);
         
         if (latestWeightKg !== null) {
-            const displayWeight =
-                selectedUnits === 'imperial'
-                    ? latestWeightKg * KG_TO_LBS
-                    : latestWeightKg;
+            const displayWeight = selectedUnits === 'imperial' ? latestWeightKg * KG_TO_LBS : latestWeightKg;
+            const fixedDecimel = selectedUnits === 'imperial' ? 1 : 2;
         
-            setWeight(displayWeight.toFixed(1));
+            setWeight(displayWeight.toFixed(fixedDecimel));
         }
 
         setIsLoading(false);
@@ -392,6 +392,11 @@ export default function EditProfile() {
                 }
             }
 
+            showFeedback({
+                type: 'success',
+                message: 'Profile updated successfully.',
+            });
+            
             router.replace('/(tabs)/profile');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Something went wrong.');
@@ -528,11 +533,7 @@ export default function EditProfile() {
                         <TextInput
                             style={styles.input}
                             value={weight}
-                            onChangeText={value =>
-                                setWeight(
-                                    value.replace(/[^0-9.]/g, '')
-                                )
-                            }
+                            onChangeText={value => setWeight(value.replace(/[^0-9.]/g, ''))}
                             placeholder={
                                 units === 'imperial'
                                     ? 'Your weight in pounds'
