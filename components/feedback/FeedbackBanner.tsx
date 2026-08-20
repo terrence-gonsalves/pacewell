@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         top: 16,
         left: 16,
         right: 16,
-        zIndex: 1000,
+        zIndex: 900,
         elevation: 10,
     },
     banner: {
