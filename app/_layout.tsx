@@ -20,6 +20,8 @@ import {
 } from '../lib/insights';
 import { handleDeepLink } from '../lib/supabase';
 import CustomSplash from './splash';
+import { FeedbackProvider } from '../contexts/FeedbackContext';
+import FeedbackBanner from '../components/feedback/FeedbackBanner';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -251,26 +253,31 @@ export default function RootLayout() {
 
     return (
         <KeyboardProvider>
-            <StatusBar hidden />
-            <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="edit-profile" />
-                <Stack.Screen name="change-email" />
-                <Stack.Screen name="log-activity" />
-            </Stack>
+            <FeedbackProvider>
+                <StatusBar hidden />
+                <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="edit-profile" />
+                    <Stack.Screen name="change-email" />
+                    <Stack.Screen name="log-activity" />
+                </Stack>
 
-            {showCustomSplash && (
-            <View
-                style={styles.splashLayer}
-                onLayout={handleCustomSplashLayout}
-            >
-                <CustomSplash
-                    ready={!loading}
-                    onComplete={handleSplashComplete}
-                />
-            </View>
-            )}
+                <FeedbackBanner />
+
+                {showCustomSplash && (
+                <View
+                    style={styles.splashLayer}
+                    onLayout={handleCustomSplashLayout}
+                >
+                    <CustomSplash
+                        ready={!loading}
+                        onComplete={handleSplashComplete}
+                    />
+                </View>
+                )}
+
+            </FeedbackProvider>
         </KeyboardProvider>
     );
 }
