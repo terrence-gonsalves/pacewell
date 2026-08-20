@@ -13,13 +13,14 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
 import { EmojiScale, EmojiScaleLabels } from '../../types/health';
+import { supabase } from '../../lib/supabase';
 import { getLocalDate } from '../../lib/locale';
 import { generateInsights } from '../../lib/insights';
 import { theme } from '../../lib/theme';
 import { getSleepData } from '../../lib/health';
 import { hasHealthPermissions } from '../../lib/healthPermissions';
+import { useFeedback } from '../../contexts/FeedbackContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -184,6 +185,7 @@ const Stepper = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CheckIn() {
+    const { showFeedback } = useFeedback();
     const [state, setState] = useState<CheckInState>(DEFAULT_STATE);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -281,14 +283,20 @@ export default function CheckIn() {
             const { data: { user }, error: authError } = await supabase.auth.getUser();
 
             if (authError) {
-                setSubmitError(getCheckInErrorMessage(authError.message));
-
+                showFeedback({
+                    type: 'error',
+                    message: getCheckInErrorMessage(authError.message),
+                });
+            
                 return;
             }
 
             if (!user) {
-                setSubmitError('Your session has expired. Please sign in again.');
-
+                showFeedback({
+                    type: 'error',
+                    message: 'Your session has expired. Please sign in again.',
+                });
+            
                 return;
             }
 
@@ -324,9 +332,19 @@ export default function CheckIn() {
                 console.error('Background insight generation:', message)
             });
             
+            showFeedback({
+                type: 'success',
+                message: existingId
+                    ? 'Today\'s check-in updated successfully.'
+                    : 'Check-in saved successfully.',
+            });
+            
             setSubmitted(true);
         } catch (err) {
-            setSubmitError(getCheckInErrorMessage(err));
+            showFeedback({
+                type: 'error',
+                message: getCheckInErrorMessage(err),
+            });
         } finally {
             setIsSubmitting(false);
         }
