@@ -15,16 +15,16 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
 import { UserProfile } from '../../types/health';
+import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
+import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
+import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
+import { supabase } from '../../lib/supabase';
 import { clearLocalAccountData } from '../../lib/accountCleanup';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { checkHealthConnectPermissions } from '../../lib/healthPermissions';
 import { getLastSyncedFormatted } from '../../lib/syncManager';
-import WellnessGoalsModal from '../../components/modals/WellnessGoalsModal';
-import DeleteAccountModal from '../../components/modals/DeleteAccountModal';
-import SyncSettingsModal from '../../components/modals/SyncSettingsModal';
 import {
     DEFAULT_CHECKIN_REMINDER_TIME,
     DEFAULT_INSIGHT_REMINDER_TIME,
@@ -43,6 +43,7 @@ import {
     scheduleBedtimeInsightNotification,
     scheduleDailyCheckInNotification,
 } from '../../lib/notifications';
+import { useFeedback } from '../../contexts/FeedbackContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ const ACTIVITY_LEVEL_ICONS: Record<string, string> = {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Profile() {
+    const { showFeedback } = useFeedback();
     const { section } = useLocalSearchParams<{ section?: string }>();
     const scrollViewRef = useRef<ScrollView>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -221,14 +223,34 @@ export default function Profile() {
 
     const handleUnitsToggle = async (value: boolean) => {
         const newUnits = value ? 'imperial' : 'metric';
-
-        setUnits(newUnits);
-
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) return;
-
-        await setUserSetting(user.id, 'units', newUnits);
+    
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+    
+            if (!user) {
+                showFeedback({
+                    type: 'error',
+                    message: 'Your session has expired. Please sign in again.',
+                });
+    
+                return;
+            }
+    
+            await setUserSetting(user.id, 'units', newUnits);
+            setUnits(newUnits);
+    
+            showFeedback({
+                type: 'success',
+                message: `Units changed to ${newUnits === 'imperial' ? 'imperial' : 'metric'}.`,
+            });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Units could not be updated.';
+    
+            showFeedback({
+                type: 'error',
+                message,
+            });
+        }
     };
 
     const handleMarketingToggle = async (value: boolean) => {
