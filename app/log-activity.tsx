@@ -12,10 +12,11 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
 import { ActivityType, EmojiScale, EmojiScaleLabels } from '../types/health';
+import { supabase } from '../lib/supabase';
 import { getLocalDate } from '../lib/locale';
 import { theme } from '../lib/theme';
+import { useFeedback } from '../contexts/FeedbackContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ const Stepper = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function LogActivity() {
+    const { showFeedback } = useFeedback();
     const { from, activityId } = useLocalSearchParams<{
         from?: string;
         activityId?: string;
@@ -232,14 +234,29 @@ export default function LogActivity() {
             }
 
             if (saveError) {
-                setError(saveError.message);
-
+                showFeedback({
+                    type: 'error',
+                    message: `Activity could not be saved: ${saveError.message}`,
+                });
+            
                 return;
             }
 
+            showFeedback({
+                type: 'success',
+                message: isEditing
+                    ? 'Activity updated successfully.'
+                    : 'Activity logged successfully.',
+            });
+            
             handleBack();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong.');
+            const message = err instanceof Error ? err.message : 'Activity could not be saved.';
+        
+            showFeedback({
+                type: 'error',
+                message,
+            });
         } finally {
             setIsSubmitting(false);
         }
