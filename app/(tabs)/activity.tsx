@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { getRecentWorkouts } from '../../lib/health';
 import { hasHealthPermissions } from '../../lib/healthPermissions';
 import { getUserSetting } from '../../lib/localSettings';
+import { useFeedback } from '../../contexts/FeedbackContext';
 
 type ActivityGroup = {
     date: string;
@@ -186,6 +187,7 @@ const Stepper = ({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function Activity() {
+    const { showFeedback } = useFeedback();
     const [activities, setActivities] = useState<ActivityLog[]>([]);
     const [weeklyCount, setWeeklyCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
@@ -356,18 +358,34 @@ export default function Activity() {
 
             if (error) {
                 if (error.code === '23505') {
-                    setError('This workout has already been imported.');
+                    showFeedback({
+                        type: 'info',
+                        message: 'This workout has already been imported.',
+                    });
                 } else {
-                    setError(`Workout could not be imported: ${error.message}`);
+                    showFeedback({
+                        type: 'error',
+                        message: `Workout could not be imported: ${error.message}`,
+                    });
                 }
             
                 return;
             }
             
             await loadActivities();
+            
+            showFeedback({
+                type: 'success',
+                message: 'Workout imported successfully.',
+            });
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
+            const message = err instanceof Error ? err.message : 'Workout could not be imported.';
             console.error('Import error:', message);
+        
+            showFeedback({
+                type: 'error',
+                message,
+            });
         } finally {
             setIsImporting(null);
         }
@@ -404,7 +422,11 @@ export default function Activity() {
             const { data: { user } } = await supabase.auth.getUser();
     
             if (!user) {
-                setError('You must be signed in to delete an activity.');
+                showFeedback({
+                    type: 'error',
+                    message: 'You must be signed in to remove an activity.',
+                });
+            
                 return;
             }
     
@@ -431,14 +453,27 @@ export default function Activity() {
             }
     
             if (deleteError) {
-                setError(`Activity could not be deleted: ${deleteError.message}`);
-
+                showFeedback({
+                    type: 'error',
+                    message: `Activity could not be removed: ${deleteError.message}`,
+                });
+            
                 return;
             }
-    
+            
             await loadActivities();
+            
+            showFeedback({
+                type: 'success',
+                message: activity.source === 'manual'
+                    ? 'Activity deleted successfully.'
+                    : 'Activity removed from Pacewell.',
+            });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Activity could not be deleted.');
+            showFeedback({
+                type: 'error',
+                message: err instanceof Error ? err.message : 'Activity could not be removed.',
+            });
         } finally {
             setIsDeleting(null);
         }

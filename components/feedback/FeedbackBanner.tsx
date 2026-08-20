@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Animated,
     Pressable,
@@ -45,33 +45,53 @@ const FEEDBACK_CONFIG: Record<
 
 export default function FeedbackBanner() {
     const { feedback, hideFeedback } = useFeedback();
+    const [visibleFeedback, setVisibleFeedback] = useState(feedback);
     const translateY = useRef(new Animated.Value(-100)).current;
     const opacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (feedback) {
+            setVisibleFeedback(feedback);
             translateY.setValue(-100);
             opacity.setValue(0);
 
             Animated.parallel([
-                Animated.spring(translateY, {
+                Animated.timing(translateY, {
                     toValue: 0,
+                    duration: 240,
                     useNativeDriver: true,
-                    tension: 80,
-                    friction: 10,
                 }),
                 Animated.timing(opacity, {
                     toValue: 1,
-                    duration: 180,
+                    duration: 200,
                     useNativeDriver: true,
                 }),
             ]).start();
+
+            return;
         }
-    }, [feedback, opacity, translateY]);
 
-    if (!feedback) return null;
+        if (visibleFeedback) {
+            Animated.parallel([
+                Animated.timing(translateY, {
+                    toValue: -100,
+                    duration: 220,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(opacity, {
+                    toValue: 0,
+                    duration: 180,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => {
+                setVisibleFeedback(null);
+            });
+        }
+    }, [feedback, visibleFeedback, opacity, translateY]);
 
-    const config = FEEDBACK_CONFIG[feedback.type];
+    if (!visibleFeedback) return null;
+
+    const config = FEEDBACK_CONFIG[visibleFeedback.type];
 
     return (
         <Animated.View
@@ -105,7 +125,7 @@ export default function FeedbackBanner() {
                         { color: config.textColor },
                     ]}
                 >
-                    {feedback.message}
+                    {visibleFeedback.message}
                 </Text>
 
                 <Pressable
