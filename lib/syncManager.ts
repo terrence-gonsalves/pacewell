@@ -249,6 +249,36 @@ export const cancelBackgroundSync = async (): Promise<void> => {
     }
 };
 
+export interface BackgroundSyncDiagnostics {
+    isRegistered: boolean;
+    lastAttempt: string | null;
+    lastResult: string | null;
+}
+
+export const getBackgroundSyncDiagnostics = async (): Promise<BackgroundSyncDiagnostics> => {
+    const userId = await getCurrentUserId();
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK);
+
+    if (!userId) {
+        return {
+            isRegistered,
+            lastAttempt: null,
+            lastResult: null,
+        };
+    }
+
+    const [lastAttempt, lastResult] = await Promise.all([
+        getUserSetting(userId, 'last_background_sync_attempt'),
+        getUserSetting(userId, 'last_background_sync_result'),
+    ]);
+
+    return {
+        isRegistered,
+        lastAttempt,
+        lastResult,
+    };
+};
+
 export const getLastSyncedFormatted = async (): Promise<string> => {
     const userId = await getCurrentUserId();
 
