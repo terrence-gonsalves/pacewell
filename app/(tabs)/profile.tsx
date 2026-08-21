@@ -255,67 +255,139 @@ export default function Profile() {
 
     const handleMarketingToggle = async (value: boolean) => {
         if (!profile) return;
-
+    
         setIsSavingMarketing(true);
-
+    
         try {
             const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) return;
-
-            await supabase
+    
+            if (!user) {
+                showFeedback({
+                    type: 'error',
+                    message: 'Your session has expired. Please sign in again.',
+                });
+    
+                return;
+            }
+    
+            const { error } = await supabase
                 .from('profiles')
                 .update({ marketing_opt_in: value })
                 .eq('id', user.id);
-
+    
+            if (error) {
+                showFeedback({
+                    type: 'error',
+                    message: `Marketing preference could not be updated: ${error.message}`,
+                });
+    
+                return;
+            }
+    
             setProfile(prev => prev ? { ...prev, marketing_opt_in: value } : prev);
+    
+            showFeedback({
+                type: 'success',
+                message: value
+                    ? 'Marketing emails enabled.'
+                    : 'Marketing emails disabled.',
+            });
+        } catch (err) {
+            const message = err instanceof Error
+                ? err.message
+                : 'Marketing preference could not be updated.';
+    
+            showFeedback({
+                type: 'error',
+                message,
+            });
         } finally {
             setIsSavingMarketing(false);
         }
     };
 
-    const handleNotifTimeSave = async (
-        time: string
-    ): Promise<void> => {
-        setNotifTime(time);
+    const handleNotifTimeSave = async (time: string): Promise<void> => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
     
-        const {
-            data: { user },
-        } = await supabase.auth.getUser();
+            if (!user) {
+                showFeedback({
+                    type: 'error',
+                    message: 'Your session has expired. Please sign in again.',
+                });
     
-        if (!user) return;
-    
-        await setUserSetting(
-            user.id,
-            'checkin_reminder_time',
-            time
-        );
-    
-        if (notificationsEnabled && checkinReminderEnabled) {
-            const scheduled = await scheduleDailyCheckInNotification(time);
-    
-            if (!scheduled) {
-                await setUserSetting(
-                    user.id,
-                    'checkin_reminder_enabled',
-                    'false'
-                );
-    
-                setCheckinReminderEnabled(false);
+                return;
             }
+    
+            await setUserSetting(user.id, 'checkin_reminder_time', time);
+    
+            if (notificationsEnabled && checkinReminderEnabled) {
+                const scheduled = await scheduleDailyCheckInNotification(time);
+    
+                if (!scheduled) {
+                    await setUserSetting(user.id, 'checkin_reminder_enabled', 'false');
+                    setCheckinReminderEnabled(false);
+                    setNotifTime(time);
+    
+                    showFeedback({
+                        type: 'error',
+                        message: 'Reminder time was saved, but the reminder could not be scheduled.',
+                    });
+    
+                    return;
+                }
+            }
+    
+            setNotifTime(time);
+    
+            showFeedback({
+                type: 'success',
+                message: 'Check-in reminder time updated.',
+            });
+        } catch (err) {
+            const message = err instanceof Error
+                ? err.message
+                : 'Check-in reminder time could not be updated.';
+    
+            showFeedback({
+                type: 'error',
+                message,
+            });
         }
     };
 
     const handleSaveWeeklyGoal = async () => {
-        setWeeklyGoal(tempGoal);
-        
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) return;
-
-        await setUserSetting(user.id, 'weekly_goal', String(tempGoal));
-
-        setGoalsModalVisible(false);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+    
+            if (!user) {
+                showFeedback({
+                    type: 'error',
+                    message: 'Your session has expired. Please sign in again.',
+                });
+    
+                return;
+            }
+    
+            await setUserSetting(user.id, 'weekly_goal', String(tempGoal));
+    
+            setWeeklyGoal(tempGoal);
+            setGoalsModalVisible(false);
+    
+            showFeedback({
+                type: 'success',
+                message: `Weekly activity goal updated.`,
+            });
+        } catch (err) {
+            const message = err instanceof Error
+                ? err.message
+                : 'Weekly activity goal could not be updated.';
+    
+            showFeedback({
+                type: 'error',
+                message,
+            });
+        }
     };
 
     const handleNotificationsToggle = async (
@@ -974,9 +1046,11 @@ export default function Profile() {
                                         selectedDate.getMinutes()
                                     ).padStart(2, '0');
 
-                                    handleNotifTimeSave(
-                                        `${hours}:${minutes}`
-                                    );
+                                    const newTime = `${hours}:${minutes}`;
+
+                                    setTimeout(() => {
+                                        handleNotifTimeSave(newTime);
+                                    }, 250);
                                 }}
                             />
                             )}
