@@ -168,20 +168,47 @@ export const performHealthSync = async (): Promise<{
 // ─── Background Task Definition ───────────────────────────────────────────────
 
 TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
+    const attemptedAt = new Date().toISOString();
+
     try {
+        const userId = await getCurrentUserId();
+
+        console.log('Background sync task started:', attemptedAt);
+
+        if (!userId) {
+            console.log('Background sync task skipped: no active user');
+
+            return BackgroundTask.BackgroundTaskResult.Failed;
+        }
+
+        await setUserSetting(userId, 'last_background_sync_attempt', attemptedAt);
+
         const settings = await getSyncSettings();
 
         if (!settings.enabled) {
+            await setUserSetting(userId, 'last_background_sync_result', 'disabled');
+
+            console.log('Background sync task skipped: sync disabled');
+
             return BackgroundTask.BackgroundTaskResult.Success;
         }
 
         const result = await performHealthSync();
+
+        await setUserSetting(
+            userId,
+            'last_background_sync_result',
+            result.success ? 'success' : `failed:${result.message}`
+        );
+
+        console.log('Background sync task result:', result.success ? 'success' : result.message);
 
         return result.success
             ? BackgroundTask.BackgroundTaskResult.Success
             : BackgroundTask.BackgroundTaskResult.Failed;
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
+
         console.error('Background sync task error:', message);
 
         return BackgroundTask.BackgroundTaskResult.Failed;
