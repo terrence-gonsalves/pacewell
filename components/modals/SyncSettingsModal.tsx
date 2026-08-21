@@ -30,6 +30,7 @@ import {
     HealthConnectPermissionStatus,
     openHealthConnectForPermissions,
 } from '../../lib/healthPermissions';
+import { useFeedback } from '../../contexts/FeedbackContext';
 
 interface SyncSettingsModalProps {
     visible: boolean;
@@ -44,6 +45,8 @@ export default function SyncSettingsModal({
     onClose,
     onSyncComplete,
 }: SyncSettingsModalProps) {
+    const { showFeedback } = useFeedback();
+
     const [settings, setSettings] = useState<SyncSettings>({
         enabled: false,
         intervalHours: 4,
@@ -143,20 +146,32 @@ export default function SyncSettingsModal({
 
     const handleSave = async () => {
         setIsSaving(true);
-
+    
         try {
             await saveSyncSettings(settings);
-
+    
             if (settings.enabled) {
                 await scheduleBackgroundSync(settings.intervalHours);
             } else {
                 await cancelBackgroundSync();
             }
-
+    
             onClose();
+    
+            setTimeout(() => {
+                showFeedback({
+                    type: 'success',
+                    message: 'Sync settings updated.',
+                });
+            }, 250);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
+            const message = err instanceof Error ? err.message : 'Sync settings could not be updated.';
             console.error('Error saving sync settings:', message);
+    
+            showFeedback({
+                type: 'error',
+                message: 'Sync settings could not be updated.',
+            });
         } finally {
             setIsSaving(false);
         }
