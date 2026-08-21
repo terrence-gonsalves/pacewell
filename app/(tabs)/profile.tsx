@@ -592,35 +592,53 @@ export default function Profile() {
         }
     };
 
-    const handleBedtimeSave = async (
-        time: string
-    ): Promise<void> => {
-        setBedtime(time);
+    const handleBedtimeSave = async (time: string): Promise<void> => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
     
-        const {
-            data: { user },
-        } = await supabase.auth.getUser();
+            if (!user) {
+                showFeedback({
+                    type: 'error',
+                    message: 'Your session has expired. Please sign in again.',
+                });
     
-        if (!user) return;
-    
-        await setUserSetting(
-            user.id,
-            'insight_reminder_time',
-            time
-        );
-    
-        if (notificationsEnabled && insightReminderEnabled) {
-            const scheduled = await scheduleBedtimeInsightNotification(time);
-    
-            if (!scheduled) {
-                await setUserSetting(
-                    user.id,
-                    'insight_reminder_enabled',
-                    'false'
-                );
-    
-                setInsightReminderEnabled(false);
+                return;
             }
+    
+            await setUserSetting(user.id, 'insight_reminder_time', time);
+    
+            if (notificationsEnabled && insightReminderEnabled) {
+                const scheduled = await scheduleBedtimeInsightNotification(time);
+    
+                if (!scheduled) {
+                    await setUserSetting(user.id, 'insight_reminder_enabled', 'false');
+                    setInsightReminderEnabled(false);
+                    setBedtime(time);
+    
+                    showFeedback({
+                        type: 'error',
+                        message: 'Insight reminder time was saved, but the reminder could not be scheduled.',
+                    });
+    
+                    return;
+                }
+            }
+    
+            setBedtime(time);
+    
+            showFeedback({
+                type: 'success',
+                message: 'Insight reminder time updated.',
+            });
+        } catch (err) {
+            const message = err instanceof Error
+                ? err.message
+                : 'Insight reminder time could not be updated.';
+    
+            showFeedback({
+                type: 'error',
+                message,
+            });
         }
     };
 
@@ -1157,17 +1175,13 @@ export default function Profile() {
                                         return;
                                     }
 
-                                    const hours = String(
-                                        selectedDate.getHours()
-                                    ).padStart(2, '0');
+                                    const hours = String(selectedDate.getHours()).padStart(2, '0');
+                                    const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+                                    const newTime = `${hours}:${minutes}`;
 
-                                    const minutes = String(
-                                        selectedDate.getMinutes()
-                                    ).padStart(2, '0');
-
-                                    handleBedtimeSave(
-                                        `${hours}:${minutes}`
-                                    );
+                                    setTimeout(() => {
+                                        handleBedtimeSave(newTime);
+                                    }, 250);
                                 }}
                             />
                             )}
