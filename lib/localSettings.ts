@@ -42,6 +42,8 @@ export const removeUserLocalSettings = async (
         localSettingsKey(userId, 'sync_enabled'),
         localSettingsKey(userId, 'sync_interval'),
         localSettingsKey(userId, 'last_synced'),
+        localSettingsKey(userId, 'last_background_sync_attempt'),
+        localSettingsKey(userId, 'last_background_sync_result'),
         localSettingsKey(userId, 'last_insights_date'),
     ]);
 };
