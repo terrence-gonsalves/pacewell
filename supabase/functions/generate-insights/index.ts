@@ -68,12 +68,30 @@ serve(async (req) => {
 
         // ─── Date Range ───────────────────────────────────────────────────────────
 
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        const fourteenDaysAgo = new Date(today);
+        // ─── Date Range ───────────────────────────────────────────────────────────
 
+        const { localDate } = await req.json();
+
+        if (typeof localDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
+            return new Response(
+                JSON.stringify({ error: 'Invalid local date' }),
+                {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                }
+            );
+        }
+
+        const todayStr = localDate;
+        const fourteenDaysAgo = new Date(`${todayStr}T12:00:00`);
+        
         fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
-        const fromDate = fourteenDaysAgo.toISOString().split('T')[0];
+
+        const fromDate = [
+            fourteenDaysAgo.getFullYear(),
+            String(fourteenDaysAgo.getMonth() + 1).padStart(2, '0'),
+            String(fourteenDaysAgo.getDate()).padStart(2, '0'),
+        ].join('-');
 
         // ─── Prevent Duplicate Insight Generation For Today ───────────────────────
 
