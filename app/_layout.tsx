@@ -89,7 +89,6 @@ export default function RootLayout() {
 
     useEffect(() => {
         setupAndroidChannel();
-        initializeBackgroundSync();
 
         // handle deep links when app is already open
         const linkingSub = Linking.addEventListener('url', async ({ url }) => {
@@ -160,6 +159,10 @@ export default function RootLayout() {
         
                 sessionRef.current = session;
                 setSession(session);
+
+                if (session) {
+                    await initializeBackgroundSync();
+                }
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown auth error';
         
