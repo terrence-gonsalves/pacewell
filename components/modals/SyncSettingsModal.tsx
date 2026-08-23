@@ -22,6 +22,7 @@ import {
     cancelBackgroundSync,
     performHealthSync,
     getLastSyncedFormatted,
+    getBackgroundSyncDiagnostics,
 } from '../../lib/syncManager';
 import { theme } from '../../lib/theme';
 import {
@@ -46,6 +47,9 @@ export default function SyncSettingsModal({
     onSyncComplete,
 }: SyncSettingsModalProps) {
     const { showFeedback } = useFeedback();
+    const [backgroundRegistered, setBackgroundRegistered] = useState(false);
+    const [lastBackgroundAttempt, setLastBackgroundAttempt] = useState<string | null>(null);
+    const [lastBackgroundResult, setLastBackgroundResult] = useState<string | null>(null);
 
     const [settings, setSettings] = useState<SyncSettings>({
         enabled: false,
@@ -130,10 +134,17 @@ export default function SyncSettingsModal({
     };
 
     const loadSettings = async () => {
-        const saved = await getSyncSettings();
+        const [saved, lastSynced, diagnostics] = await Promise.all([
+            getSyncSettings(),
+            getLastSyncedFormatted(),
+            getBackgroundSyncDiagnostics(),
+        ]);
+    
         setSettings(saved);
-        const lastSynced = await getLastSyncedFormatted();
         setLastSyncedText(lastSynced);
+        setBackgroundRegistered(diagnostics.isRegistered);
+        setLastBackgroundAttempt(diagnostics.lastAttempt);
+        setLastBackgroundResult(diagnostics.lastResult);
     };
 
     const handleToggleEnabled = (value: boolean) => {
@@ -240,6 +251,27 @@ export default function SyncSettingsModal({
                     />
                     <Text style={styles.lastSyncedText}>
                         Last synced: {lastSyncedText}
+                    </Text>
+                </View>
+
+                <View style={styles.lastSyncedRow}>
+                    <Ionicons name="settings-outline" size={16} color={theme.colors.textSubtle} />
+                    <Text style={styles.lastSyncedText}>
+                        Background sync: {backgroundRegistered ? 'Registered' : 'Not registered'}
+                    </Text>
+                </View>
+
+                <View style={styles.lastSyncedRow}>
+                    <Ionicons name="pulse-outline" size={16} color={theme.colors.textSubtle} />
+                    <Text style={styles.lastSyncedText}>
+                        Last background attempt: {lastBackgroundAttempt ? new Date(lastBackgroundAttempt).toLocaleString() : 'Never'}
+                    </Text>
+                </View>
+
+                <View style={styles.lastSyncedRow}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={theme.colors.textSubtle} />
+                    <Text style={styles.lastSyncedText}>
+                        Last background result: {lastBackgroundResult ?? 'Never'}
                     </Text>
                 </View>
 
