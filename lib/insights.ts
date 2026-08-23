@@ -110,7 +110,9 @@ export const generateInsights = async (): Promise<{
 
         // call the Edge Function
         const { data, error } = await supabase.functions.invoke('generate-insights', {
-            body: {},
+            body: {
+                localDate: today,
+            },
         });
 
         if (error) {
