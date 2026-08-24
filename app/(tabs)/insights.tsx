@@ -165,8 +165,7 @@ export default function Insights() {
                 .from('ai_insights')
                 .select('*')
                 .eq('user_id', user.id)
-                .gte('created_at', `${today}T00:00:00`)
-                .lte('created_at', `${today}T23:59:59`)
+                .eq('data_range_end', today)
                 .order('created_at', { ascending: false });
 
             setInsights(data ?? []);
