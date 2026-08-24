@@ -343,6 +343,7 @@ export default function Dashboard() {
                         .from('ai_insights')
                         .select('*')
                         .eq('user_id', user.id)
+                        .eq('data_range_end', today)
                         .order('created_at', { ascending: false })
                         .limit(1)
                         .maybeSingle(),
@@ -422,10 +423,13 @@ export default function Dashboard() {
      
             if (!user) return;
      
+            const today = getLocalDate();
+
             const { data } = await supabase
                 .from('ai_insights')
                 .select('*')
                 .eq('user_id', user.id)
+                .eq('data_range_end', today)
                 .order('created_at', { ascending: false })
                 .limit(1);
      
