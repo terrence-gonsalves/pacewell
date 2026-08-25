@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { getLocalDate } from './locale';
 import { getUserSetting, setUserSetting } from './localSettings';
@@ -21,23 +20,8 @@ const INSIGHTS_NETWORK_ERROR = 'Unable to generate insights. Check your internet
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BEDTIME_KEY = 'pacewell_bedtime';
-const GENERATING_KEY = 'pacewell_insights_generating';
-
 export const DEFAULT_BEDTIME = '22:00';
 export const MIN_CHECKINS_FOR_INSIGHTS = 3;
-
-// ─── Bedtime Settings ─────────────────────────────────────────────────────────
-
-export const getBedtime = async (): Promise<string | null> => {
-    const stored = await AsyncStorage.getItem(BEDTIME_KEY);
-    
-    return stored ?? null;
-};
-
-export const saveBedtime = async (time: string): Promise<void> => {
-    await AsyncStorage.setItem(BEDTIME_KEY, time);
-};
 
 // ─── Insight Generation ───────────────────────────────────────────────────────
 
