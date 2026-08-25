@@ -282,7 +282,6 @@ export default function Login() {
                             <Text style={styles.primaryButtonText}>
                                 {mode === 'password' ? 'Sign In' : 'Send Magic Link'}
                             </Text>
-                            <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
                         </View>
                         )}
 

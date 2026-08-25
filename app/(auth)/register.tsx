@@ -253,7 +253,6 @@ export default function Register() {
               <TouchableOpacity style={styles.primaryButton} onPress={handleStepOne}>
                   <View style={styles.buttonInner}>
                       <Text style={styles.primaryButtonText}>Continue</Text>
-                      <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
                   </View>
               </TouchableOpacity>
           </View>
@@ -436,7 +435,6 @@ export default function Register() {
               ) : (
               <View style={styles.buttonInner}>
                   <Text style={styles.primaryButtonText}>Create Account</Text>
-                  <Ionicons name="arrow-forward" size={18} color={theme.colors.white} />
               </View>
               )}
 
