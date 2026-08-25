@@ -713,9 +713,11 @@ export default function Profile() {
                 return;
             }
 
+            await cancelBackgroundSync();
+
             // clear device-local settings from the deleted account.
             await clearLocalAccountData();
-     
+
             // auth user is gone — sign out
             await supabase.auth.signOut();
      
