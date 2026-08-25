@@ -1,6 +1,7 @@
 import AsyncStorage  from '@react-native-async-storage/async-storage';
 import { cancelBedtimeInsightNotification, cancelCheckInNotification } from './notifications';
 import { cancelBackgroundSync } from './syncManager';
+import { removeUserLocalSettings } from './localSettings';
 
 const LEGACY_LOCAL_KEYS = [
     'pacewell_units',
@@ -15,12 +16,13 @@ const LEGACY_LOCAL_KEYS = [
     'pacewell_insights_generating',
 ];
 
-export const clearLocalAccountData = async (): Promise<void> => {
+export const clearLocalAccountData = async (userId: string): Promise<void> => {
     await Promise.allSettled([
         cancelCheckInNotification(),
         cancelBedtimeInsightNotification(),
         cancelBackgroundSync(),
-        AsyncStorage .multiRemove(LEGACY_LOCAL_KEYS),
+        removeUserLocalSettings(userId),
+        AsyncStorage.multiRemove(LEGACY_LOCAL_KEYS),
     ]);
 };
 
