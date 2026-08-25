@@ -24,7 +24,7 @@ import { clearLocalAccountData } from '../../lib/accountCleanup';
 import { getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
 import { checkHealthConnectPermissions } from '../../lib/healthPermissions';
-import { getLastSyncedFormatted } from '../../lib/syncManager';
+import { cancelBackgroundSync, getLastSyncedFormatted } from '../../lib/syncManager';
 import {
     DEFAULT_CHECKIN_REMINDER_TIME,
     DEFAULT_INSIGHT_REMINDER_TIME,
@@ -752,7 +752,10 @@ export default function Profile() {
                 {
                     text: 'Sign Out',
                     style: 'destructive',
-                    onPress: async () => await supabase.auth.signOut(),
+                    onPress: async () => {
+                        await cancelBackgroundSync();
+                        await supabase.auth.signOut();
+                    },
                 },
             ]
         );
