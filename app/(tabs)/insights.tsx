@@ -339,10 +339,10 @@ export default function Insights() {
                                 </View>
                                 <Text style={styles.insightCardDate}>
 
-                                    {formatDate(
-                                        parseLocalDate(insight.created_at.split('T')[0]),
-                                        { day: 'numeric', month: 'short' }
-                                    )}
+                                {formatDate(
+                                    parseLocalDate(insight.data_range_end),
+                                    { day: 'numeric', month: 'short' }
+                                )}
 
                                 </Text>
                             </View>
