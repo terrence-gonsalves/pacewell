@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { getLocalDate } from './locale';
+import { getUserSetting, setUserSetting } from './localSettings';
 
 let isGenerating = false;
 
@@ -20,7 +21,6 @@ const INSIGHTS_NETWORK_ERROR = 'Unable to generate insights. Check your internet
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const LAST_INSIGHTS_DATE_KEY = 'pacewell_last_insights_date';
 const BEDTIME_KEY = 'pacewell_bedtime';
 const GENERATING_KEY = 'pacewell_insights_generating';
 
@@ -127,7 +127,7 @@ export const generateInsights = async (): Promise<{
         }
 
         // mark insights as generated today
-        await AsyncStorage.setItem(LAST_INSIGHTS_DATE_KEY, today);
+        await setUserSetting(user.id, 'last_insights_date', today);
 
         return {
             success: true,
@@ -150,7 +150,11 @@ export const generateInsights = async (): Promise<{
 };
 
 export const hasGeneratedInsightsToday = async (): Promise<boolean> => {
-    const lastDate = await AsyncStorage.getItem(LAST_INSIGHTS_DATE_KEY);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return false;
+
+    const lastDate = await getUserSetting(user.id, 'last_insights_date');
 
     return lastDate === getLocalDate();
 };
