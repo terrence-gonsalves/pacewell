@@ -222,6 +222,12 @@ export default function RootLayout() {
             
                     console.error('Failed to ensure user profile:', message);
                 });
+            
+                initializeBackgroundSync().catch(err => {
+                    const message = err instanceof Error ? err.message : 'Unknown error';
+            
+                    console.error('Failed to initialize background sync after sign-in:', message);
+                });
             }
         });
 
