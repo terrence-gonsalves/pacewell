@@ -18,8 +18,8 @@ const LEGACY_LOCAL_KEYS = [
 
 export const clearLocalAccountData = async (userId: string): Promise<void> => {
     await Promise.allSettled([
-        cancelCheckInNotification(),
-        cancelBedtimeInsightNotification(),
+        cancelCheckInNotification(userId),
+        cancelBedtimeInsightNotification(userId),
         cancelBackgroundSync(),
         removeUserLocalSettings(userId),
         AsyncStorage.multiRemove(LEGACY_LOCAL_KEYS),
