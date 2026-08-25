@@ -1,12 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { supabase } from './supabase';
 
-const CHECKIN_NOTIFICATION_ID_KEY =
-    'pacewell_checkin_notification_id';
-
-const INSIGHT_NOTIFICATION_ID_KEY =
-    'pacewell_insight_notification_id';
+const checkinNotificationIdKey = (userId: string) => `pacewell:${userId}:checkin_notification_id`;
+const insightNotificationIdKey = (userId: string) => `pacewell:${userId}:insight_notification_id`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -129,9 +127,7 @@ const parseReminderTime = (
 
 // ─── Daily Check-in Reminder ─────────────────────────────────────────────────
 
-export const scheduleDailyCheckInNotification = async (
-    time: string
-): Promise<boolean> => {
+export const scheduleDailyCheckInNotification = async (time: string): Promise<boolean> => {
     try {
         const permissionStatus = await getNotificationPermissionStatus();
 
@@ -145,7 +141,13 @@ export const scheduleDailyCheckInNotification = async (
             return false;
         }
 
-        await cancelCheckInNotification();
+        await cancelCheckInNotification();        
+
+        const {data: { user }} = await supabase.auth.getUser();
+            
+        if (!user) {
+            return false;
+        }
 
         const notificationId =
             await Notifications.scheduleNotificationAsync({
@@ -155,6 +157,7 @@ export const scheduleDailyCheckInNotification = async (
                     data: {
                         screen: 'checkin',
                         notificationType: 'checkin-reminder',
+                        userId: user.id,
                     },
                     sound: true,
                 },
@@ -164,16 +167,14 @@ export const scheduleDailyCheckInNotification = async (
                     hour: parsedTime.hour,
                     minute: parsedTime.minute,
                     channelId:
-                        Platform.OS === 'android'
-                            ? 'checkin-reminders'
-                            : undefined,
+                        Platform.OS === 'android'  ? 'checkin-reminders' : undefined,
                 },
             });
-
-        await AsyncStorage.setItem(
-            CHECKIN_NOTIFICATION_ID_KEY,
-            notificationId
-        );
+            
+            await AsyncStorage.setItem(
+                checkinNotificationIdKey(user.id),
+                notificationId
+            );
 
         return true;
     } catch (error) {
@@ -186,56 +187,38 @@ export const scheduleDailyCheckInNotification = async (
 
 // ─── Cancel Checkin Reminder ────────────────────────────────────────────────────────
 
-export const cancelCheckInNotification =
-    async (): Promise<void> => {
-        try {
-            const notificationId = await AsyncStorage.getItem(
-                CHECKIN_NOTIFICATION_ID_KEY
-            );
+export const cancelCheckInNotification = async (userId?: string): Promise<void> => {
+    try {
+        let resolvedUserId = userId;
+
+        if (!resolvedUserId) {
+            const {data: { user }} = await supabase.auth.getUser();
+
+            resolvedUserId = user?.id;
+        }
+
+        if (resolvedUserId) {
+            const notificationId = await AsyncStorage.getItem(checkinNotificationIdKey(resolvedUserId));
 
             if (notificationId) {
-                await Notifications.cancelScheduledNotificationAsync(
-                    notificationId
-                ).catch(() => undefined);
+                await Notifications.cancelScheduledNotificationAsync(notificationId).catch(() => undefined);
+                await AsyncStorage.removeItem(checkinNotificationIdKey(resolvedUserId));
             }
-
-            const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-
-            const checkinNotifications = scheduledNotifications.filter(
-                notification =>
-                    notification.content.data?.notificationType ===
-                    'checkin-reminder'
-            );
-
-            await Promise.all(
-                checkinNotifications.map(notification =>
-                    Notifications.cancelScheduledNotificationAsync(
-                        notification.identifier
-                    )
-                )
-            );
-
-            await AsyncStorage.removeItem(
-                CHECKIN_NOTIFICATION_ID_KEY
-            );
-        } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error';
-
-            console.error(
-                'Error cancelling check-in notification:',
-                message
-            );
         }
-    };
+    } catch (error) {
+        const message =
+            error instanceof Error ? error.message : 'Unknown error';
+
+        console.error(
+            'Error cancelling check-in notification:',
+            message
+        );
+    }
+};
 
 // ─── Insight Reminder ────────────────────────────────────────────────────────
 
-export const scheduleBedtimeInsightNotification = async (
-    time: string
-): Promise<boolean> => {
+export const scheduleBedtimeInsightNotification = async (time: string): Promise<boolean> => {
     try {
         const permissionStatus = await getNotificationPermissionStatus();
 
@@ -251,6 +234,12 @@ export const scheduleBedtimeInsightNotification = async (
 
         await cancelBedtimeInsightNotification();
 
+        const {data: { user }} = await supabase.auth.getUser();
+            
+        if (!user) {
+            return false;
+        }
+
         const notificationId =
             await Notifications.scheduleNotificationAsync({
                 content: {
@@ -259,6 +248,7 @@ export const scheduleBedtimeInsightNotification = async (
                     data: {
                         screen: 'insights',
                         notificationType: 'insight-reminder',
+                        userId: user.id,
                     },
                     sound: true,
                 },
@@ -275,7 +265,7 @@ export const scheduleBedtimeInsightNotification = async (
             });
 
         await AsyncStorage.setItem(
-            INSIGHT_NOTIFICATION_ID_KEY,
+            insightNotificationIdKey(user.id),
             notificationId
         );
 
@@ -290,51 +280,45 @@ export const scheduleBedtimeInsightNotification = async (
 
 // ─── Cancel Bedtime Notification ─────────────────────────────────────────────────────
 
-export const cancelBedtimeInsightNotification =
-    async (): Promise<void> => {
-        try {
+export const cancelBedtimeInsightNotification = async (userId?: string): Promise<void> => {
+    try {
+        let resolvedUserId = userId;
+
+        if (!resolvedUserId) {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+
+            resolvedUserId = user?.id;
+        }
+
+        if (resolvedUserId) {
             const notificationId = await AsyncStorage.getItem(
-                INSIGHT_NOTIFICATION_ID_KEY
+                insightNotificationIdKey(resolvedUserId)
             );
 
             if (notificationId) {
                 await Notifications.cancelScheduledNotificationAsync(
                     notificationId
                 ).catch(() => undefined);
+
+                await AsyncStorage.removeItem(
+                    insightNotificationIdKey(resolvedUserId)
+                );
             }
-
-            const scheduledNotifications =
-                await Notifications.getAllScheduledNotificationsAsync();
-
-            const insightNotifications = scheduledNotifications.filter(
-                notification =>
-                    notification.content.data?.notificationType ===
-                    'insight-reminder'
-            );
-
-            await Promise.all(
-                insightNotifications.map(notification =>
-                    Notifications.cancelScheduledNotificationAsync(
-                        notification.identifier
-                    )
-                )
-            );
-
-            await AsyncStorage.removeItem(
-                INSIGHT_NOTIFICATION_ID_KEY
-            );
-        } catch (error) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown error';
-
-            console.error(
-                'Error cancelling insight reminder:',
-                message
-            );
         }
-    };
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'Unknown error';
+
+        console.error(
+            'Error cancelling insight reminder:',
+            message
+        );
+    }
+};
 
 // ─── Global Cancellation ─────────────────────────────────────────────────────
 
