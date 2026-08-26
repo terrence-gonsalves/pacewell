@@ -285,8 +285,6 @@ export default function Dashboard() {
     };
 
     const loadDashboard = async () => {
-        setIsLoading(true);
-
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
