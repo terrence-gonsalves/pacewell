@@ -206,8 +206,6 @@ export default function Activity() {
     );
 
     const loadActivities = async () => {
-        setIsLoading(true);
-
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) return;
