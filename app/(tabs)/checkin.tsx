@@ -206,7 +206,6 @@ export default function CheckIn() {
     );
 
     const loadTodayCheckIn = async () => {
-        setIsLoading(true);
         setSubmitted(false);
         setCurrentIndex(0);
       
