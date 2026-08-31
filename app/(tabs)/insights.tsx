@@ -129,7 +129,7 @@ export default function Insights() {
 
     useFocusEffect(
         useCallback(() => {
-            loadInsights();
+            loadInsights(insights.length > 0);
      
             // silently poll for background generated insights
             let attempts = 0;

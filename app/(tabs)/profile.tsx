@@ -102,8 +102,6 @@ export default function Profile() {
     );
 
     const loadProfile = async () => {
-        setIsLoading(true);
-
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
