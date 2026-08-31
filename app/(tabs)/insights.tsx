@@ -129,7 +129,7 @@ export default function Insights() {
 
     useFocusEffect(
         useCallback(() => {
-            loadInsights(insights.length > 0);
+            loadInsights();
      
             // silently poll for background generated insights
             let attempts = 0;
@@ -152,8 +152,6 @@ export default function Insights() {
     );
 
     const loadInsights = async (silent = false) => {
-        if (!silent) setIsLoading(true);
-
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
