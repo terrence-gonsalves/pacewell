@@ -820,7 +820,7 @@ export default function Dashboard() {
                                 <Text style={styles.insightDate}>
 
                                     {formatDate(
-                                        parseLocalDate(data.latestInsight.created_at.split('T')[0]),
+                                        parseLocalDate(data.latestInsight.data_range_end),
                                         { day: 'numeric', month: 'short' }
                                     )}
 
