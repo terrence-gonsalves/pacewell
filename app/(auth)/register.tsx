@@ -5,15 +5,13 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
     ActivityIndicator,
-    ScrollView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../../lib/supabase';
 import { ActivityLevel } from '../../types/health';
+import { supabase } from '../../lib/supabase';
 import { theme } from '../../lib/theme';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -445,18 +443,15 @@ export default function Register() {
     // ─── Main Render ────────────────────────────────────────────────────────
 
     return (
-      <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-          <ScrollView
-              contentContainerStyle={styles.inner}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-          >
-              {step === 1 ? renderStepOne() : renderStepTwo()}
-          </ScrollView>
-      </KeyboardAvoidingView>
+        <KeyboardAwareScrollView
+            style={styles.container}
+            contentContainerStyle={styles.inner}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bottomOffset={24}
+        >
+            {step === 1 ? renderStepOne() : renderStepTwo()}
+        </KeyboardAwareScrollView>
     );
 }
 
