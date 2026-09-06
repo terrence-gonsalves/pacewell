@@ -17,8 +17,7 @@
       "bundleIdentifier": "com.gonsalves.pacewell",
       "buildNumber": "18",
       "infoPlist": {
-        "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights.",
-        "NSHealthUpdateUsageDescription": "Pacewell saves your activity data to help track your recovery."
+        "NSHealthShareUsageDescription": "Pacewell reads your health data to provide personalised recovery insights."
       }
     },
     "android": {
@@ -37,7 +36,6 @@
         "android.permission.health.READ_HEART_RATE",
         "android.permission.health.READ_RESTING_HEART_RATE",
         "android.permission.health.READ_EXERCISE",
-        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
         "android.permission.health.READ_WEIGHT"
       ],
       "predictiveBackGestureEnabled": false
@@ -59,12 +57,6 @@
             "targetSdkVersion": 36,
             "minSdkVersion": 26
           }
-        }
-      ],
-      [
-        "react-native-health",
-        {
-          "isClinicalDataEnabled": false
         }
       ],
       "@kingstinct/react-native-healthkit",

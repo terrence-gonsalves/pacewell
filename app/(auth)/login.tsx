@@ -5,11 +5,9 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
     ActivityIndicator,
-    ScrollView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -138,172 +136,169 @@ export default function Login() {
     }
 
     return (
-        <KeyboardAvoidingView
+        <KeyboardAwareScrollView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            contentContainerStyle={styles.inner}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bottomOffset={24}
         >
-            <ScrollView
-                contentContainerStyle={styles.inner}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-            >
-                <View style={styles.brandIconWrapper}>
-                    <View style={styles.brandIcon}>
-                        <Ionicons name="flash" size={32} color={theme.colors.white} />
-                    </View>
+            <View style={styles.brandIconWrapper}>
+                <View style={styles.brandIcon}>
+                    <Ionicons name="flash" size={32} color={theme.colors.white} />
                 </View>
+            </View>
+            
+            <Text style={styles.title}>Pacewell</Text>
+            <Text style={styles.subtitle}>
+                Continue your wellness journey with personalised AI insights.
+            </Text>
+            
+            {message && (
+            <View style={styles.messageBox}>
+                <Ionicons name="mail-outline" size={16} color={theme.colors.primary} />
+                <Text style={styles.messageText}>{message}</Text>
+            </View>
+            )}
                 
-                <Text style={styles.title}>Pacewell</Text>
-                <Text style={styles.subtitle}>
-                    Continue your wellness journey with personalised AI insights.
-                </Text>
-                
-                {message && (
-                <View style={styles.messageBox}>
-                    <Ionicons name="mail-outline" size={16} color={theme.colors.primary} />
-                    <Text style={styles.messageText}>{message}</Text>
-                </View>
-                )}
-                
-                <View style={styles.formCard}>
-                    <View style={styles.toggle}>
-                        <TouchableOpacity
-                            style={[styles.toggleButton, mode === 'password' && styles.toggleButtonActive]}
-                            onPress={() => { setMode('password'); setError(null); }}
-                        >
-                            <Ionicons
-                                name="lock-closed-outline"
-                                size={14}
-                                color={mode === 'password' ? theme.colors.textDark : theme.colors.textSubtle}
-                            />
-                            <Text style={[
-                                styles.toggleText,
-                                mode === 'password' && styles.toggleTextActive,
-                            ]}>
-                                Password
-                            </Text>
-                        </TouchableOpacity>
+            <View style={styles.formCard}>
+                <View style={styles.toggle}>
+                    <TouchableOpacity
+                        style={[styles.toggleButton, mode === 'password' && styles.toggleButtonActive]}
+                        onPress={() => { setMode('password'); setError(null); }}
+                    >
+                        <Ionicons
+                            name="lock-closed-outline"
+                            size={14}
+                            color={mode === 'password' ? theme.colors.textDark : theme.colors.textSubtle}
+                        />
+                        <Text style={[
+                            styles.toggleText,
+                            mode === 'password' && styles.toggleTextActive,
+                        ]}>
+                            Password
+                        </Text>
+                    </TouchableOpacity>
 
-                        <TouchableOpacity
-                            style={[styles.toggleButton, mode === 'magic-link' && styles.toggleButtonActive]}
-                            onPress={() => { setMode('magic-link'); setError(null); }}
-                        >
-                            <Ionicons
-                                name="sparkles-outline"
-                                size={14}
-                                color={mode === 'magic-link' ? theme.colors.textDark : theme.colors.textSubtle}
-                            />
-                            <Text style={[
-                                styles.toggleText,
-                                mode === 'magic-link' && styles.toggleTextActive,
-                            ]}>
-                                Magic Link
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                    
-                    <Text style={styles.inputLabel}>Email Address</Text>
+                    <TouchableOpacity
+                        style={[styles.toggleButton, mode === 'magic-link' && styles.toggleButtonActive]}
+                        onPress={() => { setMode('magic-link'); setError(null); }}
+                    >
+                        <Ionicons
+                            name="sparkles-outline"
+                            size={14}
+                            color={mode === 'magic-link' ? theme.colors.textDark : theme.colors.textSubtle}
+                        />
+                        <Text style={[
+                            styles.toggleText,
+                            mode === 'magic-link' && styles.toggleTextActive,
+                        ]}>
+                            Magic Link
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+                
+                <Text style={styles.inputLabel}>Email Address</Text>
+                <View style={styles.inputWrapper}>
+                    <Ionicons
+                        name="mail-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="name@example.com"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                    />
+                </View>
+                
+                {mode === 'password' && (
+                <>
+                    <Text style={styles.inputLabel}>Password</Text>
                     <View style={styles.inputWrapper}>
                         <Ionicons
-                            name="mail-outline"
+                            name="lock-closed-outline"
                             size={18}
                             color={theme.colors.textSubtle}
                             style={styles.inputIcon}
                         />
                         <TextInput
                             style={styles.input}
-                            placeholder="name@example.com"
+                            placeholder="Enter your password"
                             placeholderTextColor={theme.colors.textLight}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            autoComplete="email"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            autoComplete="password"
                         />
-                    </View>
-                    
-                    {mode === 'password' && (
-                    <>
-                        <Text style={styles.inputLabel}>Password</Text>
-                        <View style={styles.inputWrapper}>
+                        <TouchableOpacity
+                            onPress={() => setShowPassword(!showPassword)}
+                            style={styles.inputIconRight}
+                        >
                             <Ionicons
-                                name="lock-closed-outline"
+                                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                                 size={18}
                                 color={theme.colors.textSubtle}
-                                style={styles.inputIcon}
                             />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter your password"
-                                placeholderTextColor={theme.colors.textLight}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                                autoComplete="password"
-                            />
-                            <TouchableOpacity
-                                onPress={() => setShowPassword(!showPassword)}
-                                style={styles.inputIconRight}
-                            >
-                                <Ionicons
-                                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                                    size={18}
-                                    color={theme.colors.textSubtle}
-                                />
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.forgotPassword}
-                            onPress={handleForgotPassword}
-                        >
-                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                         </TouchableOpacity>
-                    </>
-                    )}
-                    
-                    {error && (
-                        <View style={styles.errorBox}>
-                            <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
-                            <Text style={styles.errorText}>{error}</Text>
-                        </View>
-                    )}
-                    
+                    </View>
+
                     <TouchableOpacity
-                        style={[styles.primaryButton, loading && styles.buttonDisabled]}
-                        onPress={handleSubmit}
-                        disabled={loading}
+                        style={styles.forgotPassword}
+                        onPress={handleForgotPassword}
                     >
-
-                        {loading ? (
-                        <ActivityIndicator color={theme.colors.white} />
-                        ) : (
-                        <View style={styles.buttonInner}>
-                            <Text style={styles.primaryButtonText}>
-                                {mode === 'password' ? 'Sign In' : 'Send Magic Link'}
-                            </Text>
-                        </View>
-                        )}
-
+                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                     </TouchableOpacity>
-                </View>
+                </>
+                )}
                 
-                <View style={styles.secureFooter}>
-                    <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.textSubtle} />
-                    <Text style={styles.secureText}>SECURE ACCESS</Text>
-                </View>
+                {error && (
+                    <View style={styles.errorBox}>
+                        <Ionicons name="alert-circle-outline" size={16} color={theme.colors.danger} />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                )}
                 
                 <TouchableOpacity
-                    style={styles.registerLink}
-                    onPress={() => router.push('/(auth)/register')}
+                    style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                    onPress={handleSubmit}
+                    disabled={loading}
                 >
-                    <Text style={styles.registerText}>
-                        New to Pacewell?{' '}
-                        <Text style={styles.registerTextBold}>Join now</Text>
-                    </Text>
+
+                    {loading ? (
+                    <ActivityIndicator color={theme.colors.white} />
+                    ) : (
+                    <View style={styles.buttonInner}>
+                        <Text style={styles.primaryButtonText}>
+                            {mode === 'password' ? 'Sign In' : 'Send Magic Link'}
+                        </Text>
+                    </View>
+                    )}
+
                 </TouchableOpacity>
-            </ScrollView>
-        </KeyboardAvoidingView>
+            </View>
+                
+            <View style={styles.secureFooter}>
+                <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.textSubtle} />
+                <Text style={styles.secureText}>SECURE ACCESS</Text>
+            </View>
+            
+            <TouchableOpacity
+                style={styles.registerLink}
+                onPress={() => router.push('/(auth)/register')}
+            >
+                <Text style={styles.registerText}>
+                    New to Pacewell?{' '}
+                    <Text style={styles.registerTextBold}>Join now</Text>
+                </Text>
+            </TouchableOpacity>
+        </KeyboardAwareScrollView>
     );
 }
 
