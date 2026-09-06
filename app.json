@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#265946"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gonsalves.pacewell",
@@ -68,6 +63,14 @@
         }
       ],
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#265946"
+        }
+      ],
       "expo-background-task",
       "expo-task-manager"
     ],
