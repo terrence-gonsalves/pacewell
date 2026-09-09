@@ -298,8 +298,7 @@ export default function EditProfile() {
                 return;
             }
 
-            enteredWeightKg =
-                Math.round(enteredWeightKg * 10) / 10;
+            enteredWeightKg = units === 'imperial' ? Math.round(enteredWeightKg * 10) / 10 : Math.round(enteredWeightKg * 100) / 100;
         }
 
         if (!activityLevel) { setError('Please select your activity level.'); return; }
