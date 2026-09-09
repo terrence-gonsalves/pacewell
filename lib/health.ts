@@ -359,7 +359,7 @@ const getHealthConnectWorkouts = async (): Promise<WorkoutData[]> => {
         const exerciseTypeMap: Record<number, ActivityType> = {
             79: 'walking',
             56: 'running',
-            8: 'cycling',
+            9: 'cycling',
             82: 'swimming',
             70: 'strength',
             61: 'yoga',
