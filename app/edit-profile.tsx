@@ -288,11 +288,7 @@ export default function EditProfile() {
                 enteredWeightKg > 400
             ) {
                 setError(
-                    `Please enter a weight between ${
-                        units === 'imperial'
-                            ? '55 and 882 lb'
-                            : '25 and 400 kg'
-                    }.`
+                    `Please enter a weight between ${units === 'imperial' ? '55 and 882 lb' : '25 and 400 kg'}.`
                 );
 
                 return;
