@@ -388,94 +388,81 @@ export default function Profile() {
         }
     };
 
-    const handleNotificationsToggle = async (
-        value: boolean
-    ): Promise<void> => {
+    const handleNotificationsToggle = async (value: boolean): Promise<void> => {
         if (isUpdatingNotifications) return;
     
         setIsUpdatingNotifications(true);
     
         try {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-    
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
     
             if (!value) {
                 await cancelAllReminderNotifications();
-    
-                await Promise.all([
-                    setUserSetting(
-                        user.id,
-                        'notifications_enabled',
-                        'false'
-                    ),
-                    setUserSetting(
-                        user.id,
-                        'checkin_reminder_enabled',
-                        'false'
-                    ),
-                    setUserSetting(
-                        user.id,
-                        'insight_reminder_enabled',
-                        'false'
-                    ),
-                ]);
-    
+                await setUserSetting(user.id, 'notifications_enabled', 'false');
+
                 setNotificationsEnabled(false);
-                setCheckinReminderEnabled(false);
-                setInsightReminderEnabled(false);
-    
+
                 return;
             }
     
-            const permissionGranted = await requestNotificationPermissions();    
+            const permissionGranted = await requestNotificationPermissions();
             const permissionStatus = await getNotificationPermissionStatus();
     
             setNotificationPermission(permissionStatus);
     
             if (!permissionGranted) {
-                await setUserSetting(
-                    user.id,
-                    'notifications_enabled',
-                    'false'
-                );
-    
+                await setUserSetting(user.id, 'notifications_enabled', 'false');
+
                 setNotificationsEnabled(false);
     
                 Alert.alert(
                     'Notifications are disabled',
                     'Allow notifications in your device settings to use Pacewell reminders.',
                     [
-                        {
-                            text: 'Not now',
-                            style: 'cancel',
-                        },
-                        {
-                            text: 'Open Settings',
-                            onPress: () => {
-                                Linking.openSettings();
-                            },
-                        },
+                        { text: 'Not now', style: 'cancel' },
+                        { text: 'Open Settings', onPress: () => Linking.openSettings() },
                     ]
                 );
     
                 return;
             }
     
-            await setUserSetting(
-                user.id,
-                'notifications_enabled',
-                'true'
-            );
+            const [storedCheckinEnabled, storedInsightEnabled] = await Promise.all([
+                getUserSetting(user.id, 'checkin_reminder_enabled'),
+                getUserSetting(user.id, 'insight_reminder_enabled'),
+            ]);
+    
+            const restoreCheckin = storedCheckinEnabled === 'true';
+            const restoreInsight = storedInsightEnabled === 'true';
+    
+            await setUserSetting(user.id, 'notifications_enabled', 'true');
     
             setNotificationsEnabled(true);
             setNotificationPermission('granted');
+            setCheckinReminderEnabled(restoreCheckin);
+            setInsightReminderEnabled(restoreInsight);
+    
+            if (restoreCheckin) {
+                const scheduled = await scheduleDailyCheckInNotification(notifTime);
+
+                if (!scheduled) {
+                    await setUserSetting(user.id, 'checkin_reminder_enabled', 'false');
+                    setCheckinReminderEnabled(false);
+                }
+            }
+    
+            if (restoreInsight) {
+                const scheduled = await scheduleBedtimeInsightNotification(bedtime);
+                
+                if (!scheduled) {
+                    await setUserSetting(user.id, 'insight_reminder_enabled', 'false');
+                    setInsightReminderEnabled(false);
+                }
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unknown error';
             console.error('Error updating notification preference:', message);
-    
             Alert.alert('Unable to update notifications', 'Please try again.');
         } finally {
             setIsUpdatingNotifications(false);
