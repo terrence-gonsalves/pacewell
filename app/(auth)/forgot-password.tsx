@@ -16,7 +16,6 @@ import { theme } from '../../lib/theme';
 export default function ForgotPassword() {
     const params = useLocalSearchParams<{ email?: string }>();
     const initialEmail = typeof params.email === 'string' ? params.email : '';
-
     const [email, setEmail] = useState(initialEmail);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
