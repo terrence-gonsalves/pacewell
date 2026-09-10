@@ -5,9 +5,7 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Platform,
     ActivityIndicator,
-    ScrollView,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router } from 'expo-router';
