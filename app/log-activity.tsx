@@ -6,10 +6,9 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    KeyboardAvoidingView,
-    Platform,
     ActivityIndicator,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityType, EmojiScale, EmojiScaleLabels } from '../types/health';
@@ -273,10 +272,7 @@ export default function LogActivity() {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
+        <View style={styles.container}>
             <View style={styles.inner}>
                 <View style={styles.header}>
                     <TouchableOpacity
@@ -292,10 +288,11 @@ export default function LogActivity() {
                 <View style={styles.headerDivider} />            
             </View>
 
-            <ScrollView
+            <KeyboardAwareScrollView
                 contentContainerStyle={styles.innerContainer}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                bottomOffset={24}
             >
                 <Text style={styles.sectionLabel}>ACTIVITY TYPE</Text>
                 <ScrollView
@@ -385,8 +382,8 @@ export default function LogActivity() {
                     )}
 
                 </TouchableOpacity>
-            </ScrollView>
-        </KeyboardAvoidingView>
+            </KeyboardAwareScrollView>
+        </View>
     );
 }
 

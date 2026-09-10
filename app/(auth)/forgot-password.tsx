@@ -5,11 +5,9 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    KeyboardAvoidingView,
-    Platform,
     ActivityIndicator,
-    ScrollView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
@@ -116,119 +114,116 @@ export default function ForgotPassword() {
     }
 
     return (
-        <KeyboardAvoidingView
+        <KeyboardAwareScrollView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            contentContainerStyle={styles.inner}
+            showsVerticalScrollIndicator={false}
+            bottomOffset={24}
+            keyboardShouldPersistTaps="handled"
         >
-            <ScrollView
-                contentContainerStyle={styles.inner}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
             >
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                <Ionicons
+                    name="arrow-back"
+                    size={22}
+                    color={theme.colors.textDark}
+                />
+
+                <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            <View style={styles.brandIconWrapper}>
+                <View style={styles.brandIcon}>
                     <Ionicons
-                        name="arrow-back"
-                        size={22}
-                        color={theme.colors.textDark}
+                        name="key-outline"
+                        size={32}
+                        color={theme.colors.white}
+                    />
+                </View>
+            </View>
+
+            <Text style={styles.title}>Reset your password</Text>
+
+            <Text style={styles.subtitle}>
+                Enter the email address associated with your Pacewell account. We will send you a secure link to create a new password.
+            </Text>
+
+            <View style={styles.formCard}>
+                <Text style={styles.inputLabel}>Email Address</Text>
+
+                <View style={styles.inputWrapper}>
+                    <Ionicons
+                        name="mail-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
                     />
 
-                    <Text style={styles.backButtonText}>Back</Text>
-                </TouchableOpacity>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="name@example.com"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                        editable={!loading}
+                        returnKeyType="send"
+                        onSubmitEditing={handleSendResetLink}
+                    />
+                </View>
 
-                <View style={styles.brandIconWrapper}>
-                    <View style={styles.brandIcon}>
+                {error && (
+                <View style={styles.errorBox}>
+                    <Ionicons
+                        name="alert-circle-outline"
+                        size={16}
+                        color={theme.colors.danger}
+                    />
+
+                    <Text style={styles.errorText}>{error}</Text>
+                </View>
+                )}
+
+                <TouchableOpacity
+                    style={[
+                        styles.primaryButton,
+                        loading && styles.buttonDisabled,
+                    ]}
+                    onPress={handleSendResetLink}
+                    disabled={loading}
+                >
+                    {loading ? (
+                    <ActivityIndicator color={theme.colors.white} />
+                    ) : (
+                    <View style={styles.buttonInner}>
+                        <Text style={styles.primaryButtonText}>
+                            Send Reset Link
+                        </Text>
+
                         <Ionicons
-                            name="key-outline"
-                            size={32}
+                            name="arrow-forward"
+                            size={18}
                             color={theme.colors.white}
                         />
                     </View>
-                </View>
-
-                <Text style={styles.title}>Reset your password</Text>
-
-                <Text style={styles.subtitle}>
-                    Enter the email address associated with your Pacewell account. We will send you a secure link to create a new password.
-                </Text>
-
-                <View style={styles.formCard}>
-                    <Text style={styles.inputLabel}>Email Address</Text>
-
-                    <View style={styles.inputWrapper}>
-                        <Ionicons
-                            name="mail-outline"
-                            size={18}
-                            color={theme.colors.textSubtle}
-                            style={styles.inputIcon}
-                        />
-
-                        <TextInput
-                            style={styles.input}
-                            placeholder="name@example.com"
-                            placeholderTextColor={theme.colors.textLight}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            autoComplete="email"
-                            editable={!loading}
-                            returnKeyType="send"
-                            onSubmitEditing={handleSendResetLink}
-                        />
-                    </View>
-
-                    {error && (
-                    <View style={styles.errorBox}>
-                        <Ionicons
-                            name="alert-circle-outline"
-                            size={16}
-                            color={theme.colors.danger}
-                        />
-
-                        <Text style={styles.errorText}>{error}</Text>
-                    </View>
                     )}
+                </TouchableOpacity>
+            </View>
 
-                    <TouchableOpacity
-                        style={[
-                            styles.primaryButton,
-                            loading && styles.buttonDisabled,
-                        ]}
-                        onPress={handleSendResetLink}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                        <ActivityIndicator color={theme.colors.white} />
-                        ) : (
-                        <View style={styles.buttonInner}>
-                            <Text style={styles.primaryButtonText}>
-                                Send Reset Link
-                            </Text>
+            <View style={styles.secureFooter}>
+                <Ionicons
+                    name="shield-checkmark-outline"
+                    size={14}
+                    color={theme.colors.textSubtle}
+                />
 
-                            <Ionicons
-                                name="arrow-forward"
-                                size={18}
-                                color={theme.colors.white}
-                            />
-                        </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.secureFooter}>
-                    <Ionicons
-                        name="shield-checkmark-outline"
-                        size={14}
-                        color={theme.colors.textSubtle}
-                    />
-
-                    <Text style={styles.secureText}>SECURE PASSWORD RECOVERY</Text>
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                <Text style={styles.secureText}>SECURE PASSWORD RECOVERY</Text>
+            </View>
+        </KeyboardAwareScrollView>
     );
 }
 
