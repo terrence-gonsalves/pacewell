@@ -5,11 +5,11 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
     ScrollView,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
@@ -173,163 +173,160 @@ export default function ChangeEmail() {
     }
 
     return (
-        <KeyboardAvoidingView
+        <KeyboardAwareScrollView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            contentContainerStyle={styles.inner}
+            bottomOffset={24}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
         >
-            <ScrollView
-                contentContainerStyle={styles.inner}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
             >
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
+                <Ionicons
+                    name="arrow-back"
+                    size={22}
+                    color={theme.colors.textDark}
+                />
+
+                <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            <View style={styles.brandIconWrapper}>
+                <View style={styles.brandIcon}>
                     <Ionicons
-                        name="arrow-back"
-                        size={22}
-                        color={theme.colors.textDark}
+                        name="mail-outline"
+                        size={32}
+                        color={theme.colors.white}
+                    />
+                </View>
+            </View>
+
+            <Text style={styles.title}>Change email address</Text>
+
+            <Text style={styles.subtitle}>
+                Enter the new email address you would like to use for your Pacewell account.
+            </Text>
+
+            <View style={styles.formCard}>
+                <Text style={styles.inputLabel}>Current Email</Text>
+
+                <View style={styles.readOnlyWrapper}>
+                    <Ionicons
+                        name="lock-closed-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
                     />
 
-                    <Text style={styles.backButtonText}>Back</Text>
-                </TouchableOpacity>
-
-                <View style={styles.brandIconWrapper}>
-                    <View style={styles.brandIcon}>
-                        <Ionicons
-                            name="mail-outline"
-                            size={32}
-                            color={theme.colors.white}
-                        />
-                    </View>
+                    <Text style={styles.readOnlyText}>
+                        {currentEmail}
+                    </Text>
                 </View>
 
-                <Text style={styles.title}>Change email address</Text>
+                <Text style={styles.inputLabel}>New Email Address</Text>
 
-                <Text style={styles.subtitle}>
-                    Enter the new email address you would like to use for your Pacewell account.
+                <View style={styles.inputWrapper}>
+                    <Ionicons
+                        name="mail-outline"
+                        size={18}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
+                    />
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder="new@example.com"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={newEmail}
+                        onChangeText={setNewEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                        editable={!loading}
+                        returnKeyType="next"
+                    />
+                </View>
+
+                <Text style={styles.inputLabel}>
+                    Confirm New Email Address
                 </Text>
 
-                <View style={styles.formCard}>
-                    <Text style={styles.inputLabel}>Current Email</Text>
-
-                    <View style={styles.readOnlyWrapper}>
-                        <Ionicons
-                            name="lock-closed-outline"
-                            size={18}
-                            color={theme.colors.textSubtle}
-                            style={styles.inputIcon}
-                        />
-
-                        <Text style={styles.readOnlyText}>
-                            {currentEmail}
-                        </Text>
-                    </View>
-
-                    <Text style={styles.inputLabel}>New Email Address</Text>
-
-                    <View style={styles.inputWrapper}>
-                        <Ionicons
-                            name="mail-outline"
-                            size={18}
-                            color={theme.colors.textSubtle}
-                            style={styles.inputIcon}
-                        />
-
-                        <TextInput
-                            style={styles.input}
-                            placeholder="new@example.com"
-                            placeholderTextColor={theme.colors.textLight}
-                            value={newEmail}
-                            onChangeText={setNewEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            autoComplete="email"
-                            editable={!loading}
-                            returnKeyType="next"
-                        />
-                    </View>
-
-                    <Text style={styles.inputLabel}>
-                        Confirm New Email Address
-                    </Text>
-
-                    <View style={styles.inputWrapper}>
-                        <Ionicons
-                            name="mail-outline"
-                            size={18}
-                            color={theme.colors.textSubtle}
-                            style={styles.inputIcon}
-                        />
-
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Confirm your new email"
-                            placeholderTextColor={theme.colors.textLight}
-                            value={confirmEmail}
-                            onChangeText={setConfirmEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            autoComplete="email"
-                            editable={!loading}
-                            returnKeyType="send"
-                            onSubmitEditing={handleChangeEmail}
-                        />
-                    </View>
-
-                    {error && (
-                        <View style={styles.errorBox}>
-                            <Ionicons
-                                name="alert-circle-outline"
-                                size={16}
-                                color={theme.colors.danger}
-                            />
-
-                            <Text style={styles.errorText}>{error}</Text>
-                        </View>
-                    )}
-
-                    <TouchableOpacity
-                        style={[
-                            styles.primaryButton,
-                            loading && styles.buttonDisabled,
-                        ]}
-                        onPress={handleChangeEmail}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color={theme.colors.white} />
-                        ) : (
-                            <View style={styles.buttonInner}>
-                                <Text style={styles.primaryButtonText}>
-                                    Send Confirmation Emails
-                                </Text>
-
-                                <Ionicons
-                                    name="arrow-forward"
-                                    size={18}
-                                    color={theme.colors.white}
-                                />
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.noticeBox}>
+                <View style={styles.inputWrapper}>
                     <Ionicons
-                        name="shield-checkmark-outline"
+                        name="mail-outline"
                         size={18}
-                        color={theme.colors.primary}
+                        color={theme.colors.textSubtle}
+                        style={styles.inputIcon}
                     />
 
-                    <Text style={styles.noticeText}>
-                        Your email will not change until the required
-                        confirmation steps have been completed.
-                    </Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Confirm your new email"
+                        placeholderTextColor={theme.colors.textLight}
+                        value={confirmEmail}
+                        onChangeText={setConfirmEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        autoComplete="email"
+                        editable={!loading}
+                        returnKeyType="send"
+                        onSubmitEditing={handleChangeEmail}
+                    />
                 </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+
+                {error && (
+                    <View style={styles.errorBox}>
+                        <Ionicons
+                            name="alert-circle-outline"
+                            size={16}
+                            color={theme.colors.danger}
+                        />
+
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                )}
+
+                <TouchableOpacity
+                    style={[
+                        styles.primaryButton,
+                        loading && styles.buttonDisabled,
+                    ]}
+                    onPress={handleChangeEmail}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={theme.colors.white} />
+                    ) : (
+                        <View style={styles.buttonInner}>
+                            <Text style={styles.primaryButtonText}>
+                                Send Confirmation Emails
+                            </Text>
+
+                            <Ionicons
+                                name="arrow-forward"
+                                size={18}
+                                color={theme.colors.white}
+                            />
+                        </View>
+                    )}
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.noticeBox}>
+                <Ionicons
+                    name="shield-checkmark-outline"
+                    size={18}
+                    color={theme.colors.primary}
+                />
+
+                <Text style={styles.noticeText}>
+                    Your email will not change until the required
+                    confirmation steps have been completed.
+                </Text>
+            </View>
+        </KeyboardAwareScrollView>
     );
 }
 
