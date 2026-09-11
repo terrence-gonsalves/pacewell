@@ -8,9 +8,8 @@ import {
     TextInput,
     ActivityIndicator,
     Dimensions,
-    KeyboardAvoidingView,
-    Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { EmojiScale, EmojiScaleLabels } from '../../types/health';
@@ -521,10 +520,7 @@ export default function CheckIn() {
     // ─── Main Render ────────────────────────────────────────────────────────
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
+        <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>
                     {existingId ? 'Edit Check-in' : 'Daily Check-in'}
@@ -564,14 +560,19 @@ export default function CheckIn() {
                     setCurrentIndex(index);
                 }}
                 renderItem={({ item }) => (
-                    <View style={styles.cardWrapper}>
+                    <KeyboardAwareScrollView
+                        contentContainerStyle={styles.cardWrapper}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        bottomOffset={24}
+                    >
                         <View style={styles.card}>
                             <Text style={styles.cardEmoji}>{item.emoji}</Text>
                             <Text style={styles.cardQuestion}>{item.question}</Text>
                             <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
                             {item.input}
                         </View>
-                        
+                
                         <View style={styles.tipCard}>
                             <Ionicons
                                 name="information-circle-outline"
@@ -580,7 +581,7 @@ export default function CheckIn() {
                             />
                             <Text style={styles.tipText}>{item.tip}</Text>
                         </View>
-                    </View>
+                    </KeyboardAwareScrollView>
                 )}
             />
             
@@ -637,7 +638,7 @@ export default function CheckIn() {
                 )}
 
             </View>
-        </KeyboardAvoidingView>
+        </View>
     );
 }
 
