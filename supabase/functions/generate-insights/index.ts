@@ -68,8 +68,6 @@ serve(async (req) => {
 
         // ─── Date Range ───────────────────────────────────────────────────────────
 
-        // ─── Date Range ───────────────────────────────────────────────────────────
-
         const { localDate } = await req.json();
 
         if (typeof localDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(localDate)) {
@@ -150,6 +148,7 @@ serve(async (req) => {
                 .from('activity_logs')
                 .select('date, activity_type, duration_minutes, perceived_exertion, source')
                 .eq('user_id', user_id)
+                .eq('is_hidden', false)
                 .gte('date', fromDate)
                 .order('date', { ascending: true }),
 
