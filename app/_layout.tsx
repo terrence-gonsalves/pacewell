@@ -161,7 +161,10 @@ export default function RootLayout() {
                 setSession(session);
 
                 if (session) {
-                    await initializeBackgroundSync();
+                    initializeBackgroundSync().catch(err => {
+                        const message = err instanceof Error ? err.message : 'Unknown error';
+                        console.error('Failed to initialize background sync on startup:', message);
+                    });
                 }
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown auth error';
