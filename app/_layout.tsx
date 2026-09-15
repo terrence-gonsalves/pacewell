@@ -161,7 +161,10 @@ export default function RootLayout() {
                 setSession(session);
 
                 if (session) {
-                    await initializeBackgroundSync();
+                    initializeBackgroundSync().catch(err => {
+                        const message = err instanceof Error ? err.message : 'Unknown error';
+                        console.error('Failed to initialize background sync on startup:', message);
+                    });
                 }
             } catch (err) {
                 const message = err instanceof Error ? err.message : 'Unknown auth error';
@@ -234,11 +237,13 @@ export default function RootLayout() {
         return () => subscription.unsubscribe();
     }, []);
 
-    const handleCustomSplashLayout = async () => {
+    useEffect(() => {
         if (!loading) {
-            await SplashScreen.hideAsync();
+            SplashScreen.hideAsync().catch(err => {
+                console.error('Failed to hide native splash screen:', err);
+            });
         }
-    };
+    }, [loading]);
 
     const handleSplashComplete = () => {
         splashCompleteRef.current = true;
@@ -275,10 +280,7 @@ export default function RootLayout() {
                 <FeedbackBanner />
 
                 {showCustomSplash && (
-                <View
-                    style={styles.splashLayer}
-                    onLayout={handleCustomSplashLayout}
-                >
+                <View style={styles.splashLayer}>
                     <CustomSplash
                         ready={!loading}
                         onComplete={handleSplashComplete}
