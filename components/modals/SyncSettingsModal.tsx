@@ -386,6 +386,7 @@ export default function SyncSettingsModal({
                 </View>
                 
                 {settings.enabled && (
+                <View>
                     <View style={styles.intervalSection}>
                         <View style={styles.settingLeft}>
                             <View style={styles.settingIcon}>
@@ -437,23 +438,24 @@ export default function SyncSettingsModal({
                             ))}
                         </View>
                     </View>
-                )}
-                
-                <TouchableOpacity
-                    style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-                    onPress={handleSave}
-                    disabled={isSaving}
-                >
-                
-                    {isSaving ? (
-                    <ActivityIndicator color={theme.colors.white} />
-                    ) : (
-                    <View style={styles.saveButtonInner}>
-                        <Text style={styles.saveButtonText}>Save Settings</Text>
-                    </View>
-                    )}
 
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                        onPress={handleSave}
+                        disabled={isSaving}
+                    >
+                    
+                        {isSaving ? (
+                        <ActivityIndicator color={theme.colors.white} />
+                        ) : (
+                        <View style={styles.saveButtonInner}>
+                            <Text style={styles.saveButtonText}>Save Settings</Text>
+                        </View>
+                        )}
+
+                    </TouchableOpacity>
+                </View>
+                )}
 
             </Animated.View>
         </Modal>
