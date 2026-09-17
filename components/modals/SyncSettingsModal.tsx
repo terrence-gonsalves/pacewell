@@ -242,6 +242,17 @@ export default function SyncSettingsModal({
                         <Ionicons name="close" size={20} color={theme.colors.textSubtle} />
                     </TouchableOpacity>
                 </View>
+                
+                <View style={styles.lastSyncedRow}>
+                    <Ionicons
+                        name="time-outline"
+                        size={16}
+                        color={theme.colors.textSubtle}
+                    />
+                    <Text style={styles.lastSyncedText}>
+                        Last synced: {lastSyncedText}
+                    </Text>
+                </View>
 
                 {isCheckingPermissions ? (
                 <View style={styles.permissionChecking}>
