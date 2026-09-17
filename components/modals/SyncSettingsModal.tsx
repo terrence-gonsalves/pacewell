@@ -242,38 +242,6 @@ export default function SyncSettingsModal({
                         <Ionicons name="close" size={20} color={theme.colors.textSubtle} />
                     </TouchableOpacity>
                 </View>
-                
-                <View style={styles.lastSyncedRow}>
-                    <Ionicons
-                        name="time-outline"
-                        size={16}
-                        color={theme.colors.textSubtle}
-                    />
-                    <Text style={styles.lastSyncedText}>
-                        Last synced: {lastSyncedText}
-                    </Text>
-                </View>
-
-                <View style={styles.lastSyncedRow}>
-                    <Ionicons name="settings-outline" size={16} color={theme.colors.textSubtle} />
-                    <Text style={styles.lastSyncedText}>
-                        Background sync: {backgroundRegistered ? 'Registered' : 'Not registered'}
-                    </Text>
-                </View>
-
-                <View style={styles.lastSyncedRow}>
-                    <Ionicons name="pulse-outline" size={16} color={theme.colors.textSubtle} />
-                    <Text style={styles.lastSyncedText}>
-                        Last background attempt: {lastBackgroundAttempt ? new Date(lastBackgroundAttempt).toLocaleString() : 'Never'}
-                    </Text>
-                </View>
-
-                <View style={styles.lastSyncedRow}>
-                    <Ionicons name="checkmark-circle-outline" size={16} color={theme.colors.textSubtle} />
-                    <Text style={styles.lastSyncedText}>
-                        Last background result: {lastBackgroundResult ?? 'Never'}
-                    </Text>
-                </View>
 
                 {isCheckingPermissions ? (
                 <View style={styles.permissionChecking}>
