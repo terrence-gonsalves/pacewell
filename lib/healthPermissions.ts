@@ -11,7 +11,8 @@ type HealthConnectPermission = {
         | 'HeartRate'
         | 'RestingHeartRate'
         | 'ExerciseSession'
-        | 'Weight';
+        | 'Weight'
+        | 'BackgroundAccessPermission';
 };
 
 export type HealthConnectPermissionStatus = {
@@ -28,6 +29,7 @@ export const REQUIRED_HEALTH_CONNECT_PERMISSIONS: HealthConnectPermission[] = [
     { accessType: 'read', recordType: 'RestingHeartRate' },
     { accessType: 'read', recordType: 'ExerciseSession' },
     { accessType: 'read', recordType: 'Weight' },
+    { accessType: 'read', recordType: 'BackgroundAccessPermission' },
 ];
 
 export const HEALTH_CONNECT_PERMISSION_LABELS: Record<
@@ -40,6 +42,7 @@ export const HEALTH_CONNECT_PERMISSION_LABELS: Record<
     RestingHeartRate: 'Resting heart rate',
     ExerciseSession: 'Exercise and workouts',
     Weight: 'Weight',
+    BackgroundAccessPermission: 'Background health access',
 };
 
 // ─── Android Health Connect ───────────────────────────────────────────────────
