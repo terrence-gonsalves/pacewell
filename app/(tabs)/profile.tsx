@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     Image,
     Linking,
+    AppState
 } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
@@ -98,6 +99,19 @@ export default function Profile() {
     useFocusEffect(
         useCallback(() => {
             loadProfile();
+        }, [])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            const subscription = AppState.addEventListener('change', async nextAppState => {
+                if (nextAppState === 'active') {
+                    const lastSynced = await getLastSyncedFormatted();
+                    setLastSyncedText(lastSynced);
+                }
+            });
+    
+            return () => subscription.remove();
         }, [])
     );
 
