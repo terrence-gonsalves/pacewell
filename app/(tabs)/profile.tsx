@@ -104,14 +104,25 @@ export default function Profile() {
 
     useFocusEffect(
         useCallback(() => {
-            const subscription = AppState.addEventListener('change', async nextAppState => {
+            const refreshLastSynced = async () => {
+                const lastSynced = await getLastSyncedFormatted();
+                setLastSyncedText(lastSynced);
+            };
+    
+            refreshLastSynced();
+    
+            const interval = setInterval(refreshLastSynced, 60 * 1000);
+    
+            const subscription = AppState.addEventListener('change', nextAppState => {
                 if (nextAppState === 'active') {
-                    const lastSynced = await getLastSyncedFormatted();
-                    setLastSyncedText(lastSynced);
+                    refreshLastSynced();
                 }
             });
     
-            return () => subscription.remove();
+            return () => {
+                clearInterval(interval);
+                subscription.remove();
+            };
         }, [])
     );
 
