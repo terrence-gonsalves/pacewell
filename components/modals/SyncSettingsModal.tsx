@@ -254,6 +254,32 @@ export default function SyncSettingsModal({
                     </Text>
                 </View>
 
+                <View style={styles.lastSyncedRow}>
+                    <Ionicons
+                        name="pulse-outline"
+                        size={16}
+                        color={theme.colors.textSubtle}
+                    />
+                    <Text style={styles.lastSyncedText}>
+                        Last background attempt: {
+                            lastBackgroundAttempt
+                                ? new Date(lastBackgroundAttempt).toLocaleString()
+                                : 'Never'
+                        }
+                    </Text>
+                </View>
+
+                <View style={styles.lastSyncedRow}>
+                    <Ionicons
+                        name="checkmark-circle-outline"
+                        size={16}
+                        color={theme.colors.textSubtle}
+                    />
+                    <Text style={styles.lastSyncedText}>
+                        Last background result: {lastBackgroundResult ?? 'Never'}
+                    </Text>
+                </View>
+
                 {isCheckingPermissions ? (
                 <View style={styles.permissionChecking}>
                     <ActivityIndicator size="small" color={theme.colors.primary} />
