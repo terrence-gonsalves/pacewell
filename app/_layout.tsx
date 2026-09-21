@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import * as TaskManager from 'expo-task-manager';
 import { Stack, router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
@@ -8,16 +9,9 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import {
-    setupAndroidChannel,
-} from '../lib/notifications';
-import {
-    getSyncSettings,
-    scheduleBackgroundSync,
-} from '../lib/syncManager';
-import {
-    generateInsights,
-} from '../lib/insights';
+import { setupAndroidChannel } from '../lib/notifications';
+import { BACKGROUND_SYNC_TASK, getSyncSettings, scheduleBackgroundSync } from '../lib/syncManager';
+import { generateInsights } from '../lib/insights';
 import { handleDeepLink } from '../lib/supabase';
 import CustomSplash from './splash';
 import { FeedbackProvider } from '../contexts/FeedbackContext';
@@ -57,13 +51,19 @@ const ensureProfile = async (session: Session) => {
 const initializeBackgroundSync = async () => {
     try {
         const settings = await getSyncSettings();
-    
-        if (settings.enabled) {
+
+        if (!settings.enabled) return;
+
+        const isRegistered = await TaskManager.isTaskRegisteredAsync(
+            BACKGROUND_SYNC_TASK
+        );
+
+        if (!isRegistered) {
             await scheduleBackgroundSync(settings.intervalHours);
         }
     } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
-    
+
         console.error('Background sync initialization failed:', message);
     }
 };
