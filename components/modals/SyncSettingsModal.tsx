@@ -359,6 +359,25 @@ export default function SyncSettingsModal({
                 {settings.enabled && (
                 <View>
                     <View style={styles.intervalSection}>
+                        <View style={styles.backgroundNotice}>
+                            <Ionicons
+                                name="information-circle-outline"
+                                size={20}
+                                color={theme.colors.primary}
+                            />
+
+                            <View style={styles.backgroundNoticeContent}>
+                                <Text style={styles.backgroundNoticeTitle}>
+                                    Background sync
+                                </Text>
+
+                                <Text style={styles.backgroundNoticeText}>
+                                    Battery settings can delay automatic syncing. For more reliable updates,
+                                    allow Pacewell to run in the background and exclude it from battery optimization.
+                                </Text>
+                            </View>
+                        </View>
+
                         <View style={styles.settingLeft}>
                             <View style={styles.settingIcon}>
                                 <Ionicons
@@ -685,5 +704,30 @@ const styles = StyleSheet.create({
         ...theme.typography.caption,
         color: theme.colors.textDark,
         fontWeight: '600',
+    },
+    backgroundNotice: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: theme.spacing.sm,
+        backgroundColor: theme.colors.primaryLight,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing.md,
+        marginBottom: theme.spacing.md,
+        borderWidth: 1,
+        borderColor: theme.colors.primary,
+    },
+    backgroundNoticeContent: {
+        flex: 1,
+    },
+    backgroundNoticeTitle: {
+        ...theme.typography.body,
+        color: theme.colors.textDark,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    backgroundNoticeText: {
+        ...theme.typography.caption,
+        color: theme.colors.textBody,
+        lineHeight: 18,
     },
 });
