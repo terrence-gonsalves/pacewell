@@ -296,7 +296,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
     splashLayer: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#265946',
+        backgroundColor: '#2E7D52',
         zIndex: 999,
     },
 });
