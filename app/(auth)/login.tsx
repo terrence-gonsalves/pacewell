@@ -10,6 +10,7 @@ import {
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import PacewellLogo from '../../components/logo/PacewellLogo';
 import { supabase } from '../../lib/supabase';
 import { theme } from '../../lib/theme';
 
@@ -145,7 +146,7 @@ export default function Login() {
         >
             <View style={styles.brandIconWrapper}>
                 <View style={styles.brandIcon}>
-                    <Ionicons name="flash" size={32} color={theme.colors.white} />
+                    <PacewellLogo size={32} variant="white" />
                 </View>
             </View>
             

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import PacewellLogo from '../../components/logo/PacewellLogo';
 import { AIInsight, ActivityLog, ActivityType, EmojiScale, EmojiScaleLabels } from '../../types/health';
 import { formatDate, parseLocalDate, getLocalDate } from '../../lib/locale';
 import { theme } from '../../lib/theme';
@@ -531,7 +532,7 @@ export default function Dashboard() {
             >
                 <View style={styles.headerRow}>
                     <View style={styles.brandIcon}>
-                        <Ionicons name="flash" size={20} color={theme.colors.white} />
+                        <PacewellLogo size={20} variant="white" />
                     </View>
                     <TouchableOpacity
                         style={styles.avatarContainer}
