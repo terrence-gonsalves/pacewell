@@ -13,8 +13,8 @@ export default function PacewellLogo({
 }: PacewellLogoProps) {
     const source =
         variant === 'white'
-            ? require('../assets/branding/pacewell-logo-white-transparent.png')
-            : require('../assets/branding/pacewell-logo-green-transparent.png');
+            ? require('../../assets/branding/pacewell-logo-white-transparent.png')
+            : require('../../assets/branding/pacewell-logo-green-transparent.png');
 
     return (
         <Image
