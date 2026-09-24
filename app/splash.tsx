@@ -7,6 +7,7 @@ import {
     Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import PacewellLogo from '../components/logo/PacewellLogo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -82,7 +83,7 @@ export default function CustomSplash({ ready, onComplete }: SplashScreenProps) {
                     },
                 ]}
             >
-                <Ionicons name="flash" size={48} color="#E8F5EE" />
+                <PacewellLogo size={48} variant="white" />
             </Animated.View>
             
             <Animated.Text style={[styles.appName, { opacity: textOpacity }]}>
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
         left: 0,
         width,
         height,
-        backgroundColor: '#265946',
+        backgroundColor: '#2E7D52',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 999,
