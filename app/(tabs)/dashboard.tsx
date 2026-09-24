@@ -307,66 +307,66 @@ export default function Dashboard() {
                 storedUnits,
                 reminderPromptDismissed,
             ] = await Promise.all([
-                    fetchProfileWithRetry(user.id),
+                fetchProfileWithRetry(user.id),
 
-                    supabase
-                        .from('daily_checkins')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .eq('date', today)
-                        .maybeSingle(),
+                supabase
+                    .from('daily_checkins')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('date', today)
+                    .maybeSingle(),
 
-                    supabase
-                        .from('daily_checkins')
-                        .select('date, mood, energy, sleep_hours')
-                        .eq('user_id', user.id)
-                        .gte('date', sevenDaysAgo)
-                        .order('date', { ascending: false }),
+                supabase
+                    .from('daily_checkins')
+                    .select('date, mood, energy, sleep_hours')
+                    .eq('user_id', user.id)
+                    .gte('date', sevenDaysAgo)
+                    .order('date', { ascending: false }),
 
-                    supabase
-                        .from('daily_checkins')
-                        .select('date')
-                        .eq('user_id', user.id)
-                        .order('date', { ascending: false }),
+                supabase
+                    .from('daily_checkins')
+                    .select('date')
+                    .eq('user_id', user.id)
+                    .order('date', { ascending: false }),
 
-                    supabase
-                        .from('activity_logs')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .eq('is_hidden', false)
-                        .order('created_at', { ascending: false })
-                        .limit(5),
+                supabase
+                    .from('activity_logs')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('is_hidden', false)
+                    .order('created_at', { ascending: false })
+                    .limit(5),
 
-                    supabase
-                        .from('ai_insights')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .eq('data_range_end', today)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle(),
+                supabase
+                    .from('ai_insights')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('data_range_end', today)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle(),
 
-                    supabase
-                        .from('health_metrics')
-                        .select(
-                            'step_count, avg_heart_rate, resting_heart_rate'
-                        )
-                        .eq('user_id', user.id)
-                        .eq('date', today)
-                        .maybeSingle(),
-                    
-                    supabase
-                        .from('health_metrics')
-                        .select('weight_kg, date')
-                        .eq('user_id', user.id)
-                        .not('weight_kg', 'is', null)
-                        .order('date', { ascending: false })
-                        .limit(1)
-                        .maybeSingle(),
-                    
-                    getUserSetting(user.id, 'units'),
-                    getUserSetting(user.id, 'reminder_prompt_dismissed'),
-                ]);
+                supabase
+                    .from('health_metrics')
+                    .select(
+                        'step_count, avg_heart_rate, resting_heart_rate'
+                    )
+                    .eq('user_id', user.id)
+                    .eq('date', today)
+                    .maybeSingle(),
+                
+                supabase
+                    .from('health_metrics')
+                    .select('weight_kg, date')
+                    .eq('user_id', user.id)
+                    .not('weight_kg', 'is', null)
+                    .order('date', { ascending: false })
+                    .limit(1)
+                    .maybeSingle(),
+                
+                getUserSetting(user.id, 'units'),
+                getUserSetting(user.id, 'reminder_prompt_dismissed'),
+            ]);
 
             const checkIns = weekCheckInsResult.data ?? [];
             const avgMood = checkIns.length
@@ -614,7 +614,7 @@ export default function Dashboard() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                )}
+                    )}
                     
                     {data?.streak !== undefined && data.streak >= 1 && (
                     <View style={styles.streakCard}>
