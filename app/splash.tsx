@@ -6,7 +6,6 @@ import {
     Animated,
     Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import PacewellLogo from '../components/logo/PacewellLogo';
 
 const { width, height } = Dimensions.get('window');
