@@ -5,7 +5,7 @@
     "scheme": "pacewell",
     "version": "0.12.13",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/branding/pacewell-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -18,8 +18,8 @@
     "android": {
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#265946",
-        "foregroundImage": "./assets/android-icon-foreground.png"
+        "backgroundColor": "#2E7D52",
+        "foregroundImage": "./assets/branding/pacewell-logo-white-transparent.png"
       },
       "package": "com.gonsalves.pacewell",
       "versionCode": 19,
@@ -59,17 +59,17 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#2d6a4f"
+          "icon": "./assets/branding/pacewell-logo-white-transparent.png",
+          "color": "#2E7D52"
         }
       ],
       "expo-font",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/branding/pacewell-logo-white-transparent.png",
           "resizeMode": "contain",
-          "backgroundColor": "#265946"
+          "backgroundColor": "#2E7D52"
         }
       ],
       "expo-background-task",
