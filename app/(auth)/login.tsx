@@ -146,7 +146,7 @@ export default function Login() {
         >
             <View style={styles.brandIconWrapper}>
                 <View style={styles.brandIcon}>
-                <PacewellLogo size={32} variant="white" />
+                    <PacewellLogo size={32} variant="white" />
                 </View>
             </View>
             
