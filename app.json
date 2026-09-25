@@ -19,7 +19,7 @@
       "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#2E7D52",
-        "foregroundImage": "./assets/branding/pacewell-logo-white-transparent.png"
+        "foregroundImage": "./assets/branding/pacewell-adaptive-foreground.png"
       },
       "package": "com.gonsalves.pacewell",
       "versionCode": 19,
