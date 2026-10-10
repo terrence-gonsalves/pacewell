@@ -73,15 +73,7 @@ export default function CustomSplash({ ready, onComplete }: SplashScreenProps) {
     
     return (
         <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
-            <Animated.View
-                style={[
-                    styles.iconContainer,
-                    {
-                        opacity: iconOpacity,
-                        transform: [{ scale: iconScale }],
-                    },
-                ]}
-            >
+            <Animated.View style={styles.iconContainer}>
                 <PacewellLogo size={48} variant="white" />
             </Animated.View>
             

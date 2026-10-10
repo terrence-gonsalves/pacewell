@@ -540,10 +540,7 @@ export default function Dashboard() {
                     >
 
                         {data?.avatarUrl ? (
-                        <Image
-                            source={{ uri: data.avatarUrl }}
-                            style={styles.headerAvatarImage}
-                        />
+                        <Image source={{ uri: data.avatarUrl }} style={styles.headerAvatarImage} />
                         ) : (
                         <View style={styles.headerAvatar}>
                             <Text style={styles.headerAvatarText}>

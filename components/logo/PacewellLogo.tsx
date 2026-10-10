@@ -26,7 +26,7 @@ export default function PacewellLogo({
                 },
                 style,
             ]}
-            resizeMode="contain"
+            resizeMode="cover"
         />
     );
 }
