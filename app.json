@@ -67,8 +67,6 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/branding/pacewell-logo-white-transparent.png",
-          "resizeMode": "contain",
           "backgroundColor": "#2E7D52"
         }
       ],
