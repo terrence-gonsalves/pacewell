@@ -56,18 +56,21 @@ export default function CustomSplash({ ready, onComplete }: SplashScreenProps) {
         if (!ready) {
             return;
         }
-    
+        
+        // allow the user to see the logo and text animations to finish
         Animated.sequence([
-            Animated.delay(800),
+            Animated.delay(1500),
             Animated.timing(screenOpacity, {
                 toValue: 0,
                 duration: 400,
                 useNativeDriver: true,
             }),
-        ]).start(() => {
-            onComplete();
+        ]).start(({ finished }) => {
+            if (finished) {
+                onComplete();
+            }
         });
-    }, [ready]);
+    }, [ready, onComplete, screenOpacity]);
 
     // ─── Render ───────────────────────────────────────────────────────────────
     
